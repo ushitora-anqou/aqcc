@@ -6,6 +6,7 @@
 enum {
     tINT,
     tPLUS,
+    tMINUS,
     tEOF,
 };
 
@@ -51,18 +52,17 @@ Token read_next_token(FILE *fh)
             return read_next_int_token(fh);
         }
 
-        if (ch == '+') {
-            Token token;
-
-            token.kind = tPLUS;
-            return token;
-        }
-
-        if (ch == EOF) {
-            Token token;
-
-            token.kind = tEOF;
-            return token;
+        Token token;
+        switch (ch) {
+            case '+':
+                token.kind = tPLUS;
+                return token;
+            case '-':
+                token.kind = tMINUS;
+                return token;
+            case EOF:
+                token.kind = tEOF;
+                return token;
         }
     }
 }
@@ -88,6 +88,15 @@ int main()
                 printf("add $%d, %%eax\n", token.ival);
                 puts("push %rax");
                 break;
+
+            case tMINUS:
+                token = read_next_token(stdin);
+                assert(token.kind == tINT);
+                puts("pop %rax");
+                printf("sub $%d, %%eax\n", token.ival);
+                puts("push %rax");
+                break;
+
             default:
                 assert(0);
         }
