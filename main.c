@@ -19,7 +19,14 @@ typedef struct {
     };
 } Token;
 
-Token read_next_int_token(FILE *fh)
+Token *new_token(int kind)
+{
+    Token *token = safe_malloc(sizeof(Token));
+    token->kind = kind;
+    return token;
+}
+
+Token *read_next_int_token(FILE *fh)
 {
     char buf[256];  // TODO: enough length?
     int bufidx = 0;
@@ -28,20 +35,20 @@ Token read_next_int_token(FILE *fh)
         int ch = fgetc(fh);
 
         if (!isdigit(ch)) {
-            Token token;
-
-            buf[bufidx++] = '\0';
             ungetc(ch, fh);
-            token.kind = tINT;
-            token.ival = atoi(buf);
-            return token;
+            break;
         }
 
         buf[bufidx++] = ch;
     }
+
+    Token *token = new_token(tINT);
+    buf[bufidx++] = '\0';
+    token->ival = atoi(buf);
+    return token;
 }
 
-Token read_next_token(FILE *fh)
+Token *read_next_token(FILE *fh)
 {
     while (1) {
         int ch;
@@ -53,53 +60,91 @@ Token read_next_token(FILE *fh)
             return read_next_int_token(fh);
         }
 
-        Token token;
         switch (ch) {
             case '+':
-                token.kind = tPLUS;
-                return token;
+                return new_token(tPLUS);
             case '-':
-                token.kind = tMINUS;
-                return token;
+                return new_token(tMINUS);
             case EOF:
-                token.kind = tEOF;
-                return token;
+                return new_token(tEOF);
         }
     }
 }
 
+Vector *read_all_tokens(FILE *fh)
+{
+    Vector *tokens = new_vector();
+
+    while (1) {
+        Token *token = read_next_token(fh);
+        vector_push_back(tokens, token);
+        if (token->kind == tEOF) break;
+    }
+
+    return tokens;
+}
+
+typedef struct {
+    Vector *tokens;
+    size_t idx;
+} TokenSeq;
+
+TokenSeq *new_token_seq(Vector *tokens)
+{
+    TokenSeq *this = safe_malloc(sizeof(TokenSeq));
+
+    this->tokens = tokens;
+    this->idx = 0;
+    return this;
+}
+
+Token *pop_token(TokenSeq *seq)
+{
+    Token *token = vector_get(seq->tokens, seq->idx++);
+    if (token == NULL) error("no next token.", __FILE__, __LINE__);
+    return token;
+}
+
+Token *expect_token(TokenSeq *seq, int kind)
+{
+    Token *token = pop_token(seq);
+    if (token->kind != kind) error("unexpected token.", __FILE__, __LINE__);
+    return token;
+}
+
 int main()
 {
+    Vector *tokens = read_all_tokens(stdin);
+    TokenSeq *tokseq = new_token_seq(tokens);
+    Token *token;
+
     puts(".global main");
     puts("main:");
 
-    Token token = read_next_token(stdin);
-    assert(token.kind == tINT);
-    printf("push $%d\n", token.ival);
+    token = expect_token(tokseq, tINT);
+    printf("push $%d\n", token->ival);
 
     while (1) {
-        token = read_next_token(stdin);
-        if (token.kind == tEOF) break;
+        token = pop_token(tokseq);
+        if (token->kind == tEOF) break;
 
-        switch (token.kind) {
+        switch (token->kind) {
             case tPLUS:
-                token = read_next_token(stdin);
-                assert(token.kind == tINT);
+                token = expect_token(tokseq, tINT);
                 puts("pop %rax");
-                printf("add $%d, %%eax\n", token.ival);
+                printf("add $%d, %%eax\n", token->ival);
                 puts("push %rax");
                 break;
 
             case tMINUS:
-                token = read_next_token(stdin);
-                assert(token.kind == tINT);
+                token = expect_token(tokseq, tINT);
                 puts("pop %rax");
-                printf("sub $%d, %%eax\n", token.ival);
+                printf("sub $%d, %%eax\n", token->ival);
                 puts("push %rax");
                 break;
 
             default:
-                assert(0);
+                error("plus or minus is expected here.", __FILE__, __LINE__);
         }
     }
 
