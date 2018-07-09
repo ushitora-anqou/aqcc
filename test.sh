@@ -25,6 +25,9 @@ test_aqcc 363/121 3
 test_aqcc 100/3 33
 test_aqcc 1+2*3 7
 test_aqcc 1+4*2-9/3 6
+test_aqcc 4%2 0
+test_aqcc 5%2 1
+test_aqcc 1935%10 5
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c

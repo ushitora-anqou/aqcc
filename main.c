@@ -10,6 +10,7 @@ enum {
     tMINUS,
     tSTAR,
     tSLASH,
+    tPERCENT,
     tEOF,
 };
 
@@ -71,6 +72,8 @@ Token *read_next_token(FILE *fh)
                 return new_token(tSTAR);
             case '/':
                 return new_token(tSLASH);
+            case '%':
+                return new_token(tPERCENT);
             case EOF:
                 return new_token(tEOF);
         }
@@ -130,6 +133,7 @@ enum {
     AST_SUB,
     AST_MUL,
     AST_DIV,
+    AST_REM,
     AST_INT,
 };
 
@@ -183,6 +187,10 @@ AST *parse_multiplicative_expr(TokenSeq *tokseq)
             case tSLASH:
                 pop_token(tokseq);
                 ast = new_binop_ast(AST_DIV, ast, parse_primary_expr(tokseq));
+                break;
+            case tPERCENT:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_REM, ast, parse_primary_expr(tokseq));
                 break;
             default:
                 return ast;
@@ -252,6 +260,16 @@ void print_code(FILE *fh, AST *ast)
                     "cqto\n"
                     "idiv %%rdi\n"
                     "push %%rax\n");
+            break;
+        case AST_REM:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cqto\n"
+                    "idiv %%rdi\n"
+                    "push %%rdx\n");
             break;
         case AST_INT:
             fprintf(fh, "push $%d\n", ast->ival);
