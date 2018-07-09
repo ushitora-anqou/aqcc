@@ -88,6 +88,9 @@ Token *read_next_token(FILE *fh)
                 ch = fgetc(fh);
                 if (ch != '=') break;
                 return new_token(tNEQ);
+            case '&':
+                ch = fgetc(fh);
+                return new_token(tAND);
             case EOF:
                 return new_token(tEOF);
         }
@@ -317,7 +320,34 @@ AST *parse_equality_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_equality_expr(tokseq); }
+AST *parse_and_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_equality_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tAND:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_AND, ast, parse_equality_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_and_expr(tokseq); }
+
+AST *parse_prog(TokenSeq *tokseq)
+{
+    AST *ast = parse_expr(tokseq);
+
+    if (peek_token(tokseq)->kind != tEOF)
+        error("invalid token sequence", __FILE__, __LINE__);
+
+    return ast;
+}
 
 void print_code(FILE *fh, AST *ast)
 {
@@ -331,6 +361,7 @@ void print_code(FILE *fh, AST *ast)
                     "add %%edi, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_SUB:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -340,6 +371,7 @@ void print_code(FILE *fh, AST *ast)
                     "sub %%edi, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_MUL:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -349,6 +381,7 @@ void print_code(FILE *fh, AST *ast)
                     "imul %%edi, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_DIV:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -359,6 +392,7 @@ void print_code(FILE *fh, AST *ast)
                     "idiv %%edi\n"
                     "push %%rax\n");
             break;
+
         case AST_REM:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -369,6 +403,7 @@ void print_code(FILE *fh, AST *ast)
                     "idiv %%edi\n"
                     "push %%rdx\n");
             break;
+
         case AST_UNARY_MINUS:
             print_code(fh, ast->lhs);
             fprintf(fh,
@@ -376,6 +411,7 @@ void print_code(FILE *fh, AST *ast)
                     "neg %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_LSHIFT:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -385,6 +421,7 @@ void print_code(FILE *fh, AST *ast)
                     "sal %%cl, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_RSHIFT:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -394,6 +431,7 @@ void print_code(FILE *fh, AST *ast)
                     "sar %%cl, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_LT:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -405,6 +443,7 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_GT:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -416,6 +455,7 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_LTE:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -427,6 +467,7 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_GTE:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -438,6 +479,7 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_EQ:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -449,6 +491,7 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
         case AST_NEQ:
             print_code(fh, ast->lhs);
             print_code(fh, ast->rhs);
@@ -460,12 +503,24 @@ void print_code(FILE *fh, AST *ast)
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
+
+        case AST_AND:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "and %%edi, %%eax\n"
+                    "push %%rax\n");
+            break;
+
         case AST_INT:
             fprintf(fh,
                     "mov $%d, %%eax\n"
                     "push %%rax\n",
                     ast->ival);
             break;
+
         default:
             assert(0);
     }
@@ -475,7 +530,7 @@ int main()
 {
     Vector *tokens = read_all_tokens(stdin);
     TokenSeq *tokseq = new_token_seq(tokens);
-    AST *ast = parse_expr(tokseq);
+    AST *ast = parse_prog(tokseq);
 
     puts(".global main");
     puts("main:");
