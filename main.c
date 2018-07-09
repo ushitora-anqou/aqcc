@@ -328,7 +328,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "add %%rdi, %%rax\n"
+                    "add %%edi, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_SUB:
@@ -337,7 +337,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "sub %%rdi, %%rax\n"
+                    "sub %%edi, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_MUL:
@@ -346,7 +346,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "imul %%rdi, %%rax\n"
+                    "imul %%edi, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_DIV:
@@ -355,8 +355,8 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cqto\n"
-                    "idiv %%rdi\n"
+                    "cltd\n"
+                    "idiv %%edi\n"
                     "push %%rax\n");
             break;
         case AST_REM:
@@ -365,15 +365,15 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cqto\n"
-                    "idiv %%rdi\n"
+                    "cltd\n"
+                    "idiv %%edi\n"
                     "push %%rdx\n");
             break;
         case AST_UNARY_MINUS:
             print_code(fh, ast->lhs);
             fprintf(fh,
                     "pop %%rax\n"
-                    "neg %%rax\n"
+                    "neg %%eax\n"
                     "push %%rax\n");
             break;
         case AST_LSHIFT:
@@ -382,7 +382,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rcx\n"
                     "pop %%rax\n"
-                    "sal %%cl, %%rax\n"
+                    "sal %%cl, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_RSHIFT:
@@ -391,7 +391,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rcx\n"
                     "pop %%rax\n"
-                    "sar %%cl, %%rax\n"
+                    "sar %%cl, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_LT:
@@ -400,7 +400,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "setl %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
@@ -411,7 +411,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "setg %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
@@ -422,7 +422,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "setle %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
@@ -433,7 +433,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "setge %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
@@ -444,7 +444,7 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "sete %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
@@ -455,13 +455,16 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
-                    "cmp %%rdi, %%rax\n"
+                    "cmp %%edi, %%eax\n"
                     "setne %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_INT:
-            fprintf(fh, "push $%d\n", ast->ival);
+            fprintf(fh,
+                    "mov $%d, %%eax\n"
+                    "push %%rax\n",
+                    ast->ival);
             break;
         default:
             assert(0);
