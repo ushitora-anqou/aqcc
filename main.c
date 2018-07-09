@@ -11,6 +11,8 @@ enum {
     tSTAR,
     tSLASH,
     tPERCENT,
+    tLPAREN,
+    tRPAREN,
     tEOF,
 };
 
@@ -74,6 +76,10 @@ Token *read_next_token(FILE *fh)
                 return new_token(tSLASH);
             case '%':
                 return new_token(tPERCENT);
+            case '(':
+                return new_token(tLPAREN);
+            case ')':
+                return new_token(tRPAREN);
             case EOF:
                 return new_token(tEOF);
         }
@@ -92,11 +98,6 @@ Vector *read_all_tokens(FILE *fh)
 
     return tokens;
 }
-
-typedef struct {
-    Vector *tokens;
-    size_t idx;
-} TokenSeq;
 
 TokenSeq *new_token_seq(Vector *tokens)
 {
@@ -128,28 +129,6 @@ Token *expect_token(TokenSeq *seq, int kind)
     return token;
 }
 
-enum {
-    AST_ADD,
-    AST_SUB,
-    AST_MUL,
-    AST_DIV,
-    AST_REM,
-    AST_INT,
-};
-
-typedef struct AST AST;
-struct AST {
-    int kind;
-
-    union {
-        int ival;
-
-        struct {
-            AST *lhs, *rhs;
-        };
-    };
-};
-
 AST *new_ast(int kind)
 {
     AST *this = safe_malloc(sizeof(AST));
@@ -167,9 +146,22 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
 
 AST *parse_primary_expr(TokenSeq *tokseq)
 {
-    Token *token = expect_token(tokseq, tINT);
-    AST *ast = new_ast(AST_INT);
-    ast->ival = token->ival;
+    AST *ast;
+    Token *token = pop_token(tokseq);
+    switch (token->kind) {
+        case tINT:
+            ast = new_ast(AST_INT);
+            ast->ival = token->ival;
+            break;
+
+        case tLPAREN:
+            ast = parse_expr(tokseq);
+            expect_token(tokseq, tRPAREN);
+            break;
+
+        default:
+            error("unexpected token", __FILE__, __LINE__);
+    }
     return ast;
 }
 
@@ -220,6 +212,8 @@ AST *parse_additive_expr(TokenSeq *tokseq)
         }
     }
 }
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_additive_expr(tokseq); }
 
 void print_code(FILE *fh, AST *ast)
 {
@@ -283,7 +277,7 @@ int main()
 {
     Vector *tokens = read_all_tokens(stdin);
     TokenSeq *tokseq = new_token_seq(tokens);
-    AST *ast = parse_additive_expr(tokseq);
+    AST *ast = parse_expr(tokseq);
 
     puts(".global main");
     puts("main:");
