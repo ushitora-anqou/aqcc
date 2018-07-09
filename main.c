@@ -64,12 +64,22 @@ Token *read_next_token(FILE *fh)
                 return new_token(tRPAREN);
             case '<':
                 ch = fgetc(fh);
-                if (ch != '<') error("unexpected token", __FILE__, __LINE__);
-                return new_token(tLSHIFT);
+                switch (ch) {
+                    case '<':
+                        return new_token(tLSHIFT);
+                    case '=':
+                        return new_token(tLTE);
+                }
+                return new_token(tLT);
             case '>':
                 ch = fgetc(fh);
-                if (ch != '>') error("unexpected token", __FILE__, __LINE__);
-                return new_token(tRSHIFT);
+                switch (ch) {
+                    case '>':
+                        return new_token(tRSHIFT);
+                    case '=':
+                        return new_token(tGTE);
+                }
+                return new_token(tGT);
             case EOF:
                 return new_token(tEOF);
         }
@@ -246,7 +256,36 @@ AST *parse_shift_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_shift_expr(tokseq); }
+AST *parse_relational_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_shift_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tLT:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_LT, ast, parse_shift_expr(tokseq));
+                break;
+            case tGT:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_GT, ast, parse_shift_expr(tokseq));
+                break;
+            case tLTE:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_LTE, ast, parse_shift_expr(tokseq));
+                break;
+            case tGTE:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_GTE, ast, parse_shift_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_relational_expr(tokseq); }
 
 void print_code(FILE *fh, AST *ast)
 {
@@ -321,6 +360,50 @@ void print_code(FILE *fh, AST *ast)
                     "pop %%rcx\n"
                     "pop %%rax\n"
                     "sar %%cl, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_LT:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "setl %%al\n"
+                    "movzb %%al, %%eax\n"
+                    "push %%rax\n");
+            break;
+        case AST_GT:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "setg %%al\n"
+                    "movzb %%al, %%eax\n"
+                    "push %%rax\n");
+            break;
+        case AST_LTE:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "setle %%al\n"
+                    "movzb %%al, %%eax\n"
+                    "push %%rax\n");
+            break;
+        case AST_GTE:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "setge %%al\n"
+                    "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
         case AST_INT:

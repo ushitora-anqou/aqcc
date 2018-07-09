@@ -45,6 +45,17 @@ test_aqcc "(2 - 1) << 1" 2
 test_aqcc "2 >> 1" 1
 test_aqcc "4 >> 2 >> 1" 0
 test_aqcc "(2 - 1) >> 1" 0
+test_aqcc "1 < 2" 1
+test_aqcc "4 < 2" 0
+test_aqcc "1 > 2" 0
+test_aqcc "4 > 2" 1
+test_aqcc "1 <= 2" 1
+test_aqcc "4 <= 2" 0
+test_aqcc "2 <= 2" 1
+test_aqcc "1 >= 2" 0
+test_aqcc "4 >= 2" 1
+test_aqcc "2 >= 2" 1
+test_aqcc "(2 < 1) + 1" 1
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c

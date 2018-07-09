@@ -19,6 +19,10 @@ enum {
     tRPAREN,
     tLSHIFT,
     tRSHIFT,
+    tLT,
+    tGT,
+    tLTE,
+    tGTE,
     tEOF,
 };
 
@@ -45,6 +49,10 @@ enum {
     AST_UNARY_MINUS,
     AST_LSHIFT,
     AST_RSHIFT,
+    AST_LT,
+    AST_GT,
+    AST_LTE,
+    AST_GTE,
 };
 
 typedef struct AST AST;
