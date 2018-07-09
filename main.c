@@ -13,6 +13,8 @@ enum {
     tPERCENT,
     tLPAREN,
     tRPAREN,
+    tLSHIFT,
+    tRSHIFT,
     tEOF,
 };
 
@@ -82,6 +84,14 @@ Token *read_next_token(FILE *fh)
                 return new_token(tLPAREN);
             case ')':
                 return new_token(tRPAREN);
+            case '<':
+                ch = fgetc(fh);
+                if (ch != '<') error("unexpected token", __FILE__, __LINE__);
+                return new_token(tLSHIFT);
+            case '>':
+                ch = fgetc(fh);
+                if (ch != '>') error("unexpected token", __FILE__, __LINE__);
+                return new_token(tRSHIFT);
             case EOF:
                 return new_token(tEOF);
         }
@@ -235,7 +245,30 @@ AST *parse_additive_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_additive_expr(tokseq); }
+AST *parse_shift_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_additive_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tLSHIFT:
+                pop_token(tokseq);
+                ast =
+                    new_binop_ast(AST_LSHIFT, ast, parse_additive_expr(tokseq));
+                break;
+            case tRSHIFT:
+                pop_token(tokseq);
+                ast =
+                    new_binop_ast(AST_RSHIFT, ast, parse_additive_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_shift_expr(tokseq); }
 
 void print_code(FILE *fh, AST *ast)
 {
@@ -292,6 +325,24 @@ void print_code(FILE *fh, AST *ast)
             fprintf(fh,
                     "pop %%rax\n"
                     "neg %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_LSHIFT:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rcx\n"
+                    "pop %%rax\n"
+                    "sal %%cl, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_RSHIFT:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rcx\n"
+                    "pop %%rax\n"
+                    "sar %%cl, %%rax\n"
                     "push %%rax\n");
             break;
         case AST_INT:

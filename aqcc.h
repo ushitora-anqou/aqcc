@@ -21,6 +21,8 @@ enum {
     AST_REM,
     AST_INT,
     AST_UNARY_MINUS,
+    AST_LSHIFT,
+    AST_RSHIFT,
 };
 
 typedef struct AST AST;

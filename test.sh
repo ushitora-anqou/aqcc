@@ -38,6 +38,13 @@ test_aqcc "+4" 4
 test_aqcc "-(33*(1+2))/3+34" 1
 test_aqcc "4 + 4" 8
 test_aqcc "- ( 33 * ( 1 + 2 ) ) / 3 + 34" 1
+test_aqcc "2 << 1" 4
+test_aqcc "2 << 2 << 1" 16
+test_aqcc "2 << (2 << 1)" 32
+test_aqcc "(2 - 1) << 1" 2
+test_aqcc "2 >> 1" 1
+test_aqcc "4 >> 2 >> 1" 0
+test_aqcc "(2 - 1) >> 1" 0
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c
