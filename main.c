@@ -165,24 +165,44 @@ AST *parse_primary_expr(TokenSeq *tokseq)
     return ast;
 }
 
+AST *parse_unary_expr(TokenSeq *tokseq)
+{
+    Token *token = peek_token(tokseq);
+    switch (token->kind) {
+        case tPLUS:
+            pop_token(tokseq);
+            return parse_primary_expr(tokseq);
+
+        case tMINUS: {
+            AST *ast;
+
+            pop_token(tokseq);
+            ast = new_ast(AST_UNARY_MINUS);
+            ast->lhs = parse_primary_expr(tokseq);
+            return ast;
+        }
+    }
+    return parse_primary_expr(tokseq);
+}
+
 AST *parse_multiplicative_expr(TokenSeq *tokseq)
 {
-    AST *ast = parse_primary_expr(tokseq);
+    AST *ast = parse_unary_expr(tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
             case tSTAR:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_MUL, ast, parse_primary_expr(tokseq));
+                ast = new_binop_ast(AST_MUL, ast, parse_unary_expr(tokseq));
                 break;
             case tSLASH:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_DIV, ast, parse_primary_expr(tokseq));
+                ast = new_binop_ast(AST_DIV, ast, parse_unary_expr(tokseq));
                 break;
             case tPERCENT:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_REM, ast, parse_primary_expr(tokseq));
+                ast = new_binop_ast(AST_REM, ast, parse_unary_expr(tokseq));
                 break;
             default:
                 return ast;
@@ -264,6 +284,13 @@ void print_code(FILE *fh, AST *ast)
                     "cqto\n"
                     "idiv %%rdi\n"
                     "push %%rdx\n");
+            break;
+        case AST_UNARY_MINUS:
+            print_code(fh, ast->lhs);
+            fprintf(fh,
+                    "pop %%rax\n"
+                    "neg %%rax\n"
+                    "push %%rax\n");
             break;
         case AST_INT:
             fprintf(fh, "push $%d\n", ast->ival);

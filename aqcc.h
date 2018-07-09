@@ -20,6 +20,7 @@ enum {
     AST_DIV,
     AST_REM,
     AST_INT,
+    AST_UNARY_MINUS,
 };
 
 typedef struct AST AST;
