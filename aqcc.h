@@ -23,6 +23,8 @@ enum {
     tGT,
     tLTE,
     tGTE,
+    tEQ,
+    tNEQ,
     tEOF,
 };
 
@@ -53,6 +55,8 @@ enum {
     AST_GT,
     AST_LTE,
     AST_GTE,
+    AST_EQ,
+    AST_NEQ,
 };
 
 typedef struct AST AST;

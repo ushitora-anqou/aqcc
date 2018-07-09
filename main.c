@@ -80,9 +80,19 @@ Token *read_next_token(FILE *fh)
                         return new_token(tGTE);
                 }
                 return new_token(tGT);
+            case '=':
+                ch = fgetc(fh);
+                if (ch != '=') break;
+                return new_token(tEQ);
+            case '!':
+                ch = fgetc(fh);
+                if (ch != '=') break;
+                return new_token(tNEQ);
             case EOF:
                 return new_token(tEOF);
         }
+
+        error("unexpected token", __FILE__, __LINE__);
     }
 }
 
@@ -285,7 +295,29 @@ AST *parse_relational_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_relational_expr(tokseq); }
+AST *parse_equality_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_relational_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tEQ:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_EQ, ast, parse_relational_expr(tokseq));
+                break;
+            case tNEQ:
+                pop_token(tokseq);
+                ast =
+                    new_binop_ast(AST_NEQ, ast, parse_relational_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_equality_expr(tokseq); }
 
 void print_code(FILE *fh, AST *ast)
 {
@@ -403,6 +435,28 @@ void print_code(FILE *fh, AST *ast)
                     "pop %%rax\n"
                     "cmp %%rdi, %%rax\n"
                     "setge %%al\n"
+                    "movzb %%al, %%eax\n"
+                    "push %%rax\n");
+            break;
+        case AST_EQ:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "sete %%al\n"
+                    "movzb %%al, %%eax\n"
+                    "push %%rax\n");
+            break;
+        case AST_NEQ:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cmp %%rdi, %%rax\n"
+                    "setne %%al\n"
                     "movzb %%al, %%eax\n"
                     "push %%rax\n");
             break;
