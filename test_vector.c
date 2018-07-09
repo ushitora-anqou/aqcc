@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include "aqcc.h"
 
@@ -17,4 +18,7 @@ int main()
         printf("%c", (char)*d);
     }
     printf("\n");
+
+    // out-of-range access should return NULL.
+    assert(vector_get(vec, vec->size) == NULL);
 }
