@@ -94,6 +94,9 @@ Token *read_next_token(FILE *fh)
             case '^':
                 ch = fgetc(fh);
                 return new_token(tHAT);
+            case '|':
+                ch = fgetc(fh);
+                return new_token(tBAR);
             case EOF:
                 return new_token(tEOF);
         }
@@ -357,7 +360,25 @@ AST *parse_exclusive_or_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_exclusive_or_expr(tokseq); }
+AST *parse_inclusive_or_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_exclusive_or_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tBAR:
+                pop_token(tokseq);
+                ast =
+                    new_binop_ast(AST_OR, ast, parse_exclusive_or_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_inclusive_or_expr(tokseq); }
 
 AST *parse_prog(TokenSeq *tokseq)
 {
@@ -541,6 +562,16 @@ void print_code(FILE *fh, AST *ast)
                     "pop %%rdi\n"
                     "pop %%rax\n"
                     "xor %%edi, %%eax\n"
+                    "push %%rax\n");
+            break;
+
+        case AST_OR:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "or %%edi, %%eax\n"
                     "push %%rax\n");
             break;
 

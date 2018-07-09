@@ -80,6 +80,13 @@ test_aqcc "1 ^ 1" 0
 test_aqcc "1 ^ 2" 3
 test_aqcc "2 ^ 2" 0
 test_aqcc "3 ^ 5" 6
+test_aqcc "0 | 0" 0
+test_aqcc "1 | 0" 1
+test_aqcc "0 | 1" 1
+test_aqcc "1 | 1" 1
+test_aqcc "1 | 2" 3
+test_aqcc "2 | 2" 2
+test_aqcc "3 | 5" 7
 
 
 function test_vector() {
