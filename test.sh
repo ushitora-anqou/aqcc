@@ -73,6 +73,14 @@ test_aqcc "1 & 1" 1
 test_aqcc "1 & 2" 0
 test_aqcc "2 & 2" 2
 test_aqcc "3 & 5" 1
+test_aqcc "0 ^ 0" 0
+test_aqcc "1 ^ 0" 1
+test_aqcc "0 ^ 1" 1
+test_aqcc "1 ^ 1" 0
+test_aqcc "1 ^ 2" 3
+test_aqcc "2 ^ 2" 0
+test_aqcc "3 ^ 5" 6
+
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c
