@@ -60,6 +60,8 @@ Token *read_next_token(FILE *fh)
 
         ch = fgetc(fh);
 
+        if (isspace(ch)) continue;
+
         if (isdigit(ch)) {
             ungetc(ch, fh);
             return read_next_int_token(fh);
