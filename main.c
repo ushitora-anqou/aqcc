@@ -98,6 +98,13 @@ TokenSeq *new_token_seq(Vector *tokens)
     return this;
 }
 
+Token *peek_token(TokenSeq *seq)
+{
+    Token *token = vector_get(seq->tokens, seq->idx);
+    if (token == NULL) error("no next token.", __FILE__, __LINE__);
+    return token;
+}
+
 Token *pop_token(TokenSeq *seq)
 {
     Token *token = vector_get(seq->tokens, seq->idx++);
@@ -112,41 +119,108 @@ Token *expect_token(TokenSeq *seq, int kind)
     return token;
 }
 
+enum {
+    AST_ADD,
+    AST_SUB,
+    AST_INT,
+};
+
+typedef struct AST AST;
+struct AST {
+    int kind;
+
+    union {
+        int ival;
+
+        struct {
+            AST *lhs, *rhs;
+        };
+    };
+};
+
+AST *new_ast(int kind)
+{
+    AST *this = safe_malloc(sizeof(AST));
+    this->kind = kind;
+    return this;
+}
+
+AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
+{
+    AST *ast = new_ast(kind);
+    ast->lhs = lhs;
+    ast->rhs = rhs;
+    return ast;
+}
+
+AST *parse_primary_expr(TokenSeq *tokseq)
+{
+    Token *token = expect_token(tokseq, tINT);
+    AST *ast = new_ast(AST_INT);
+    ast->ival = token->ival;
+    return ast;
+}
+
+AST *parse_additive_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_primary_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tPLUS:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_ADD, ast, parse_primary_expr(tokseq));
+                break;
+            case tMINUS:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_SUB, ast, parse_primary_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+void print_code(FILE *fh, AST *ast)
+{
+    switch (ast->kind) {
+        case AST_ADD:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "add %%rdi, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_SUB:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "sub %%rdi, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_INT:
+            fprintf(fh, "push $%d\n", ast->ival);
+            break;
+        default:
+            assert(0);
+    }
+}
+
 int main()
 {
     Vector *tokens = read_all_tokens(stdin);
     TokenSeq *tokseq = new_token_seq(tokens);
-    Token *token;
+    AST *ast = parse_additive_expr(tokseq);
 
     puts(".global main");
     puts("main:");
 
-    token = expect_token(tokseq, tINT);
-    printf("push $%d\n", token->ival);
-
-    while (1) {
-        token = pop_token(tokseq);
-        if (token->kind == tEOF) break;
-
-        switch (token->kind) {
-            case tPLUS:
-                token = expect_token(tokseq, tINT);
-                puts("pop %rax");
-                printf("add $%d, %%eax\n", token->ival);
-                puts("push %rax");
-                break;
-
-            case tMINUS:
-                token = expect_token(tokseq, tINT);
-                puts("pop %rax");
-                printf("sub $%d, %%eax\n", token->ival);
-                puts("push %rax");
-                break;
-
-            default:
-                error("plus or minus is expected here.", __FILE__, __LINE__);
-        }
-    }
+    print_code(stdout, ast);
 
     puts("pop %rax");
     puts("ret");
