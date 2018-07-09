@@ -4,28 +4,6 @@
 #include <stdlib.h>
 #include "aqcc.h"
 
-enum {
-    tINT,
-    tPLUS,
-    tMINUS,
-    tSTAR,
-    tSLASH,
-    tPERCENT,
-    tLPAREN,
-    tRPAREN,
-    tLSHIFT,
-    tRSHIFT,
-    tEOF,
-};
-
-typedef struct {
-    int kind;
-
-    union {
-        int ival;
-    };
-} Token;
-
 Token *new_token(int kind)
 {
     Token *token = safe_malloc(sizeof(Token));

@@ -8,6 +8,28 @@ typedef struct {
     void **data;
 } Vector;
 
+enum {
+    tINT,
+    tPLUS,
+    tMINUS,
+    tSTAR,
+    tSLASH,
+    tPERCENT,
+    tLPAREN,
+    tRPAREN,
+    tLSHIFT,
+    tRSHIFT,
+    tEOF,
+};
+
+typedef struct {
+    int kind;
+
+    union {
+        int ival;
+    };
+} Token;
+
 typedef struct {
     Vector *tokens;
     size_t idx;
