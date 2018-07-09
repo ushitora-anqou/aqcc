@@ -8,6 +8,8 @@ enum {
     tINT,
     tPLUS,
     tMINUS,
+    tSTAR,
+    tSLASH,
     tEOF,
 };
 
@@ -65,6 +67,10 @@ Token *read_next_token(FILE *fh)
                 return new_token(tPLUS);
             case '-':
                 return new_token(tMINUS);
+            case '*':
+                return new_token(tSTAR);
+            case '/':
+                return new_token(tSLASH);
             case EOF:
                 return new_token(tEOF);
         }
@@ -122,6 +128,8 @@ Token *expect_token(TokenSeq *seq, int kind)
 enum {
     AST_ADD,
     AST_SUB,
+    AST_MUL,
+    AST_DIV,
     AST_INT,
 };
 
@@ -161,20 +169,43 @@ AST *parse_primary_expr(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_additive_expr(TokenSeq *tokseq)
+AST *parse_multiplicative_expr(TokenSeq *tokseq)
 {
     AST *ast = parse_primary_expr(tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
+            case tSTAR:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_MUL, ast, parse_primary_expr(tokseq));
+                break;
+            case tSLASH:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_DIV, ast, parse_primary_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_additive_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_multiplicative_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
             case tPLUS:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_ADD, ast, parse_primary_expr(tokseq));
+                ast = new_binop_ast(AST_ADD, ast,
+                                    parse_multiplicative_expr(tokseq));
                 break;
             case tMINUS:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_SUB, ast, parse_primary_expr(tokseq));
+                ast = new_binop_ast(AST_SUB, ast,
+                                    parse_multiplicative_expr(tokseq));
                 break;
             default:
                 return ast;
@@ -201,6 +232,25 @@ void print_code(FILE *fh, AST *ast)
                     "pop %%rdi\n"
                     "pop %%rax\n"
                     "sub %%rdi, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_MUL:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "imul %%rdi, %%rax\n"
+                    "push %%rax\n");
+            break;
+        case AST_DIV:
+            print_code(fh, ast->lhs);
+            print_code(fh, ast->rhs);
+            fprintf(fh,
+                    "pop %%rdi\n"
+                    "pop %%rax\n"
+                    "cqto\n"
+                    "idiv %%rdi\n"
                     "push %%rax\n");
             break;
         case AST_INT:
