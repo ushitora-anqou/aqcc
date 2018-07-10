@@ -659,8 +659,15 @@ void print_code(FILE *fh, CodeEnv *env, AST *ast)
     }
 }
 
-int main()
+#include "test.c"
+
+int main(int argc, char **argv)
 {
+    if (argc == 2) {
+        execute_test();
+        return 0;
+    }
+
     Vector *tokens = read_all_tokens(stdin);
     TokenSeq *tokseq = new_token_seq(tokens);
     AST *ast = parse_prog(tokseq);

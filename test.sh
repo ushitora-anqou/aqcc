@@ -1,7 +1,7 @@
 #!/bin/sh
 
 function fail(){
-    echo "ERROR: $1"
+    echo -e "\e[1;31m[ERROR]\e[0m $1"
     exit 1
 }
 
@@ -14,6 +14,9 @@ function test_aqcc() {
     res=$?
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
 }
+
+./main test
+[ $? -eq 0 ] || fail "./main test"
 
 test_aqcc 2 2
 test_aqcc 22 22
@@ -108,12 +111,3 @@ test_aqcc "0 || 0" 0
 test_aqcc "2 || 1" 1
 test_aqcc "-2 || 1" 1
 
-function test_vector() {
-    gcc -o _test.o test_vector.c vector.c utility.c
-    res=$(echo $1 | ./_test.o)
-    [ "$res" = "$2" ] || echo "ERROR: test_vector $1 -> $res (expected $2)"
-}
-
-test_vector 1 1
-test_vector 1234 1234
-test_vector 12345 12345
