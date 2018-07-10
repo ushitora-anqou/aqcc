@@ -7,9 +7,9 @@ function fail(){
 
 function test_aqcc() {
     echo "$1" | ./main > _test.s
-    [ $? -eq 0 ] || fail "./main > _test.s"
+    [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./main > _test.s"
     gcc _test.s -o _test.o
-    [ $? -eq 0 ] || fail "gcc _test.s -o _test.o"
+    [ $? -eq 0 ] || fail "test_aqcc \"$1\": gcc _test.s -o _test.o"
     ./_test.o
     res=$?
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
@@ -95,7 +95,11 @@ test_aqcc "1 | 1" 1
 test_aqcc "1 | 2" 3
 test_aqcc "2 | 2" 2
 test_aqcc "3 | 5" 7
-
+test_aqcc "1&&0" 0
+test_aqcc "1 && 1" 1
+test_aqcc "0 && 1" 0
+test_aqcc "0 && 0" 0
+test_aqcc "2 && 1" 1
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c

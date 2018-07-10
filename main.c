@@ -92,6 +92,7 @@ Token *read_next_token(FILE *fh)
                 return new_token(tNEQ);
             case '&':
                 ch = fgetc(fh);
+                if (ch == '&') return new_token(tANDAND);
                 ungetc(ch, fh);
                 return new_token(tAND);
             case '^':
@@ -381,7 +382,25 @@ AST *parse_inclusive_or_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_inclusive_or_expr(tokseq); }
+AST *parse_logical_and_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_inclusive_or_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tANDAND:
+                pop_token(tokseq);
+                ast = new_binop_ast(AST_LAND, ast,
+                                    parse_inclusive_or_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_logical_and_expr(tokseq); }
 
 AST *parse_prog(TokenSeq *tokseq)
 {
@@ -393,12 +412,16 @@ AST *parse_prog(TokenSeq *tokseq)
     return ast;
 }
 
-void print_code(FILE *fh, AST *ast)
+typedef struct {
+    int nlabel;
+} CodeEnv;
+
+void print_code(FILE *fh, CodeEnv *env, AST *ast)
 {
     switch (ast->kind) {
         case AST_ADD:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -407,8 +430,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_SUB:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -417,8 +440,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_MUL:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -427,8 +450,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_DIV:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -438,8 +461,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_REM:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -449,7 +472,7 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_UNARY_MINUS:
-            print_code(fh, ast->lhs);
+            print_code(fh, env, ast->lhs);
             fprintf(fh,
                     "pop %%rax\n"
                     "neg %%eax\n"
@@ -457,8 +480,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_LSHIFT:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rcx\n"
                     "pop %%rax\n"
@@ -467,8 +490,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_RSHIFT:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rcx\n"
                     "pop %%rax\n"
@@ -477,8 +500,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_LT:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -489,8 +512,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_GT:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -501,8 +524,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_LTE:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -513,8 +536,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_GTE:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -525,8 +548,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_EQ:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -537,8 +560,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_NEQ:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -549,8 +572,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_AND:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -559,8 +582,8 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_XOR:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
@@ -569,14 +592,44 @@ void print_code(FILE *fh, AST *ast)
             break;
 
         case AST_OR:
-            print_code(fh, ast->lhs);
-            print_code(fh, ast->rhs);
+            print_code(fh, env, ast->lhs);
+            print_code(fh, env, ast->rhs);
             fprintf(fh,
                     "pop %%rdi\n"
                     "pop %%rax\n"
                     "or %%edi, %%eax\n"
                     "push %%rax\n");
             break;
+
+        case AST_LAND: {
+            int false_label = env->nlabel++, exit_label = env->nlabel++;
+            print_code(fh, env, ast->lhs);
+            fprintf(fh,
+                    "pop %%rax\n"
+                    "cmp $0, %%eax\n"
+                    "je .L%d\n",
+                    false_label);
+            // don't execute rhs expression if lhs is false.
+            print_code(fh, env, ast->rhs);
+            fprintf(fh,
+                    "pop %%rax\n"
+                    "cmp $0, %%eax\n"
+                    "je .L%d\n",
+                    false_label);
+            fprintf(fh,
+                    "mov $1, %%eax\n"
+                    "jmp .L%d\n",
+                    exit_label);
+            fprintf(fh,
+                    ".L%d:\n"
+                    "mov $0, %%eax\n",
+                    false_label);
+            fprintf(fh,
+                    ".L%d:\n"
+                    "push %%rax\n",
+                    exit_label);
+            break;
+        }
 
         case AST_INT:
             fprintf(fh,
@@ -595,11 +648,13 @@ int main()
     Vector *tokens = read_all_tokens(stdin);
     TokenSeq *tokseq = new_token_seq(tokens);
     AST *ast = parse_prog(tokseq);
+    CodeEnv env;
+    env.nlabel = 0;
 
     puts(".global main");
     puts("main:");
 
-    print_code(stdout, ast);
+    print_code(stdout, &env, ast);
 
     puts("pop %rax");
     puts("ret");
