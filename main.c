@@ -70,6 +70,7 @@ Token *read_next_token(FILE *fh)
                     case '=':
                         return new_token(tLTE);
                 }
+                ungetc(ch, fh);
                 return new_token(tLT);
             case '>':
                 ch = fgetc(fh);
@@ -79,6 +80,7 @@ Token *read_next_token(FILE *fh)
                     case '=':
                         return new_token(tGTE);
                 }
+                ungetc(ch, fh);
                 return new_token(tGT);
             case '=':
                 ch = fgetc(fh);
@@ -90,12 +92,13 @@ Token *read_next_token(FILE *fh)
                 return new_token(tNEQ);
             case '&':
                 ch = fgetc(fh);
+                ungetc(ch, fh);
                 return new_token(tAND);
             case '^':
-                ch = fgetc(fh);
                 return new_token(tHAT);
             case '|':
                 ch = fgetc(fh);
+                ungetc(ch, fh);
                 return new_token(tBAR);
             case EOF:
                 return new_token(tEOF);
