@@ -29,6 +29,7 @@ enum {
     tHAT,
     tBAR,
     tANDAND,
+    tBARBAR,
     tEOF,
 };
 
@@ -65,6 +66,7 @@ enum {
     AST_XOR,
     AST_OR,
     AST_LAND,
+    AST_LOR,
 };
 
 typedef struct AST AST;

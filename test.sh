@@ -100,6 +100,13 @@ test_aqcc "1 && 1" 1
 test_aqcc "0 && 1" 0
 test_aqcc "0 && 0" 0
 test_aqcc "2 && 1" 1
+test_aqcc "-2 || 1" 1
+test_aqcc "1||0" 1
+test_aqcc "1 || 1" 1
+test_aqcc "0 || 1" 1
+test_aqcc "0 || 0" 0
+test_aqcc "2 || 1" 1
+test_aqcc "-2 || 1" 1
 
 function test_vector() {
     gcc -o _test.o test_vector.c vector.c utility.c

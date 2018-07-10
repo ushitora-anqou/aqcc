@@ -99,6 +99,7 @@ Token *read_next_token(FILE *fh)
                 return new_token(tHAT);
             case '|':
                 ch = fgetc(fh);
+                if (ch == '|') return new_token(tBARBAR);
                 ungetc(ch, fh);
                 return new_token(tBAR);
             case EOF:
@@ -400,7 +401,25 @@ AST *parse_logical_and_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_logical_and_expr(tokseq); }
+AST *parse_logical_or_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_logical_and_expr(tokseq);
+
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tBARBAR:
+                pop_token(tokseq);
+                ast =
+                    new_binop_ast(AST_LOR, ast, parse_logical_and_expr(tokseq));
+                break;
+            default:
+                return ast;
+        }
+    }
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_logical_or_expr(tokseq); }
 
 AST *parse_prog(TokenSeq *tokseq)
 {
@@ -624,6 +643,36 @@ void print_code(FILE *fh, CodeEnv *env, AST *ast)
                     ".L%d:\n"
                     "mov $0, %%eax\n",
                     false_label);
+            fprintf(fh,
+                    ".L%d:\n"
+                    "push %%rax\n",
+                    exit_label);
+            break;
+        }
+
+        case AST_LOR: {
+            int true_label = env->nlabel++, exit_label = env->nlabel++;
+            print_code(fh, env, ast->lhs);
+            fprintf(fh,
+                    "pop %%rax\n"
+                    "cmp $0, %%eax\n"
+                    "jne .L%d\n",
+                    true_label);
+            // don't execute rhs expression if lhs is true.
+            print_code(fh, env, ast->rhs);
+            fprintf(fh,
+                    "pop %%rax\n"
+                    "cmp $0, %%eax\n"
+                    "jne .L%d\n",
+                    true_label);
+            fprintf(fh,
+                    "mov $0, %%eax\n"
+                    "jmp .L%d\n",
+                    exit_label);
+            fprintf(fh,
+                    ".L%d:\n"
+                    "mov $1, %%eax\n",
+                    true_label);
             fprintf(fh,
                     ".L%d:\n"
                     "push %%rax\n",
