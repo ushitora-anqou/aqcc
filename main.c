@@ -336,15 +336,9 @@ AST *parse_and_expr(TokenSeq *tokseq)
     AST *ast = parse_equality_expr(tokseq);
 
     while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tAND:
-                pop_token(tokseq);
-                ast = new_binop_ast(AST_AND, ast, parse_equality_expr(tokseq));
-                break;
-            default:
-                return ast;
-        }
+        if (peek_token(tokseq)->kind != tAND) return ast;
+        pop_token(tokseq);
+        ast = new_binop_ast(AST_AND, ast, parse_equality_expr(tokseq));
     }
 }
 
@@ -353,15 +347,9 @@ AST *parse_exclusive_or_expr(TokenSeq *tokseq)
     AST *ast = parse_and_expr(tokseq);
 
     while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tHAT:
-                pop_token(tokseq);
-                ast = new_binop_ast(AST_XOR, ast, parse_and_expr(tokseq));
-                break;
-            default:
-                return ast;
-        }
+        if (peek_token(tokseq)->kind != tHAT) return ast;
+        pop_token(tokseq);
+        ast = new_binop_ast(AST_XOR, ast, parse_and_expr(tokseq));
     }
 }
 
@@ -370,16 +358,9 @@ AST *parse_inclusive_or_expr(TokenSeq *tokseq)
     AST *ast = parse_exclusive_or_expr(tokseq);
 
     while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tBAR:
-                pop_token(tokseq);
-                ast =
-                    new_binop_ast(AST_OR, ast, parse_exclusive_or_expr(tokseq));
-                break;
-            default:
-                return ast;
-        }
+        if (peek_token(tokseq)->kind != tBAR) return ast;
+        pop_token(tokseq);
+        ast = new_binop_ast(AST_OR, ast, parse_exclusive_or_expr(tokseq));
     }
 }
 
@@ -388,16 +369,9 @@ AST *parse_logical_and_expr(TokenSeq *tokseq)
     AST *ast = parse_inclusive_or_expr(tokseq);
 
     while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tANDAND:
-                pop_token(tokseq);
-                ast = new_binop_ast(AST_LAND, ast,
-                                    parse_inclusive_or_expr(tokseq));
-                break;
-            default:
-                return ast;
-        }
+        if (peek_token(tokseq)->kind != tANDAND) return ast;
+        pop_token(tokseq);
+        ast = new_binop_ast(AST_LAND, ast, parse_inclusive_or_expr(tokseq));
     }
 }
 
@@ -406,16 +380,9 @@ AST *parse_logical_or_expr(TokenSeq *tokseq)
     AST *ast = parse_logical_and_expr(tokseq);
 
     while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tBARBAR:
-                pop_token(tokseq);
-                ast =
-                    new_binop_ast(AST_LOR, ast, parse_logical_and_expr(tokseq));
-                break;
-            default:
-                return ast;
-        }
+        if (peek_token(tokseq)->kind != tBARBAR) return ast;
+        pop_token(tokseq);
+        ast = new_binop_ast(AST_LOR, ast, parse_logical_and_expr(tokseq));
     }
 }
 
