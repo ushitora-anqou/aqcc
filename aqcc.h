@@ -8,6 +8,25 @@ typedef struct {
     void **data;
 } Vector;
 
+Vector *new_vector();
+void vector_push_back(Vector *this, void *item);
+void *vector_get(Vector *this, size_t i);
+size_t vector_size(Vector *this);
+
+typedef struct {
+    char *key;
+    void *value;
+} KeyValue;
+
+typedef struct {
+    Vector *data;
+} Map;
+
+Map *new_map();
+size_t map_size(Map *map);
+void map_insert(Map *this, const char *key, void *item);
+KeyValue *map_lookup(Map *this, const char *key);
+
 enum {
     tINT,
     tPLUS,
@@ -88,9 +107,7 @@ void error(const char *msg, const char *filename, int lineno);
 void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);
 
-Vector *new_vector();
-void vector_push_back(Vector *this, void *item);
-void *vector_get(Vector *this, size_t i);
+char *new_str(const char *src);
 
 AST *parse_expr(TokenSeq *tokseq);
 

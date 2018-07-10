@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 
 void test_vector(int n)
 {
@@ -23,4 +24,25 @@ void test_vector(int n)
     assert(vector_get(vec, vec->size) == NULL);
 }
 
-void execute_test() { test_vector(10); }
+void test_map()
+{
+    Map *map = new_map();
+    const char *key[] = {"key0", "key1", "key2", "key3"};
+    int data[] = {0, 1, 2, 3};
+
+    for (int i = 0; i < 4; i++) map_insert(map, key[i], &data[i]);
+
+    assert(map_size(map) == sizeof(data) / sizeof(int));
+
+    for (int i = 0; i < 4; i++) {
+        KeyValue *kv = map_lookup(map, key[i]);
+        assert(strcmp(kv->key, key[i]) == 0);
+        assert(*(int *)(kv->value) == data[i]);
+    }
+}
+
+void execute_test()
+{
+    test_vector(10);
+    test_map();
+}

@@ -12,6 +12,8 @@ Vector *new_vector()
     return ret;
 }
 
+size_t vector_size(Vector *this) { return this->size; }
+
 void vector_push_back(Vector *this, void *item)
 {
     if (this->data == NULL || this->size == this->rsved_size) {
