@@ -30,7 +30,11 @@ void test_map()
     const char *key[] = {"key0", "key1", "key2", "key3"};
     int data[] = {0, 1, 2, 3};
 
-    for (int i = 0; i < 4; i++) map_insert(map, key[i], &data[i]);
+    for (int i = 0; i < 4; i++) {
+        KeyValue *kv = map_insert(map, key[i], &data[i]);
+        assert(strcmp(kv->key, key[i]) == 0);
+        assert(*(int *)(kv->value) == data[i]);
+    }
 
     assert(map_size(map) == sizeof(data) / sizeof(int));
 

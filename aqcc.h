@@ -14,7 +14,7 @@ void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
 
 typedef struct {
-    char *key;
+    const char *key;
     void *value;
 } KeyValue;
 
@@ -24,7 +24,7 @@ typedef struct {
 
 Map *new_map();
 size_t map_size(Map *map);
-void map_insert(Map *this, const char *key, void *item);
+KeyValue *map_insert(Map *this, const char *key, void *item);
 KeyValue *map_lookup(Map *this, const char *key);
 
 enum {
@@ -42,13 +42,15 @@ enum {
     tGT,
     tLTE,
     tGTE,
-    tEQ,
+    tEQEQ,
     tNEQ,
     tAND,
     tHAT,
     tBAR,
     tANDAND,
     tBARBAR,
+    tIDENT,
+    tEQ,
     tEOF,
 };
 
@@ -57,6 +59,7 @@ typedef struct {
 
     union {
         int ival;
+        char *sval;
     };
 } Token;
 
@@ -86,6 +89,8 @@ enum {
     AST_OR,
     AST_LAND,
     AST_LOR,
+    AST_ASSIGN,
+    AST_VAR,
 };
 
 typedef struct AST AST;
@@ -94,6 +99,7 @@ struct AST {
 
     union {
         int ival;
+        char *sval;
 
         struct {
             AST *lhs, *rhs;
@@ -108,6 +114,7 @@ void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);
 
 char *new_str(const char *src);
+int *new_int(int src);
 
 AST *parse_expr(TokenSeq *tokseq);
 

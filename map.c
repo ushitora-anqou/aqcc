@@ -13,12 +13,13 @@ Map *new_map()
 
 size_t map_size(Map *this) { return vector_size(this->data); }
 
-void map_insert(Map *this, const char *key, void *item)
+KeyValue *map_insert(Map *this, const char *key, void *item)
 {
     KeyValue *kv = safe_malloc(sizeof(KeyValue));
-    kv->key = new_str(key);
+    kv->key = key;
     kv->value = item;
     vector_push_back(this->data, kv);
+    return kv;
 }
 
 KeyValue *map_lookup(Map *this, const char *key)

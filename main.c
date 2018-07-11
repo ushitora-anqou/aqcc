@@ -34,6 +34,29 @@ Token *read_next_int_token(FILE *fh)
     return token;
 }
 
+Token *read_next_ident_token(FILE *fh)
+{
+    char buf[256];  // TODO: enough length?
+    int bufidx = 0;
+
+    buf[bufidx++] = fgetc(fh);
+    while (1) {
+        int ch = fgetc(fh);
+
+        if (!isalnum(ch) && ch != '_') {
+            ungetc(ch, fh);
+            break;
+        }
+
+        buf[bufidx++] = ch;
+    }
+
+    Token *token = new_token(tIDENT);
+    buf[bufidx++] = '\0';
+    token->sval = new_str(buf);
+    return token;
+}
+
 Token *read_next_token(FILE *fh)
 {
     while (1) {
@@ -46,6 +69,11 @@ Token *read_next_token(FILE *fh)
         if (isdigit(ch)) {
             ungetc(ch, fh);
             return read_next_int_token(fh);
+        }
+
+        if (isalpha(ch) || ch == '_') {
+            ungetc(ch, fh);
+            return read_next_ident_token(fh);
         }
 
         switch (ch) {
@@ -85,7 +113,8 @@ Token *read_next_token(FILE *fh)
                 return new_token(tGT);
             case '=':
                 ch = fgetc(fh);
-                if (ch != '=') break;
+                if (ch == '=') return new_token(tEQEQ);
+                ungetc(ch, fh);
                 return new_token(tEQ);
             case '!':
                 ch = fgetc(fh);
@@ -317,7 +346,7 @@ AST *parse_equality_expr(TokenSeq *tokseq)
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
-            case tEQ:
+            case tEQEQ:
                 pop_token(tokseq);
                 ast = new_binop_ast(AST_EQ, ast, parse_relational_expr(tokseq));
                 break;
@@ -387,7 +416,21 @@ AST *parse_logical_or_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_logical_or_expr(tokseq); }
+AST *parse_assignment_expr(TokenSeq *tokseq)
+{
+    Token *token = peek_token(tokseq);
+    AST *ast;
+
+    if (token->kind != tIDENT) return parse_logical_or_expr(tokseq);
+
+    pop_token(tokseq);
+    expect_token(tokseq, tEQ);
+    ast = new_ast(AST_VAR);
+    ast->sval = token->sval;
+    return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(tokseq));
+}
+
+AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
 
 AST *parse_prog(TokenSeq *tokseq)
 {
@@ -400,8 +443,9 @@ AST *parse_prog(TokenSeq *tokseq)
 }
 
 typedef struct {
-    int nlabel;
+    int nlabel, stack_idx;
     Vector *codes;
+    Map *var_map;
 } CodeEnv;
 
 CodeEnv *new_code_env()
@@ -410,11 +454,20 @@ CodeEnv *new_code_env()
 
     this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
     this->nlabel = 0;
+    this->stack_idx = 0;
     this->codes = new_vector();
+    this->var_map = new_map();
     return this;
 }
 
-void appcode(CodeEnv *env, const char *src, ...)
+Vector *swap_codes(CodeEnv *env, Vector *new_codes)
+{
+    Vector *ret = env->codes;
+    env->codes = new_codes;
+    return ret;
+}
+
+void appcode(Vector *codes, const char *src, ...)
 {
     char buf[256], buf2[256];  // TODO: enoguth length?
     int i, bufidx;
@@ -439,7 +492,15 @@ void appcode(CodeEnv *env, const char *src, ...)
     vsprintf(buf2, buf, args);
     va_end(args);
 
-    vector_push_back(env->codes, new_str(buf2));
+    vector_push_back(codes, new_str(buf2));
+}
+
+void dump_codes(Vector *codes, FILE *fh)
+{
+    int i;
+
+    for (i = 0; i < vector_size(codes); i++)
+        fprintf(fh, "%s\n", (const char *)vector_get(codes, i));
 }
 
 void generate_code(CodeEnv *env, AST *ast)
@@ -448,209 +509,226 @@ void generate_code(CodeEnv *env, AST *ast)
         case AST_ADD:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "add #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "add #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_SUB:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "sub #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "sub #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_MUL:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "imul #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "imul #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_DIV:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cltd");
-            appcode(env, "idiv #edi");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cltd");
+            appcode(env->codes, "idiv #edi");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_REM:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cltd");
-            appcode(env, "idiv #edi");
-            appcode(env, "push #rdx");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cltd");
+            appcode(env->codes, "idiv #edi");
+            appcode(env->codes, "push #rdx");
             break;
 
         case AST_UNARY_MINUS:
             generate_code(env, ast->lhs);
-            appcode(env, "pop #rax");
-            appcode(env, "neg #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "neg #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_LSHIFT:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rcx");
-            appcode(env, "pop #rax");
-            appcode(env, "sal #cl, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rcx");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "sal #cl, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_RSHIFT:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rcx");
-            appcode(env, "pop #rax");
-            appcode(env, "sar #cl, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rcx");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "sar #cl, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_LT:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "setl #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "setl #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_GT:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "setg #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "setg #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_LTE:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "setle #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "setle #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_GTE:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "setge #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "setge #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_EQ:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "sete #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "sete #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_NEQ:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "cmp #edi, #eax");
-            appcode(env, "setne #al");
-            appcode(env, "movzb #al, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp #edi, #eax");
+            appcode(env->codes, "setne #al");
+            appcode(env->codes, "movzb #al, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_AND:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "and #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "and #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_XOR:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "xor #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "xor #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_OR:
             generate_code(env, ast->lhs);
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rdi");
-            appcode(env, "pop #rax");
-            appcode(env, "or #edi, #eax");
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "or #edi, #eax");
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_LAND: {
             int false_label = env->nlabel++, exit_label = env->nlabel++;
             generate_code(env, ast->lhs);
-            appcode(env, "pop #rax");
-            appcode(env, "cmp $0, #eax");
-            appcode(env, "je .L%d", false_label);
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "je .L%d", false_label);
             // don't execute rhs expression if lhs is false.
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rax");
-            appcode(env, "cmp $0, #eax");
-            appcode(env, "je .L%d", false_label);
-            appcode(env, "mov $1, #eax");
-            appcode(env, "jmp .L%d", exit_label);
-            appcode(env, ".L%d:", false_label);
-            appcode(env, "mov $0, #eax");
-            appcode(env, ".L%d:", exit_label);
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "je .L%d", false_label);
+            appcode(env->codes, "mov $1, #eax");
+            appcode(env->codes, "jmp .L%d", exit_label);
+            appcode(env->codes, ".L%d:", false_label);
+            appcode(env->codes, "mov $0, #eax");
+            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "push #rax");
         } break;
 
         case AST_LOR: {
             int true_label = env->nlabel++, exit_label = env->nlabel++;
             generate_code(env, ast->lhs);
-            appcode(env, "pop #rax");
-            appcode(env, "cmp $0, #eax");
-            appcode(env, "jne .L%d", true_label);
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "jne .L%d", true_label);
             // don't execute rhs expression if lhs is true.
             generate_code(env, ast->rhs);
-            appcode(env, "pop #rax");
-            appcode(env, "cmp $0, #eax");
-            appcode(env, "jne .L%d", true_label);
-            appcode(env, "mov $0, #eax");
-            appcode(env, "jmp .L%d", exit_label);
-            appcode(env, ".L%d:", true_label);
-            appcode(env, "mov $1, #eax");
-            appcode(env, ".L%d:", exit_label);
-            appcode(env, "push #rax");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "jne .L%d", true_label);
+            appcode(env->codes, "mov $0, #eax");
+            appcode(env->codes, "jmp .L%d", exit_label);
+            appcode(env->codes, ".L%d:", true_label);
+            appcode(env->codes, "mov $1, #eax");
+            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "push #rax");
+        } break;
+
+        case AST_ASSIGN: {
+            KeyValue *kv;
+
+            generate_code(env, ast->rhs);
+
+            assert(ast->lhs->kind == AST_VAR);
+            kv = map_lookup(env->var_map, ast->lhs->sval);
+            if (kv == NULL) {  // not exists
+                env->stack_idx += 4;
+                kv = map_insert(env->var_map, ast->lhs->sval,
+                                new_int(env->stack_idx));
+            }
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "mov #rax, -%d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "push #rax");
         } break;
 
         case AST_INT:
-            appcode(env, "mov $%d, #eax", ast->ival);
-            appcode(env, "push #rax");
+            appcode(env->codes, "mov $%d, #eax", ast->ival);
+            appcode(env->codes, "push #rax");
             break;
 
         default:
@@ -666,7 +744,7 @@ int main(int argc, char **argv)
     TokenSeq *tokseq;
     AST *ast;
     CodeEnv *env;
-    int i;
+    Vector *header_codes;
 
     if (argc == 2) {
         execute_test();
@@ -676,16 +754,25 @@ int main(int argc, char **argv)
     tokens = read_all_tokens(stdin);
     tokseq = new_token_seq(tokens);
     ast = parse_prog(tokseq);
+
+    header_codes = new_vector();
+    appcode(header_codes, ".global main");
+    appcode(header_codes, "main:");
+    appcode(header_codes, "push #rbp");
+    appcode(header_codes, "mov #rsp, #rbp");
+
     env = new_code_env();
-
-    appcode(env, ".global main");
-    appcode(env, "main:");
     generate_code(env, ast);
-    appcode(env, "pop #rax");
-    appcode(env, "ret");
 
-    for (i = 0; i < vector_size(env->codes); i++)
-        puts((const char *)vector_get(env->codes, i));
+    appcode(header_codes, "sub $%d, #rsp", (env->stack_idx / 16 + 1) * 16);
+
+    appcode(env->codes, "pop #rax");
+    appcode(env->codes, "mov #rbp, #rsp");
+    appcode(env->codes, "pop #rbp");
+    appcode(env->codes, "ret");
+
+    dump_codes(header_codes, stdout);
+    dump_codes(env->codes, stdout);
 
     return 0;
 }

@@ -110,4 +110,7 @@ test_aqcc "0 || 1" 1
 test_aqcc "0 || 0" 0
 test_aqcc "2 || 1" 1
 test_aqcc "-2 || 1" 1
-
+test_aqcc "x=1" 1
+test_aqcc "xy = 100+100" 200
+test_aqcc "a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34" 1
+test_aqcc "_ = (2 - 1) << 1" 2

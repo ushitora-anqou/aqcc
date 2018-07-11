@@ -32,3 +32,10 @@ char *new_str(const char *src)
     strcpy(ret, src);
     return ret;
 }
+
+int *new_int(int src)
+{
+    int *ret = safe_malloc(sizeof(int));
+    *ret = src;
+    return ret;
+}
