@@ -132,6 +132,8 @@ Token *read_next_token(FILE *fh)
                 if (ch == '|') return new_token(tBARBAR);
                 ungetc(ch, fh);
                 return new_token(tBAR);
+            case ';':
+                return new_token(tSEMICOLON);
             case EOF:
                 return new_token(tEOF);
         }
@@ -432,14 +434,32 @@ AST *parse_assignment_expr(TokenSeq *tokseq)
 
 AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
 
-AST *parse_prog(TokenSeq *tokseq)
+AST *parse_expression_stmt(TokenSeq *tokseq)
 {
-    AST *ast = parse_expr(tokseq);
+    Token *token = peek_token(tokseq);
+    AST *ast;
 
-    if (peek_token(tokseq)->kind != tEOF)
-        error("invalid token sequence", __FILE__, __LINE__);
+    if (token->kind == tSEMICOLON) {
+        pop_token(tokseq);
+        return new_ast(AST_NOP);
+    }
 
+    ast = parse_expr(tokseq);
+    expect_token(tokseq, tSEMICOLON);
     return ast;
+}
+
+AST *parse_stmt(TokenSeq *tokseq) { return parse_expression_stmt(tokseq); }
+
+Vector *parse_prog(TokenSeq *tokseq)
+{
+    Vector *asts = new_vector();
+
+    while (peek_token(tokseq)->kind != tEOF) {
+        vector_push_back(asts, parse_stmt(tokseq));
+    }
+
+    return asts;
 }
 
 typedef struct {
@@ -503,12 +523,12 @@ void dump_codes(Vector *codes, FILE *fh)
         fprintf(fh, "%s\n", (const char *)vector_get(codes, i));
 }
 
-void generate_code(CodeEnv *env, AST *ast)
+void generate_code_detail(CodeEnv *env, AST *ast)
 {
     switch (ast->kind) {
         case AST_ADD:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "add #edi, #eax");
@@ -516,8 +536,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_SUB:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "sub #edi, #eax");
@@ -525,8 +545,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_MUL:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "imul #edi, #eax");
@@ -534,8 +554,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_DIV:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cltd");
@@ -544,8 +564,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_REM:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cltd");
@@ -554,15 +574,15 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_UNARY_MINUS:
-            generate_code(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "neg #eax");
             appcode(env->codes, "push #rax");
             break;
 
         case AST_LSHIFT:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rcx");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "sal #cl, #eax");
@@ -570,8 +590,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_RSHIFT:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rcx");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "sar #cl, #eax");
@@ -579,8 +599,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_LT:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -590,8 +610,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_GT:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -601,8 +621,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_LTE:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -612,8 +632,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_GTE:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -623,8 +643,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_EQ:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -634,8 +654,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_NEQ:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp #edi, #eax");
@@ -645,8 +665,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_AND:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "and #edi, #eax");
@@ -654,8 +674,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_XOR:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "xor #edi, #eax");
@@ -663,8 +683,8 @@ void generate_code(CodeEnv *env, AST *ast)
             break;
 
         case AST_OR:
-            generate_code(env, ast->lhs);
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "or #edi, #eax");
@@ -673,12 +693,12 @@ void generate_code(CodeEnv *env, AST *ast)
 
         case AST_LAND: {
             int false_label = env->nlabel++, exit_label = env->nlabel++;
-            generate_code(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
             appcode(env->codes, "je .L%d", false_label);
             // don't execute rhs expression if lhs is false.
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
             appcode(env->codes, "je .L%d", false_label);
@@ -692,12 +712,12 @@ void generate_code(CodeEnv *env, AST *ast)
 
         case AST_LOR: {
             int true_label = env->nlabel++, exit_label = env->nlabel++;
-            generate_code(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
             appcode(env->codes, "jne .L%d", true_label);
             // don't execute rhs expression if lhs is true.
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
             appcode(env->codes, "jne .L%d", true_label);
@@ -712,7 +732,7 @@ void generate_code(CodeEnv *env, AST *ast)
         case AST_ASSIGN: {
             KeyValue *kv;
 
-            generate_code(env, ast->rhs);
+            generate_code_detail(env, ast->rhs);
 
             assert(ast->lhs->kind == AST_VAR);
             kv = map_lookup(env->var_map, ast->lhs->sval);
@@ -731,9 +751,19 @@ void generate_code(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
+        case AST_NOP:
+            break;
+
         default:
             assert(0);
     }
+}
+
+void generate_code(CodeEnv *env, Vector *asts)
+{
+    int i;
+    for (i = 0; i < vector_size(asts); i++)
+        generate_code_detail(env, (AST *)vector_get(asts, i));
 }
 
 #include "test.c"
@@ -742,7 +772,7 @@ int main(int argc, char **argv)
 {
     Vector *tokens;
     TokenSeq *tokseq;
-    AST *ast;
+    Vector *asts;
     CodeEnv *env;
     Vector *header_codes;
 
@@ -753,7 +783,7 @@ int main(int argc, char **argv)
 
     tokens = read_all_tokens(stdin);
     tokseq = new_token_seq(tokens);
-    ast = parse_prog(tokseq);
+    asts = parse_prog(tokseq);
 
     header_codes = new_vector();
     appcode(header_codes, ".global main");
@@ -762,7 +792,7 @@ int main(int argc, char **argv)
     appcode(header_codes, "mov #rsp, #rbp");
 
     env = new_code_env();
-    generate_code(env, ast);
+    generate_code(env, asts);
 
     appcode(header_codes, "sub $%d, #rsp", (env->stack_idx / 16 + 1) * 16);
 

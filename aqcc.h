@@ -52,6 +52,7 @@ enum {
     tIDENT,
     tEQ,
     tEOF,
+    tSEMICOLON,
 };
 
 typedef struct {
@@ -91,6 +92,7 @@ enum {
     AST_LOR,
     AST_ASSIGN,
     AST_VAR,
+    AST_NOP,
 };
 
 typedef struct AST AST;
