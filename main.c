@@ -185,6 +185,23 @@ Token *expect_token(TokenSeq *seq, int kind)
     return token;
 }
 
+int match_token(TokenSeq *seq, int kind)
+{
+    Token *token = peek_token(seq);
+    return token->kind == kind;
+}
+
+int match_token2(TokenSeq *seq, int kind0, int kind1)
+{
+    Token *token = peek_token(seq);
+    if (token->kind != kind0) return 0;
+    seq->idx++;
+    token = peek_token(seq);
+    seq->idx--;
+    if (token->kind != kind1) return 0;
+    return 1;
+}
+
 AST *new_ast(int kind)
 {
     AST *this = safe_malloc(sizeof(AST));
@@ -213,6 +230,11 @@ AST *parse_primary_expr(TokenSeq *tokseq)
         case tLPAREN:
             ast = parse_expr(tokseq);
             expect_token(tokseq, tRPAREN);
+            break;
+
+        case tIDENT:
+            ast = new_ast(AST_VAR);
+            ast->sval = token->sval;
             break;
 
         default:
@@ -420,13 +442,14 @@ AST *parse_logical_or_expr(TokenSeq *tokseq)
 
 AST *parse_assignment_expr(TokenSeq *tokseq)
 {
-    Token *token = peek_token(tokseq);
+    Token *token;
     AST *ast;
 
-    if (token->kind != tIDENT) return parse_logical_or_expr(tokseq);
-
-    pop_token(tokseq);
+    if (!match_token2(tokseq, tIDENT, tEQ))
+        return parse_logical_or_expr(tokseq);
+    token = expect_token(tokseq, tIDENT);
     expect_token(tokseq, tEQ);
+
     ast = new_ast(AST_VAR);
     ast->sval = token->sval;
     return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(tokseq));
@@ -742,8 +765,15 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                                 new_int(env->stack_idx));
             }
             appcode(env->codes, "pop #rax");
-            appcode(env->codes, "mov #rax, -%d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "mov #eax, -%d(#rbp)", *(int *)(kv->value));
             appcode(env->codes, "push #rax");
+        } break;
+
+        case AST_VAR: {
+            KeyValue *kv = map_lookup(env->var_map, ast->sval);
+            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
+            appcode(env->codes, "push -%d(#rbp)", *(int *)(kv->value));
+            break;
         } break;
 
         case AST_INT:
@@ -752,6 +782,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_NOP:
+            appcode(env->codes, "push #rax");
             break;
 
         default:
@@ -762,8 +793,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 void generate_code(CodeEnv *env, Vector *asts)
 {
     int i;
-    for (i = 0; i < vector_size(asts); i++)
+    for (i = 0; i < vector_size(asts); i++) {
         generate_code_detail(env, (AST *)vector_get(asts, i));
+        appcode(env->codes, "pop #rax");
+    }
 }
 
 #include "test.c"
@@ -796,7 +829,6 @@ int main(int argc, char **argv)
 
     appcode(header_codes, "sub $%d, #rsp", (env->stack_idx / 16 + 1) * 16);
 
-    appcode(env->codes, "pop #rax");
     appcode(env->codes, "mov #rbp, #rsp");
     appcode(env->codes, "pop #rbp");
     appcode(env->codes, "ret");

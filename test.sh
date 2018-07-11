@@ -115,3 +115,5 @@ test_aqcc "xy = 100+100;" 200
 test_aqcc "a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;" 1
 test_aqcc "_ = (2 - 1) << 1;" 2
 test_aqcc "x = 1; y = 2;" 2
+test_aqcc "x = 1; y = 2; z = x + y;" 3
+test_aqcc "a0 = 1; a1 = 1; a2 = a0 + a1; a3 = a1 + a2;" 3
