@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "aqcc.h"
@@ -400,258 +401,256 @@ AST *parse_prog(TokenSeq *tokseq)
 
 typedef struct {
     int nlabel;
+    Vector *codes;
 } CodeEnv;
 
-void print_code(FILE *fh, CodeEnv *env, AST *ast)
+CodeEnv *new_code_env()
+{
+    CodeEnv *this;
+
+    this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
+    this->nlabel = 0;
+    this->codes = new_vector();
+    return this;
+}
+
+void appcode(CodeEnv *env, const char *src, ...)
+{
+    char buf[256], buf2[256];  // TODO: enoguth length?
+    int i, bufidx;
+    va_list args;
+
+    // copy src to buf.
+    // replace # to %% in src.
+    for (i = 0, bufidx = 0;; i++) {
+        if (src[i] == '\0') break;
+
+        if (src[i] == '#') {
+            buf[bufidx++] = '%';
+            buf[bufidx++] = '%';
+            continue;
+        }
+
+        buf[bufidx++] = src[i];
+    }
+    buf[bufidx] = '\0';
+
+    va_start(args, src);
+    vsprintf(buf2, buf, args);
+    va_end(args);
+
+    vector_push_back(env->codes, new_str(buf2));
+}
+
+void generate_code(CodeEnv *env, AST *ast)
 {
     switch (ast->kind) {
         case AST_ADD:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "add %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "add #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_SUB:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "sub %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "sub #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_MUL:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "imul %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "imul #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_DIV:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cltd\n"
-                    "idiv %%edi\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cltd");
+            appcode(env, "idiv #edi");
+            appcode(env, "push #rax");
             break;
 
         case AST_REM:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cltd\n"
-                    "idiv %%edi\n"
-                    "push %%rdx\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cltd");
+            appcode(env, "idiv #edi");
+            appcode(env, "push #rdx");
             break;
 
         case AST_UNARY_MINUS:
-            print_code(fh, env, ast->lhs);
-            fprintf(fh,
-                    "pop %%rax\n"
-                    "neg %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            appcode(env, "pop #rax");
+            appcode(env, "neg #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_LSHIFT:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rcx\n"
-                    "pop %%rax\n"
-                    "sal %%cl, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rcx");
+            appcode(env, "pop #rax");
+            appcode(env, "sal #cl, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_RSHIFT:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rcx\n"
-                    "pop %%rax\n"
-                    "sar %%cl, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rcx");
+            appcode(env, "pop #rax");
+            appcode(env, "sar #cl, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_LT:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "setl %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "setl #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_GT:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "setg %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "setg #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_LTE:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "setle %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "setle #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_GTE:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "setge %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "setge #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_EQ:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "sete %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "sete #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_NEQ:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "cmp %%edi, %%eax\n"
-                    "setne %%al\n"
-                    "movzb %%al, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "cmp #edi, #eax");
+            appcode(env, "setne #al");
+            appcode(env, "movzb #al, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_AND:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "and %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "and #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_XOR:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "xor %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "xor #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_OR:
-            print_code(fh, env, ast->lhs);
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rdi\n"
-                    "pop %%rax\n"
-                    "or %%edi, %%eax\n"
-                    "push %%rax\n");
+            generate_code(env, ast->lhs);
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rdi");
+            appcode(env, "pop #rax");
+            appcode(env, "or #edi, #eax");
+            appcode(env, "push #rax");
             break;
 
         case AST_LAND: {
             int false_label = env->nlabel++, exit_label = env->nlabel++;
-            print_code(fh, env, ast->lhs);
-            fprintf(fh,
-                    "pop %%rax\n"
-                    "cmp $0, %%eax\n"
-                    "je .L%d\n",
-                    false_label);
+            generate_code(env, ast->lhs);
+            appcode(env, "pop #rax");
+            appcode(env, "cmp $0, #eax");
+            appcode(env, "je .L%d", false_label);
             // don't execute rhs expression if lhs is false.
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rax\n"
-                    "cmp $0, %%eax\n"
-                    "je .L%d\n",
-                    false_label);
-            fprintf(fh,
-                    "mov $1, %%eax\n"
-                    "jmp .L%d\n",
-                    exit_label);
-            fprintf(fh,
-                    ".L%d:\n"
-                    "mov $0, %%eax\n",
-                    false_label);
-            fprintf(fh,
-                    ".L%d:\n"
-                    "push %%rax\n",
-                    exit_label);
-            break;
-        }
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rax");
+            appcode(env, "cmp $0, #eax");
+            appcode(env, "je .L%d", false_label);
+            appcode(env, "mov $1, #eax");
+            appcode(env, "jmp .L%d", exit_label);
+            appcode(env, ".L%d:", false_label);
+            appcode(env, "mov $0, #eax");
+            appcode(env, ".L%d:", exit_label);
+            appcode(env, "push #rax");
+        } break;
 
         case AST_LOR: {
             int true_label = env->nlabel++, exit_label = env->nlabel++;
-            print_code(fh, env, ast->lhs);
-            fprintf(fh,
-                    "pop %%rax\n"
-                    "cmp $0, %%eax\n"
-                    "jne .L%d\n",
-                    true_label);
+            generate_code(env, ast->lhs);
+            appcode(env, "pop #rax");
+            appcode(env, "cmp $0, #eax");
+            appcode(env, "jne .L%d", true_label);
             // don't execute rhs expression if lhs is true.
-            print_code(fh, env, ast->rhs);
-            fprintf(fh,
-                    "pop %%rax\n"
-                    "cmp $0, %%eax\n"
-                    "jne .L%d\n",
-                    true_label);
-            fprintf(fh,
-                    "mov $0, %%eax\n"
-                    "jmp .L%d\n",
-                    exit_label);
-            fprintf(fh,
-                    ".L%d:\n"
-                    "mov $1, %%eax\n",
-                    true_label);
-            fprintf(fh,
-                    ".L%d:\n"
-                    "push %%rax\n",
-                    exit_label);
-            break;
-        }
+            generate_code(env, ast->rhs);
+            appcode(env, "pop #rax");
+            appcode(env, "cmp $0, #eax");
+            appcode(env, "jne .L%d", true_label);
+            appcode(env, "mov $0, #eax");
+            appcode(env, "jmp .L%d", exit_label);
+            appcode(env, ".L%d:", true_label);
+            appcode(env, "mov $1, #eax");
+            appcode(env, ".L%d:", exit_label);
+            appcode(env, "push #rax");
+        } break;
 
         case AST_INT:
-            fprintf(fh,
-                    "mov $%d, %%eax\n"
-                    "push %%rax\n",
-                    ast->ival);
+            appcode(env, "mov $%d, #eax", ast->ival);
+            appcode(env, "push #rax");
             break;
 
         default:
@@ -663,24 +662,30 @@ void print_code(FILE *fh, CodeEnv *env, AST *ast)
 
 int main(int argc, char **argv)
 {
+    Vector *tokens;
+    TokenSeq *tokseq;
+    AST *ast;
+    CodeEnv *env;
+    int i;
+
     if (argc == 2) {
         execute_test();
         return 0;
     }
 
-    Vector *tokens = read_all_tokens(stdin);
-    TokenSeq *tokseq = new_token_seq(tokens);
-    AST *ast = parse_prog(tokseq);
-    CodeEnv env;
-    env.nlabel = 0;
+    tokens = read_all_tokens(stdin);
+    tokseq = new_token_seq(tokens);
+    ast = parse_prog(tokseq);
+    env = new_code_env();
 
-    puts(".global main");
-    puts("main:");
+    appcode(env, ".global main");
+    appcode(env, "main:");
+    generate_code(env, ast);
+    appcode(env, "pop #rax");
+    appcode(env, "ret");
 
-    print_code(stdout, &env, ast);
-
-    puts("pop %rax");
-    puts("ret");
+    for (i = 0; i < vector_size(env->codes); i++)
+        puts((const char *)vector_get(env->codes, i));
 
     return 0;
 }
