@@ -8,7 +8,7 @@ function fail(){
 function test_aqcc() {
     echo "$1" | ./main > _test.s
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./main > _test.s"
-    gcc _test.s -o _test.o
+    gcc _test.s -o _test.o testutil.o
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": gcc _test.s -o _test.o"
     ./_test.o
     res=$?
@@ -118,3 +118,6 @@ test_aqcc "x = 1; y = 2;" 2
 test_aqcc "x = 1; y = 2; z = x + y;" 3
 test_aqcc "a0 = 1; a1 = 1; a2 = a0 + a1; a3 = a1 + a2;" 3
 test_aqcc "x = y = 1; z = x = x + y;" 2
+test_aqcc "ret0();" 0
+test_aqcc "(ret0() + ret1()) * 2;" 2
+test_aqcc "(ret0() * ret1()) + 2;" 2

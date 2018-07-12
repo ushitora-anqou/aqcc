@@ -217,6 +217,13 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
     return ast;
 }
 
+AST *new_funccall_ast(char *fname)
+{
+    AST *ast = new_ast(AST_FUNCCALL);
+    ast->fname = fname;
+    return ast;
+}
+
 AST *parse_primary_expr(TokenSeq *tokseq)
 {
     AST *ast;
@@ -243,24 +250,44 @@ AST *parse_primary_expr(TokenSeq *tokseq)
     return ast;
 }
 
+AST *parse_postfix_expr(TokenSeq *tokseq)
+{
+    AST *ast = parse_primary_expr(tokseq);
+    while (1) {
+        Token *token = peek_token(tokseq);
+        switch (token->kind) {
+            case tLPAREN:
+                pop_token(tokseq);
+                expect_token(tokseq, tRPAREN);
+                if (ast->kind != AST_VAR)
+                    error("not func name", __FILE__, __LINE__);
+                ast = new_funccall_ast(ast->sval);
+                break;
+
+            default:
+                return ast;
+        }
+    }
+}
+
 AST *parse_unary_expr(TokenSeq *tokseq)
 {
     Token *token = peek_token(tokseq);
     switch (token->kind) {
         case tPLUS:
             pop_token(tokseq);
-            return parse_primary_expr(tokseq);
+            return parse_postfix_expr(tokseq);
 
         case tMINUS: {
             AST *ast;
 
             pop_token(tokseq);
             ast = new_ast(AST_UNARY_MINUS);
-            ast->lhs = parse_primary_expr(tokseq);
+            ast->lhs = parse_postfix_expr(tokseq);
             return ast;
         }
     }
-    return parse_primary_expr(tokseq);
+    return parse_postfix_expr(tokseq);
 }
 
 AST *parse_multiplicative_expr(TokenSeq *tokseq)
@@ -775,6 +802,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push -%d(#rbp)", *(int *)(kv->value));
             break;
         } break;
+
+        case AST_FUNCCALL:
+            appcode(env->codes, "call %s", ast->fname);
+            appcode(env->codes, "push #rax");
+            break;
 
         case AST_INT:
             appcode(env->codes, "mov $%d, #eax", ast->ival);

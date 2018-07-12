@@ -92,6 +92,7 @@ enum {
     AST_LOR,
     AST_ASSIGN,
     AST_VAR,
+    AST_FUNCCALL,
     AST_NOP,
 };
 
@@ -105,6 +106,10 @@ struct AST {
 
         struct {
             AST *lhs, *rhs;
+        };
+
+        struct {
+            char *fname;
         };
     };
 };
