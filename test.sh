@@ -121,3 +121,6 @@ test_aqcc "x = y = 1; z = x = x + y;" 2
 test_aqcc "ret0();" 0
 test_aqcc "(ret0() + ret1()) * 2;" 2
 test_aqcc "(ret0() * ret1()) + 2;" 2
+test_aqcc "add1(1);" 2
+test_aqcc "add_two(1, 2);" 3
+test_aqcc "add_all(1, 2, 4, 8, 16, 32, 64, 128);" 1

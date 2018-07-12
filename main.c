@@ -134,6 +134,8 @@ Token *read_next_token(FILE *fh)
                 return new_token(tBAR);
             case ';':
                 return new_token(tSEMICOLON);
+            case ',':
+                return new_token(tCOMMA);
             case EOF:
                 return new_token(tEOF);
         }
@@ -217,12 +219,15 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
     return ast;
 }
 
-AST *new_funccall_ast(char *fname)
+AST *new_funccall_ast(char *fname, Vector *aargs)
 {
     AST *ast = new_ast(AST_FUNCCALL);
     ast->fname = fname;
+    ast->aargs = aargs;
     return ast;
 }
+
+AST *parse_assignment_expr(TokenSeq *tokseq);
 
 AST *parse_primary_expr(TokenSeq *tokseq)
 {
@@ -250,24 +255,34 @@ AST *parse_primary_expr(TokenSeq *tokseq)
     return ast;
 }
 
+Vector *parse_argument_expr_list(TokenSeq *tokseq)
+{
+    Vector *args = new_vector();
+
+    while (!match_token(tokseq, tRPAREN)) {
+        vector_push_back(args, parse_assignment_expr(tokseq));
+        if (match_token(tokseq, tCOMMA)) pop_token(tokseq);
+    }
+
+    return args;
+}
+
 AST *parse_postfix_expr(TokenSeq *tokseq)
 {
     AST *ast = parse_primary_expr(tokseq);
-    while (1) {
-        Token *token = peek_token(tokseq);
-        switch (token->kind) {
-            case tLPAREN:
-                pop_token(tokseq);
-                expect_token(tokseq, tRPAREN);
-                if (ast->kind != AST_VAR)
-                    error("not func name", __FILE__, __LINE__);
-                ast = new_funccall_ast(ast->sval);
-                break;
+    Token *token = peek_token(tokseq);
 
-            default:
-                return ast;
-        }
+    switch (token->kind) {
+        case tLPAREN:
+            if (ast->kind != AST_VAR)
+                error("not func name", __FILE__, __LINE__);
+            pop_token(tokseq);
+            ast = new_funccall_ast(ast->sval, parse_argument_expr_list(tokseq));
+            expect_token(tokseq, tRPAREN);
+            break;
     }
+
+    return ast;
 }
 
 AST *parse_unary_expr(TokenSeq *tokseq)
@@ -803,10 +818,17 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
         } break;
 
-        case AST_FUNCCALL:
+        case AST_FUNCCALL: {
+            int i;
+            const char *regs[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+
+            for (i = vector_size(ast->aargs) - 1; i >= 0; i--) {
+                generate_code_detail(env, (AST *)(vector_get(ast->aargs, i)));
+                if (i < 6) appcode(env->codes, "pop %s", regs[i]);
+            }
             appcode(env->codes, "call %s", ast->fname);
             appcode(env->codes, "push #rax");
-            break;
+        } break;
 
         case AST_INT:
             appcode(env->codes, "mov $%d, #eax", ast->ival);

@@ -53,6 +53,7 @@ enum {
     tEQ,
     tEOF,
     tSEMICOLON,
+    tCOMMA,
 };
 
 typedef struct {
@@ -110,6 +111,7 @@ struct AST {
 
         struct {
             char *fname;
+            Vector *aargs;
         };
     };
 };
