@@ -56,6 +56,7 @@ enum {
     tCOMMA,
     tLBRACE,
     tRBRACE,
+    tRETURN,
 };
 
 typedef struct {
@@ -98,6 +99,8 @@ enum {
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_NOP,
+    AST_RETURN,
+    AST_EXPR_STMT,
 };
 
 typedef struct AST AST;

@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "aqcc.h"
 
 Token *new_token(int kind)
@@ -50,9 +52,11 @@ Token *read_next_ident_token(FILE *fh)
 
         buf[bufidx++] = ch;
     }
+    buf[bufidx++] = '\0';
+
+    if (strcmp(buf, "return") == 0) return new_token(tRETURN);
 
     Token *token = new_token(tIDENT);
-    buf[bufidx++] = '\0';
     token->sval = new_str(buf);
     return token;
 }
@@ -513,20 +517,33 @@ AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
 
 AST *parse_expression_stmt(TokenSeq *tokseq)
 {
-    Token *token = peek_token(tokseq);
-    AST *ast;
+    AST *expr = NULL, *stmt;
 
-    if (token->kind == tSEMICOLON) {
-        pop_token(tokseq);
-        return new_ast(AST_NOP);
-    }
-
-    ast = parse_expr(tokseq);
+    if (!match_token(tokseq, tSEMICOLON)) expr = parse_expr(tokseq);
     expect_token(tokseq, tSEMICOLON);
+
+    stmt = new_ast(AST_EXPR_STMT);
+    stmt->lhs = expr;
+    return stmt;
+}
+
+AST *parse_return_stmt(TokenSeq *tokseq)
+{
+    AST *ast = NULL;
+
+    expect_token(tokseq, tRETURN);
+    if (!match_token(tokseq, tSEMICOLON)) ast = parse_expr(tokseq);
+    ast = new_binop_ast(AST_RETURN, ast, NULL);
+    expect_token(tokseq, tSEMICOLON);
+
     return ast;
 }
 
-AST *parse_stmt(TokenSeq *tokseq) { return parse_expression_stmt(tokseq); }
+AST *parse_stmt(TokenSeq *tokseq)
+{
+    if (match_token(tokseq, tRETURN)) return parse_return_stmt(tokseq);
+    return parse_expression_stmt(tokseq);
+}
 
 Vector *parse_compound_stmt(TokenSeq *tokseq)
 {
@@ -878,14 +895,39 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             generate_code(new_env, ast->body);
             appcode(env->codes, "sub $%d, #rsp",
-                    (new_env->stack_idx / 16 + 1) * 16);
+                    (int)(ceil(new_env->stack_idx / 8.)) * 8);
             for (i = 0; i < vector_size(new_env->codes); i++)
                 vector_push_back(env->codes, vector_get(new_env->codes, i));
 
+            // avoid duplicate needless `ret`
+            if (strcmp((const char *)vector_get(env->codes,
+                                                vector_size(env->codes) - 1),
+                       "ret") == 0)
+                break;
+            appcode(env->codes, "mov $0, #eax");
             appcode(env->codes, "mov #rbp, #rsp");
             appcode(env->codes, "pop #rbp");
             appcode(env->codes, "ret");
         } break;
+
+        case AST_EXPR_STMT:
+            if (ast->lhs == NULL) break;
+            generate_code_detail(env, ast->lhs);
+            appcode(env->codes, "pop #rax");
+            break;
+
+        case AST_RETURN:
+            if (ast->lhs == NULL) {
+                appcode(env->codes, "mov $0, #eax");
+            }
+            else {
+                generate_code_detail(env, ast->lhs);
+                appcode(env->codes, "pop #rax");
+            }
+            appcode(env->codes, "mov #rbp, #rsp");
+            appcode(env->codes, "pop #rbp");
+            appcode(env->codes, "ret");
+            break;
 
         case AST_INT:
             appcode(env->codes, "mov $%d, #eax", ast->ival);
@@ -893,7 +935,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_NOP:
-            appcode(env->codes, "push #rax");
             break;
 
         default:
@@ -906,7 +947,6 @@ void generate_code(CodeEnv *env, Vector *asts)
     int i;
     for (i = 0; i < vector_size(asts); i++) {
         generate_code_detail(env, (AST *)vector_get(asts, i));
-        appcode(env->codes, "pop #rax");
     }
 }
 

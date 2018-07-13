@@ -1,5 +1,5 @@
 main: main.c vector.c utility.c aqcc.h test.c map.c
-	gcc -o $@ main.c vector.c utility.c map.c -O0 -g -Wall
+	gcc -o $@ main.c vector.c utility.c map.c -O0 -g -Wall -lm
 
 test: main testutil.o
 	./test.sh
