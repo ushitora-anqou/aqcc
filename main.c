@@ -136,6 +136,10 @@ Token *read_next_token(FILE *fh)
                 return new_token(tSEMICOLON);
             case ',':
                 return new_token(tCOMMA);
+            case '{':
+                return new_token(tLBRACE);
+            case '}':
+                return new_token(tRBRACE);
             case EOF:
                 return new_token(tEOF);
         }
@@ -224,6 +228,14 @@ AST *new_funccall_ast(char *fname, Vector *aargs)
     AST *ast = new_ast(AST_FUNCCALL);
     ast->fname = fname;
     ast->aargs = aargs;
+    return ast;
+}
+
+AST *new_funcdef_ast(char *fname, Vector *body)
+{
+    AST *ast = new_ast(AST_FUNCDEF);
+    ast->fname = fname;
+    ast->body = body;
     return ast;
 }
 
@@ -516,12 +528,36 @@ AST *parse_expression_stmt(TokenSeq *tokseq)
 
 AST *parse_stmt(TokenSeq *tokseq) { return parse_expression_stmt(tokseq); }
 
+Vector *parse_compound_stmt(TokenSeq *tokseq)
+{
+    Vector *asts = new_vector();
+
+    expect_token(tokseq, tLBRACE);
+    while (peek_token(tokseq)->kind != tRBRACE) {
+        vector_push_back(asts, parse_stmt(tokseq));
+    }
+    expect_token(tokseq, tRBRACE);
+
+    return asts;
+}
+
+AST *parse_function_definition(TokenSeq *tokseq)
+{
+    char *fname;
+
+    fname = expect_token(tokseq, tIDENT)->sval;
+    expect_token(tokseq, tLPAREN);
+    expect_token(tokseq, tRPAREN);
+
+    return new_funcdef_ast(fname, parse_compound_stmt(tokseq));
+}
+
 Vector *parse_prog(TokenSeq *tokseq)
 {
     Vector *asts = new_vector();
 
     while (peek_token(tokseq)->kind != tEOF) {
-        vector_push_back(asts, parse_stmt(tokseq));
+        vector_push_back(asts, parse_function_definition(tokseq));
     }
 
     return asts;
@@ -587,6 +623,8 @@ void dump_codes(Vector *codes, FILE *fh)
     for (i = 0; i < vector_size(codes); i++)
         fprintf(fh, "%s\n", (const char *)vector_get(codes, i));
 }
+
+void generate_code(CodeEnv *env, Vector *asts);
 
 void generate_code_detail(CodeEnv *env, AST *ast)
 {
@@ -830,6 +868,25 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
         } break;
 
+        case AST_FUNCDEF: {
+            CodeEnv *new_env = new_code_env();
+            int i;
+
+            appcode(env->codes, "%s:", ast->fname);
+            appcode(env->codes, "push #rbp");
+            appcode(env->codes, "mov #rsp, #rbp");
+
+            generate_code(new_env, ast->body);
+            appcode(env->codes, "sub $%d, #rsp",
+                    (new_env->stack_idx / 16 + 1) * 16);
+            for (i = 0; i < vector_size(new_env->codes); i++)
+                vector_push_back(env->codes, vector_get(new_env->codes, i));
+
+            appcode(env->codes, "mov #rbp, #rsp");
+            appcode(env->codes, "pop #rbp");
+            appcode(env->codes, "ret");
+        } break;
+
         case AST_INT:
             appcode(env->codes, "mov $%d, #eax", ast->ival);
             appcode(env->codes, "push #rax");
@@ -861,7 +918,6 @@ int main(int argc, char **argv)
     TokenSeq *tokseq;
     Vector *asts;
     CodeEnv *env;
-    Vector *header_codes;
 
     if (argc == 2) {
         execute_test();
@@ -872,22 +928,10 @@ int main(int argc, char **argv)
     tokseq = new_token_seq(tokens);
     asts = parse_prog(tokseq);
 
-    header_codes = new_vector();
-    appcode(header_codes, ".global main");
-    appcode(header_codes, "main:");
-    appcode(header_codes, "push #rbp");
-    appcode(header_codes, "mov #rsp, #rbp");
-
     env = new_code_env();
+    appcode(env->codes, ".global main");
     generate_code(env, asts);
 
-    appcode(header_codes, "sub $%d, #rsp", (env->stack_idx / 16 + 1) * 16);
-
-    appcode(env->codes, "mov #rbp, #rsp");
-    appcode(env->codes, "pop #rbp");
-    appcode(env->codes, "ret");
-
-    dump_codes(header_codes, stdout);
     dump_codes(env->codes, stdout);
 
     return 0;

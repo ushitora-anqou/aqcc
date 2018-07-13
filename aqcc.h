@@ -54,6 +54,8 @@ enum {
     tEOF,
     tSEMICOLON,
     tCOMMA,
+    tLBRACE,
+    tRBRACE,
 };
 
 typedef struct {
@@ -94,6 +96,7 @@ enum {
     AST_ASSIGN,
     AST_VAR,
     AST_FUNCCALL,
+    AST_FUNCDEF,
     AST_NOP,
 };
 
@@ -112,6 +115,7 @@ struct AST {
         struct {
             char *fname;
             Vector *aargs;
+            Vector *body;
         };
     };
 };
