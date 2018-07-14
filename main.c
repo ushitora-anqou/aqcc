@@ -144,6 +144,10 @@ Token *read_next_token(FILE *fh)
                 return new_token(tLBRACE);
             case '}':
                 return new_token(tRBRACE);
+            case ':':
+                return new_token(tCOLON);
+            case '?':
+                return new_token(tQUESTION);
             case EOF:
                 return new_token(tEOF);
         }
@@ -502,13 +506,31 @@ AST *parse_logical_or_expr(TokenSeq *tokseq)
     }
 }
 
+AST *parse_conditional_expr(TokenSeq *tokseq)
+{
+    AST *cond, *true_expr, *false_expr, *ast;
+
+    cond = parse_logical_or_expr(tokseq);
+    if (!match_token(tokseq, tQUESTION)) return cond;
+    pop_token(tokseq);
+    true_expr = parse_expr(tokseq);
+    expect_token(tokseq, tCOLON);
+    false_expr = parse_conditional_expr(tokseq);
+
+    ast = new_ast(AST_COND);
+    ast->cond = cond;
+    ast->true_expr = true_expr;
+    ast->false_expr = false_expr;
+    return ast;
+}
+
 AST *parse_assignment_expr(TokenSeq *tokseq)
 {
     Token *token;
     AST *ast;
 
     if (!match_token2(tokseq, tIDENT, tEQ))
-        return parse_logical_or_expr(tokseq);
+        return parse_conditional_expr(tokseq);
     token = expect_token(tokseq, tIDENT);
     expect_token(tokseq, tEQ);
 
@@ -871,6 +893,20 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "mov $1, #eax");
             appcode(env->codes, ".L%d:", exit_label);
             appcode(env->codes, "push #rax");
+        } break;
+
+        case AST_COND: {
+            int false_label = env->nlabel++, exit_label = env->nlabel++;
+
+            generate_code_detail(env, ast->cond);
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "je .L%d", false_label);
+            generate_code_detail(env, ast->true_expr);
+            appcode(env->codes, "jmp .L%d", exit_label);
+            appcode(env->codes, ".L%d:", false_label);
+            generate_code_detail(env, ast->false_expr);
+            appcode(env->codes, ".L%d:", exit_label);
         } break;
 
         case AST_ASSIGN: {

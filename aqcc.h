@@ -51,12 +51,14 @@ enum {
     tBARBAR,
     tIDENT,
     tEQ,
-    tEOF,
     tSEMICOLON,
     tCOMMA,
     tLBRACE,
     tRBRACE,
     tRETURN,
+    tCOLON,
+    tQUESTION,
+    tEOF,
 };
 
 typedef struct {
@@ -94,6 +96,7 @@ enum {
     AST_OR,
     AST_LAND,
     AST_LOR,
+    AST_COND,
     AST_ASSIGN,
     AST_VAR,
     AST_FUNCCALL,
@@ -113,6 +116,10 @@ struct AST {
 
         struct {
             AST *lhs, *rhs;
+        };
+
+        struct {
+            AST *cond, *true_expr, *false_expr;
         };
 
         struct {
