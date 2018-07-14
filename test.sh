@@ -128,3 +128,6 @@ test_aqcc "iret0(){return 0;}main(){return iret0();}" 0
 test_aqcc "iret0(){return 0;}iret1(){return 1;}main(){return iret0() + iret1();}" 1
 test_aqcc "main(){return;}" 0
 test_aqcc "main(){;}" 0
+test_aqcc "iadd(a, b) { return a + b; }main(){return iadd(1, 2);}" 3
+test_aqcc "iadd(a, b) { return a + b; }main(){return iadd(1, 2) * iadd(2, 3);}" 15
+test_aqcc "eighth(a, b, c, d, e, f, g, h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 8);}" 8

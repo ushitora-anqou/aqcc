@@ -227,18 +227,19 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
     return ast;
 }
 
-AST *new_funccall_ast(char *fname, Vector *aargs)
+AST *new_funccall_ast(char *fname, Vector *args)
 {
     AST *ast = new_ast(AST_FUNCCALL);
     ast->fname = fname;
-    ast->aargs = aargs;
+    ast->args = args;
     return ast;
 }
 
-AST *new_funcdef_ast(char *fname, Vector *body)
+AST *new_funcdef_ast(char *fname, Vector *params, Vector *body)
 {
     AST *ast = new_ast(AST_FUNCDEF);
     ast->fname = fname;
+    ast->params = params;
     ast->body = body;
     return ast;
 }
@@ -275,9 +276,12 @@ Vector *parse_argument_expr_list(TokenSeq *tokseq)
 {
     Vector *args = new_vector();
 
-    while (!match_token(tokseq, tRPAREN)) {
+    if (match_token(tokseq, tRPAREN)) return args;
+
+    while (1) {
         vector_push_back(args, parse_assignment_expr(tokseq));
-        if (match_token(tokseq, tCOMMA)) pop_token(tokseq);
+        if (match_token(tokseq, tRPAREN)) break;
+        expect_token(tokseq, tCOMMA);
     }
 
     return args;
@@ -558,15 +562,32 @@ Vector *parse_compound_stmt(TokenSeq *tokseq)
     return asts;
 }
 
+Vector *parse_parameter_list(TokenSeq *tokseq)
+{
+    Vector *params = new_vector();
+
+    if (match_token(tokseq, tRPAREN)) return params;
+
+    while (1) {
+        vector_push_back(params, expect_token(tokseq, tIDENT)->sval);
+        if (match_token(tokseq, tRPAREN)) break;
+        expect_token(tokseq, tCOMMA);
+    }
+
+    return params;
+}
+
 AST *parse_function_definition(TokenSeq *tokseq)
 {
     char *fname;
+    Vector *params;
 
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
+    params = parse_parameter_list(tokseq);
     expect_token(tokseq, tRPAREN);
 
-    return new_funcdef_ast(fname, parse_compound_stmt(tokseq));
+    return new_funcdef_ast(fname, params, parse_compound_stmt(tokseq));
 }
 
 Vector *parse_prog(TokenSeq *tokseq)
@@ -645,6 +666,9 @@ void generate_code(CodeEnv *env, Vector *asts);
 
 void generate_code_detail(CodeEnv *env, AST *ast)
 {
+    const char *rreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    const char *ereg[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+
     switch (ast->kind) {
         case AST_ADD:
             generate_code_detail(env, ast->lhs);
@@ -857,29 +881,28 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             assert(ast->lhs->kind == AST_VAR);
             kv = map_lookup(env->var_map, ast->lhs->sval);
             if (kv == NULL) {  // not exists
-                env->stack_idx += 4;
+                env->stack_idx -= 4;
                 kv = map_insert(env->var_map, ast->lhs->sval,
                                 new_int(env->stack_idx));
             }
             appcode(env->codes, "pop #rax");
-            appcode(env->codes, "mov #eax, -%d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "mov #eax, %d(#rbp)", *(int *)(kv->value));
             appcode(env->codes, "push #rax");
         } break;
 
         case AST_VAR: {
             KeyValue *kv = map_lookup(env->var_map, ast->sval);
             if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
-            appcode(env->codes, "push -%d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
             break;
         } break;
 
         case AST_FUNCCALL: {
             int i;
-            const char *regs[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
-            for (i = vector_size(ast->aargs) - 1; i >= 0; i--) {
-                generate_code_detail(env, (AST *)(vector_get(ast->aargs, i)));
-                if (i < 6) appcode(env->codes, "pop %s", regs[i]);
+            for (i = vector_size(ast->args) - 1; i >= 0; i--) {
+                generate_code_detail(env, (AST *)(vector_get(ast->args, i)));
+                if (i < 6) appcode(env->codes, "pop %s", rreg[i]);
             }
             appcode(env->codes, "call %s", ast->fname);
             appcode(env->codes, "push #rax");
@@ -893,9 +916,28 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rbp");
             appcode(env->codes, "mov #rsp, #rbp");
 
+            for (i = 0; i < vector_size(ast->params); i++) {
+                const char *pname = (const char *)(vector_get(ast->params, i));
+                int stack_idx;
+
+                if (i < 6) {
+                    stack_idx = new_env->stack_idx - 4;
+                    appcode(new_env->codes, "mov %s, %d(#rbp)", ereg[i],
+                            stack_idx);
+                }
+                else {
+                    // should avoid return pointer and saved %rbp
+                    stack_idx = 16 + (i - 6) * 8;
+                }
+
+                new_env->stack_idx = stack_idx;
+                map_insert(new_env->var_map, pname, new_int(stack_idx));
+            }
+
             generate_code(new_env, ast->body);
-            appcode(env->codes, "sub $%d, #rsp",
-                    (int)(ceil(new_env->stack_idx / 8.)) * 8);
+            if (new_env->stack_idx != 0)
+                appcode(env->codes, "sub $%d, #rsp",
+                        (int)(ceil(-new_env->stack_idx / 8.)) * 8);
             for (i = 0; i < vector_size(new_env->codes); i++)
                 vector_push_back(env->codes, vector_get(new_env->codes, i));
 

@@ -117,7 +117,8 @@ struct AST {
 
         struct {
             char *fname;
-            Vector *aargs;
+            Vector *args;    // actual arguments
+            Vector *params;  // formal parameters
             Vector *body;
         };
     };
