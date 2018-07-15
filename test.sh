@@ -143,4 +143,5 @@ test_aqcc "main(){if(0 == 1){return 0;}else{return 1;}}" 1
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(0);}" 0
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(1);}" 1
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(5);}" 5
+test_aqcc "main(){a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
 
