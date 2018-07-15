@@ -144,4 +144,6 @@ test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(0
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(1);}" 1
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(5);}" 5
 test_aqcc "main(){a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
-
+# thanks to @hsjoihs
+test_aqcc "foo(){return 2;}bar(){return 7;}main(){a=3;b=5;c=2;if(a)if(0){b=foo();}else{c=bar();}return 162+b+c;}" 174
+test_aqcc "main(){a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
