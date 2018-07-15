@@ -74,6 +74,10 @@ test_aqcc "main(){return 1==2;}" 0
 test_aqcc "main(){return 1 == 2;}" 0
 test_aqcc "main(){return 4 == 2;}" 0
 test_aqcc "main(){return 2 == 2;}" 1
+test_aqcc "main(){return 1!=2;}" 1
+test_aqcc "main(){return 1 != 2;}" 1
+test_aqcc "main(){return 4 != 2;}" 1
+test_aqcc "main(){return 2 != 2;}" 0
 test_aqcc "main(){return 0&0;}" 0
 test_aqcc "main(){return 0 & 0;}" 0
 test_aqcc "main(){return 1 & 0;}" 0
