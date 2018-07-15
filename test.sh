@@ -137,3 +137,10 @@ test_aqcc "iadd(a, b) { return a + b; }main(){return iadd(1, 2) * iadd(2, 3);}" 
 test_aqcc "eighth(a, b, c, d, e, f, g, h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 8);}" 8
 test_aqcc "main(){return 0 == 0 ? 0 : 1;}" 0
 test_aqcc "fib(n){return n == 0 ? 0 : n == 1 ? 1 : fib(n - 1) + fib(n - 2);}main(){return fib(5);}" 5
+test_aqcc "main(){if(0 == 1)return 0;return 1;}" 1
+test_aqcc "main(){if(0 == 1)return 0;else return 1;}" 1
+test_aqcc "main(){if(0 == 1){return 0;}else{return 1;}}" 1
+test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(0);}" 0
+test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(1);}" 1
+test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(5);}" 5
+

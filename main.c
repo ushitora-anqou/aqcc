@@ -55,6 +55,8 @@ Token *read_next_ident_token(FILE *fh)
     buf[bufidx++] = '\0';
 
     if (strcmp(buf, "return") == 0) return new_token(tRETURN);
+    if (strcmp(buf, "if") == 0) return new_token(tIF);
+    if (strcmp(buf, "else") == 0) return new_token(tELSE);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);
@@ -508,19 +510,19 @@ AST *parse_logical_or_expr(TokenSeq *tokseq)
 
 AST *parse_conditional_expr(TokenSeq *tokseq)
 {
-    AST *cond, *true_expr, *false_expr, *ast;
+    AST *cond, *then, *els, *ast;
 
     cond = parse_logical_or_expr(tokseq);
     if (!match_token(tokseq, tQUESTION)) return cond;
     pop_token(tokseq);
-    true_expr = parse_expr(tokseq);
+    then = parse_expr(tokseq);
     expect_token(tokseq, tCOLON);
-    false_expr = parse_conditional_expr(tokseq);
+    els = parse_conditional_expr(tokseq);
 
     ast = new_ast(AST_COND);
     ast->cond = cond;
-    ast->true_expr = true_expr;
-    ast->false_expr = false_expr;
+    ast->then = then;
+    ast->els = els;
     return ast;
 }
 
@@ -584,6 +586,27 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
     return ast;
 }
 
+AST *parse_selection_stmt(TokenSeq *tokseq)
+{
+    AST *ast, *cond, *then, *els = NULL;
+
+    expect_token(tokseq, tIF);
+    expect_token(tokseq, tLPAREN);
+    cond = parse_expr(tokseq);
+    expect_token(tokseq, tRPAREN);
+    then = parse_stmt(tokseq);
+    if (match_token(tokseq, tELSE)) {
+        pop_token(tokseq);
+        els = parse_stmt(tokseq);
+    }
+
+    ast = new_ast(AST_IF);
+    ast->cond = cond;
+    ast->then = then;
+    ast->els = els;
+    return ast;
+}
+
 AST *parse_stmt(TokenSeq *tokseq)
 {
     Token *token = peek_token(tokseq);
@@ -593,6 +616,8 @@ AST *parse_stmt(TokenSeq *tokseq)
             return parse_return_stmt(tokseq);
         case tLBRACE:
             return parse_compound_stmt(tokseq);
+        case tIF:
+            return parse_selection_stmt(tokseq);
     }
 
     return parse_expression_stmt(tokseq);
@@ -909,6 +934,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
         } break;
 
+        case AST_IF:
         case AST_COND: {
             int false_label = env->nlabel++, exit_label = env->nlabel++;
 
@@ -916,10 +942,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
             appcode(env->codes, "je .L%d", false_label);
-            generate_code_detail(env, ast->true_expr);
+            generate_code_detail(env, ast->then);
             appcode(env->codes, "jmp .L%d", exit_label);
             appcode(env->codes, ".L%d:", false_label);
-            generate_code_detail(env, ast->false_expr);
+            if (ast->els != NULL) generate_code_detail(env, ast->els);
             appcode(env->codes, ".L%d:", exit_label);
         } break;
 

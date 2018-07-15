@@ -59,6 +59,8 @@ enum {
     tRETURN,
     tCOLON,
     tQUESTION,
+    tIF,
+    tELSE,
     tEOF,
 };
 
@@ -106,6 +108,7 @@ enum {
     AST_RETURN,
     AST_EXPR_STMT,
     AST_COMPOUND,
+    AST_IF,
 };
 
 typedef struct AST AST;
@@ -121,7 +124,7 @@ struct AST {
         };
 
         struct {
-            AST *cond, *true_expr, *false_expr;
+            AST *cond, *then, *els;
         };
 
         struct {
