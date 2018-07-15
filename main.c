@@ -239,7 +239,7 @@ AST *new_funccall_ast(char *fname, Vector *args)
     return ast;
 }
 
-AST *new_funcdef_ast(char *fname, Vector *params, Vector *body)
+AST *new_funcdef_ast(char *fname, Vector *params, AST *body)
 {
     AST *ast = new_ast(AST_FUNCDEF);
     ast->fname = fname;
@@ -565,23 +565,37 @@ AST *parse_return_stmt(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_stmt(TokenSeq *tokseq)
-{
-    if (match_token(tokseq, tRETURN)) return parse_return_stmt(tokseq);
-    return parse_expression_stmt(tokseq);
-}
+AST *parse_stmt(TokenSeq *tokseq);
 
-Vector *parse_compound_stmt(TokenSeq *tokseq)
+AST *parse_compound_stmt(TokenSeq *tokseq)
 {
-    Vector *asts = new_vector();
+    AST *ast;
+    Vector *stmts = new_vector();
 
     expect_token(tokseq, tLBRACE);
     while (peek_token(tokseq)->kind != tRBRACE) {
-        vector_push_back(asts, parse_stmt(tokseq));
+        vector_push_back(stmts, parse_stmt(tokseq));
     }
     expect_token(tokseq, tRBRACE);
 
-    return asts;
+    ast = new_ast(AST_COMPOUND);
+    ast->stmts = stmts;
+
+    return ast;
+}
+
+AST *parse_stmt(TokenSeq *tokseq)
+{
+    Token *token = peek_token(tokseq);
+
+    switch (token->kind) {
+        case tRETURN:
+            return parse_return_stmt(tokseq);
+        case tLBRACE:
+            return parse_compound_stmt(tokseq);
+    }
+
+    return parse_expression_stmt(tokseq);
 }
 
 Vector *parse_parameter_list(TokenSeq *tokseq)
@@ -970,7 +984,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 map_insert(new_env->var_map, pname, new_int(stack_idx));
             }
 
-            generate_code(new_env, ast->body);
+            generate_code_detail(new_env, ast->body);
             if (new_env->stack_idx != 0)
                 appcode(env->codes, "sub $%d, #rsp",
                         (int)(ceil(-new_env->stack_idx / 8.)) * 8);
@@ -1005,6 +1019,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "mov #rbp, #rsp");
             appcode(env->codes, "pop #rbp");
             appcode(env->codes, "ret");
+            break;
+
+        case AST_COMPOUND:
+            generate_code(env, ast->stmts);
             break;
 
         case AST_INT:

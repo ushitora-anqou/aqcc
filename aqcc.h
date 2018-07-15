@@ -105,6 +105,7 @@ enum {
     AST_NOP,
     AST_RETURN,
     AST_EXPR_STMT,
+    AST_COMPOUND,
 };
 
 typedef struct AST AST;
@@ -127,8 +128,10 @@ struct AST {
             char *fname;
             Vector *args;    // actual arguments
             Vector *params;  // formal parameters
-            Vector *body;
+            AST *body;
         };
+
+        Vector *stmts;
     };
 };
 
