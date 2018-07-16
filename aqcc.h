@@ -61,6 +61,7 @@ enum {
     tQUESTION,
     tIF,
     tELSE,
+    tWHILE,
     tEOF,
 };
 
@@ -109,6 +110,7 @@ enum {
     AST_EXPR_STMT,
     AST_COMPOUND,
     AST_IF,
+    AST_WHILE,
 };
 
 typedef struct AST AST;
@@ -123,6 +125,9 @@ struct AST {
             AST *lhs, *rhs;
         };
 
+        // AST_IF
+        // AST_COND
+        // AST_WHILE
         struct {
             AST *cond, *then, *els;
         };

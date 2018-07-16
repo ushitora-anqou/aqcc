@@ -57,6 +57,7 @@ Token *read_next_ident_token(FILE *fh)
     if (strcmp(buf, "return") == 0) return new_token(tRETURN);
     if (strcmp(buf, "if") == 0) return new_token(tIF);
     if (strcmp(buf, "else") == 0) return new_token(tELSE);
+    if (strcmp(buf, "while") == 0) return new_token(tWHILE);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);
@@ -569,6 +570,23 @@ AST *parse_return_stmt(TokenSeq *tokseq)
 
 AST *parse_stmt(TokenSeq *tokseq);
 
+AST *parse_iteration_stmt(TokenSeq *tokseq)
+{
+    AST *ast, *cond, *body;
+
+    expect_token(tokseq, tWHILE);
+    expect_token(tokseq, tLPAREN);
+    cond = parse_expr(tokseq);
+    expect_token(tokseq, tRPAREN);
+    body = parse_stmt(tokseq);
+
+    ast = new_ast(AST_WHILE);
+    ast->cond = cond;
+    ast->then = body;
+    ast->els = NULL;  // not used
+    return ast;
+}
+
 AST *parse_compound_stmt(TokenSeq *tokseq)
 {
     AST *ast;
@@ -618,6 +636,8 @@ AST *parse_stmt(TokenSeq *tokseq)
             return parse_compound_stmt(tokseq);
         case tIF:
             return parse_selection_stmt(tokseq);
+        case tWHILE:
+            return parse_iteration_stmt(tokseq);
     }
 
     return parse_expression_stmt(tokseq);
@@ -1046,6 +1066,19 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "pop #rbp");
             appcode(env->codes, "ret");
             break;
+
+        case AST_WHILE: {
+            int start_label = env->nlabel++, exit_label = env->nlabel++;
+
+            appcode(env->codes, ".L%d:", start_label);
+            generate_code_detail(env, ast->cond);
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "cmp $0, #eax");
+            appcode(env->codes, "je .L%d", exit_label);
+            generate_code_detail(env, ast->then);
+            appcode(env->codes, "jmp .L%d", start_label);
+            appcode(env->codes, ".L%d:", exit_label);
+        } break;
 
         case AST_COMPOUND:
             generate_code(env, ast->stmts);
