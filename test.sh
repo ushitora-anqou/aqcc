@@ -149,4 +149,6 @@ test_aqcc "foo(){return 2;}bar(){return 7;}main(){a=3;b=5;c=2;if(a)if(0){b=foo()
 test_aqcc "main(){a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
 test_aqcc "main(){a=0;while(a!=10)a=a+1;return a;}" 10
 test_aqcc "main(){a=0;while(a!=10){b=1;a=a+1;}return a;}" 10
+test_aqcc "main(){a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
+test_aqcc "main(){a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
 

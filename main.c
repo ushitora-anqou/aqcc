@@ -58,6 +58,8 @@ Token *read_next_ident_token(FILE *fh)
     if (strcmp(buf, "if") == 0) return new_token(tIF);
     if (strcmp(buf, "else") == 0) return new_token(tELSE);
     if (strcmp(buf, "while") == 0) return new_token(tWHILE);
+    if (strcmp(buf, "break") == 0) return new_token(tBREAK);
+    if (strcmp(buf, "continue") == 0) return new_token(tCONTINUE);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);
@@ -556,14 +558,28 @@ AST *parse_expression_stmt(TokenSeq *tokseq)
     return stmt;
 }
 
-AST *parse_return_stmt(TokenSeq *tokseq)
+AST *parse_jump_stmt(TokenSeq *tokseq)
 {
+    Token *token = pop_token(tokseq);
     AST *ast = NULL;
 
-    expect_token(tokseq, tRETURN);
-    if (!match_token(tokseq, tSEMICOLON)) ast = parse_expr(tokseq);
-    ast = new_binop_ast(AST_RETURN, ast, NULL);
-    expect_token(tokseq, tSEMICOLON);
+    switch (token->kind) {
+        case tRETURN:
+            if (!match_token(tokseq, tSEMICOLON)) ast = parse_expr(tokseq);
+            ast = new_binop_ast(AST_RETURN, ast, NULL);
+            expect_token(tokseq, tSEMICOLON);
+            break;
+        case tBREAK:
+            ast = new_ast(AST_BREAK);
+            expect_token(tokseq, tSEMICOLON);
+            break;
+        case tCONTINUE:
+            ast = new_ast(AST_CONTINUE);
+            expect_token(tokseq, tSEMICOLON);
+            break;
+        default:
+            error("unexpected token", __FILE__, __LINE__);
+    }
 
     return ast;
 }
@@ -630,8 +646,10 @@ AST *parse_stmt(TokenSeq *tokseq)
     Token *token = peek_token(tokseq);
 
     switch (token->kind) {
+        case tBREAK:
+        case tCONTINUE:
         case tRETURN:
-            return parse_return_stmt(tokseq);
+            return parse_jump_stmt(tokseq);
         case tLBRACE:
             return parse_compound_stmt(tokseq);
         case tIF:
@@ -683,7 +701,7 @@ Vector *parse_prog(TokenSeq *tokseq)
 }
 
 typedef struct {
-    int nlabel, stack_idx;
+    int nlabel, stack_idx, loop_start_label, loop_end_label;
     Vector *codes;
     Map *var_map;
 } CodeEnv;
@@ -695,6 +713,7 @@ CodeEnv *new_code_env()
     this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
     this->nlabel = 0;
     this->stack_idx = 0;
+    this->loop_start_label = this->loop_end_label = -1;
     this->codes = new_vector();
     this->var_map = new_map();
     return this;
@@ -1068,17 +1087,35 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_WHILE: {
-            int start_label = env->nlabel++, exit_label = env->nlabel++;
+            int org_loop_start_label = env->loop_start_label,
+                org_loop_end_label = env->loop_end_label;
+            env->loop_start_label = env->nlabel++;
+            env->loop_end_label = env->nlabel++;
 
-            appcode(env->codes, ".L%d:", start_label);
+            appcode(env->codes, ".L%d:", env->loop_start_label);
             generate_code_detail(env, ast->cond);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", exit_label);
+            appcode(env->codes, "je .L%d", env->loop_end_label);
             generate_code_detail(env, ast->then);
-            appcode(env->codes, "jmp .L%d", start_label);
-            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "jmp .L%d", env->loop_start_label);
+            appcode(env->codes, ".L%d:", env->loop_end_label);
+
+            env->loop_start_label = org_loop_start_label;
+            env->loop_end_label = org_loop_end_label;
         } break;
+
+        case AST_BREAK:
+            if (env->loop_end_label < 0)
+                error("invalid break.", __FILE__, __LINE__);
+            appcode(env->codes, "jmp .L%d", env->loop_end_label);
+            break;
+
+        case AST_CONTINUE:
+            if (env->loop_start_label < 0)
+                error("invalid continue.", __FILE__, __LINE__);
+            appcode(env->codes, "jmp .L%d", env->loop_start_label);
+            break;
 
         case AST_COMPOUND:
             generate_code(env, ast->stmts);

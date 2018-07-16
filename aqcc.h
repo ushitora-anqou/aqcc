@@ -62,6 +62,8 @@ enum {
     tIF,
     tELSE,
     tWHILE,
+    tBREAK,
+    tCONTINUE,
     tEOF,
 };
 
@@ -111,6 +113,8 @@ enum {
     AST_COMPOUND,
     AST_IF,
     AST_WHILE,
+    AST_BREAK,
+    AST_CONTINUE,
 };
 
 typedef struct AST AST;
