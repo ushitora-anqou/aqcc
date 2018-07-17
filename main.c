@@ -88,6 +88,9 @@ Token *read_next_token(FILE *fh)
 
         switch (ch) {
             case '+':
+                ch = fgetc(fh);
+                if (ch == '+') return new_token(tINC);
+                ungetc(ch, fh);
                 return new_token(tPLUS);
             case '-':
                 return new_token(tMINUS);
@@ -345,6 +348,13 @@ AST *parse_postfix_expr(TokenSeq *tokseq)
             ast = new_funccall_ast(ast->sval, parse_argument_expr_list(tokseq));
             expect_token(tokseq, tRPAREN);
             break;
+
+        case tINC: {
+            if (ast->kind != AST_VAR)
+                error("not variable name", __FILE__, __LINE__);
+            pop_token(tokseq);
+            ast->kind = AST_POSTINC;
+        } break;
     }
 
     return ast;
@@ -366,7 +376,19 @@ AST *parse_unary_expr(TokenSeq *tokseq)
             ast->lhs = parse_postfix_expr(tokseq);
             return ast;
         }
+
+        case tINC: {
+            AST *ast;
+
+            pop_token(tokseq);
+            ast = parse_unary_expr(tokseq);
+            if (ast->kind != AST_VAR)
+                error("unexpected token", __FILE__, __LINE__);
+            ast->kind = AST_PREINC;
+            return ast;
+        }
     }
+
     return parse_postfix_expr(tokseq);
 }
 
@@ -1040,6 +1062,20 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "mov $1, #eax");
             appcode(env->codes, ".L%d:", exit_label);
             appcode(env->codes, "push #rax");
+        } break;
+
+        case AST_POSTINC: {
+            KeyValue *kv = map_lookup(env->var_map, ast->sval);
+            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
+            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "incl %d(#rbp)", *(int *)(kv->value));
+        } break;
+
+        case AST_PREINC: {
+            KeyValue *kv = map_lookup(env->var_map, ast->sval);
+            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
+            appcode(env->codes, "incl %d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
         } break;
 
         case AST_IF:

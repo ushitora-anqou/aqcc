@@ -65,6 +65,7 @@ enum {
     tBREAK,
     tCONTINUE,
     tFOR,
+    tINC,
     tEOF,
 };
 
@@ -117,6 +118,8 @@ enum {
     AST_BREAK,
     AST_CONTINUE,
     AST_FOR,
+    AST_PREINC,
+    AST_POSTINC,
 };
 
 typedef struct AST AST;
