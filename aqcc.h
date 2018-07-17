@@ -64,6 +64,7 @@ enum {
     tWHILE,
     tBREAK,
     tCONTINUE,
+    tFOR,
     tEOF,
 };
 
@@ -115,6 +116,7 @@ enum {
     AST_WHILE,
     AST_BREAK,
     AST_CONTINUE,
+    AST_FOR,
 };
 
 typedef struct AST AST;
@@ -134,6 +136,11 @@ struct AST {
         // AST_WHILE
         struct {
             AST *cond, *then, *els;
+        };
+
+        // AST_FOR
+        struct {
+            AST *initer, *midcond, *iterer, *for_body;
         };
 
         struct {

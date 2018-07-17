@@ -60,6 +60,7 @@ Token *read_next_ident_token(FILE *fh)
     if (strcmp(buf, "while") == 0) return new_token(tWHILE);
     if (strcmp(buf, "break") == 0) return new_token(tBREAK);
     if (strcmp(buf, "continue") == 0) return new_token(tCONTINUE);
+    if (strcmp(buf, "for") == 0) return new_token(tFOR);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);
@@ -250,6 +251,41 @@ AST *new_funcdef_ast(char *fname, Vector *params, AST *body)
     ast->fname = fname;
     ast->params = params;
     ast->body = body;
+    return ast;
+}
+
+AST *new_expr_stmt(AST *expr)
+{
+    AST *ast;
+
+    ast = new_ast(AST_EXPR_STMT);
+    ast->lhs = expr;
+    ast->rhs = NULL;  // not used
+    return ast;
+}
+
+AST *new_while_stmt(AST *cond, AST *body)
+{
+    AST *ast;
+
+    ast = new_ast(AST_WHILE);
+    ast->cond = cond;
+    ast->then = body;
+    ast->els = NULL;  // not used
+
+    return ast;
+}
+
+AST *new_compound_stmt2(AST *first, AST *second)
+{
+    AST *ast;
+    Vector *stmts = new_vector();
+
+    vector_push_back(stmts, first);
+    vector_push_back(stmts, second);
+    ast = new_ast(AST_COMPOUND);
+    ast->stmts = stmts;
+
     return ast;
 }
 
@@ -548,14 +584,12 @@ AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
 
 AST *parse_expression_stmt(TokenSeq *tokseq)
 {
-    AST *expr = NULL, *stmt;
+    AST *expr = NULL;
 
     if (!match_token(tokseq, tSEMICOLON)) expr = parse_expr(tokseq);
     expect_token(tokseq, tSEMICOLON);
 
-    stmt = new_ast(AST_EXPR_STMT);
-    stmt->lhs = expr;
-    return stmt;
+    return new_expr_stmt(expr);
 }
 
 AST *parse_jump_stmt(TokenSeq *tokseq)
@@ -588,18 +622,52 @@ AST *parse_stmt(TokenSeq *tokseq);
 
 AST *parse_iteration_stmt(TokenSeq *tokseq)
 {
-    AST *ast, *cond, *body;
+    Token *token = pop_token(tokseq);
+    AST *ast;
 
-    expect_token(tokseq, tWHILE);
-    expect_token(tokseq, tLPAREN);
-    cond = parse_expr(tokseq);
-    expect_token(tokseq, tRPAREN);
-    body = parse_stmt(tokseq);
+    switch (token->kind) {
+        case tWHILE: {
+            AST *cond, *body;
+            expect_token(tokseq, tLPAREN);
+            cond = parse_expr(tokseq);
+            expect_token(tokseq, tRPAREN);
+            body = parse_stmt(tokseq);
 
-    ast = new_ast(AST_WHILE);
-    ast->cond = cond;
-    ast->then = body;
-    ast->els = NULL;  // not used
+            ast = new_while_stmt(cond, body);
+        } break;
+
+        case tFOR: {
+            AST *initer, *cond, *iterer, *body;
+
+            expect_token(tokseq, tLPAREN);
+            if (match_token(tokseq, tSEMICOLON))
+                initer = NULL;
+            else
+                initer = parse_expr(tokseq);
+            expect_token(tokseq, tSEMICOLON);
+            if (match_token(tokseq, tSEMICOLON))
+                cond = NULL;
+            else
+                cond = parse_expr(tokseq);
+            expect_token(tokseq, tSEMICOLON);
+            if (match_token(tokseq, tRPAREN))
+                iterer = NULL;
+            else
+                iterer = parse_expr(tokseq);
+            expect_token(tokseq, tRPAREN);
+            body = parse_stmt(tokseq);
+
+            ast = new_ast(AST_FOR);
+            ast->initer = initer;
+            ast->midcond = cond;
+            ast->iterer = iterer;
+            ast->for_body = body;
+        } break;
+
+        default:
+            error("unexpected token", __FILE__, __LINE__);
+    }
+
     return ast;
 }
 
@@ -655,6 +723,7 @@ AST *parse_stmt(TokenSeq *tokseq)
         case tIF:
             return parse_selection_stmt(tokseq);
         case tWHILE:
+        case tFOR:
             return parse_iteration_stmt(tokseq);
     }
 
@@ -701,7 +770,7 @@ Vector *parse_prog(TokenSeq *tokseq)
 }
 
 typedef struct {
-    int nlabel, stack_idx, loop_start_label, loop_end_label;
+    int nlabel, stack_idx, loop_continue_label, loop_break_label;
     Vector *codes;
     Map *var_map;
 } CodeEnv;
@@ -713,7 +782,7 @@ CodeEnv *new_code_env()
     this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
     this->nlabel = 0;
     this->stack_idx = 0;
-    this->loop_start_label = this->loop_end_label = -1;
+    this->loop_continue_label = this->loop_break_label = -1;
     this->codes = new_vector();
     this->var_map = new_map();
     return this;
@@ -1087,34 +1156,60 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_WHILE: {
-            int org_loop_start_label = env->loop_start_label,
-                org_loop_end_label = env->loop_end_label;
-            env->loop_start_label = env->nlabel++;
-            env->loop_end_label = env->nlabel++;
+            int org_loop_start_label = env->loop_continue_label,
+                org_loop_end_label = env->loop_break_label;
+            env->loop_continue_label = env->nlabel++;
+            env->loop_break_label = env->nlabel++;
 
-            appcode(env->codes, ".L%d:", env->loop_start_label);
+            appcode(env->codes, ".L%d:", env->loop_continue_label);
+            assert(ast->cond != NULL);
             generate_code_detail(env, ast->cond);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", env->loop_end_label);
+            appcode(env->codes, "je .L%d", env->loop_break_label);
             generate_code_detail(env, ast->then);
-            appcode(env->codes, "jmp .L%d", env->loop_start_label);
-            appcode(env->codes, ".L%d:", env->loop_end_label);
+            appcode(env->codes, "jmp .L%d", env->loop_continue_label);
+            appcode(env->codes, ".L%d:", env->loop_break_label);
 
-            env->loop_start_label = org_loop_start_label;
-            env->loop_end_label = org_loop_end_label;
+            env->loop_continue_label = org_loop_start_label;
+            env->loop_break_label = org_loop_end_label;
+        } break;
+
+        case AST_FOR: {
+            int org_loop_start_label = env->loop_continue_label,
+                org_loop_end_label = env->loop_break_label;
+            int loop_start_label = env->nlabel++;
+            env->loop_continue_label = env->nlabel++;
+            env->loop_break_label = env->nlabel++;
+
+            if (ast->initer != NULL) generate_code_detail(env, ast->initer);
+            appcode(env->codes, ".L%d:", loop_start_label);
+            if (ast->midcond != NULL) {
+                generate_code_detail(env, ast->midcond);
+                appcode(env->codes, "pop #rax");
+                appcode(env->codes, "cmp $0, #eax");
+                appcode(env->codes, "je .L%d", env->loop_break_label);
+            }
+            generate_code_detail(env, ast->for_body);
+            appcode(env->codes, ".L%d:", env->loop_continue_label);
+            if (ast->iterer != NULL) generate_code_detail(env, ast->iterer);
+            appcode(env->codes, "jmp .L%d", loop_start_label);
+            appcode(env->codes, ".L%d:", env->loop_break_label);
+
+            env->loop_continue_label = org_loop_start_label;
+            env->loop_break_label = org_loop_end_label;
         } break;
 
         case AST_BREAK:
-            if (env->loop_end_label < 0)
+            if (env->loop_break_label < 0)
                 error("invalid break.", __FILE__, __LINE__);
-            appcode(env->codes, "jmp .L%d", env->loop_end_label);
+            appcode(env->codes, "jmp .L%d", env->loop_break_label);
             break;
 
         case AST_CONTINUE:
-            if (env->loop_start_label < 0)
+            if (env->loop_continue_label < 0)
                 error("invalid continue.", __FILE__, __LINE__);
-            appcode(env->codes, "jmp .L%d", env->loop_start_label);
+            appcode(env->codes, "jmp .L%d", env->loop_continue_label);
             break;
 
         case AST_COMPOUND:

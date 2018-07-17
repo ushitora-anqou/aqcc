@@ -151,4 +151,8 @@ test_aqcc "main(){a=0;while(a!=10)a=a+1;return a;}" 10
 test_aqcc "main(){a=0;while(a!=10){b=1;a=a+1;}return a;}" 10
 test_aqcc "main(){a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
 test_aqcc "main(){a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
+test_aqcc "main(){a=0;for(i=0;i<=10;i=i+1){a=a+i;}return a;}" 55
+test_aqcc "main(){a=0;for(;;){a=a+1;if(a>=10)break;}return a;}" 10
+test_aqcc "main(){a=0;for(;;a=a+1)if(a<10)continue;else break;return a;}" 10;
+
 
