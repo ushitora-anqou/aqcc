@@ -7,6 +7,40 @@
 #include <string.h>
 #include "aqcc.h"
 
+int max(int a, int b) { return a > b ? a : b; }
+
+Env *new_env(Env *parent)
+{
+    Env *this;
+
+    this = safe_malloc(sizeof(Env));
+    this->parent = parent;
+    this->vars = new_map();
+    return this;
+}
+
+AST *add_var(Env *env, const char *name, AST *ast)
+{
+    map_insert(env->vars, name, ast);
+    return ast;
+}
+
+AST *lookup_var(Env *env, const char *name)
+{
+    KeyValue *kv = map_lookup(env->vars, name);
+    if (kv == NULL) return NULL;
+    return (AST *)(kv->value);
+}
+
+Type *new_type(int kind)
+{
+    Type *this;
+
+    this = safe_malloc(sizeof(Type));
+    this->kind = kind;
+    return this;
+}
+
 Token *new_token(int kind)
 {
     Token *token = safe_malloc(sizeof(Token));
@@ -54,13 +88,14 @@ Token *read_next_ident_token(FILE *fh)
     }
     buf[bufidx++] = '\0';
 
-    if (strcmp(buf, "return") == 0) return new_token(tRETURN);
-    if (strcmp(buf, "if") == 0) return new_token(tIF);
-    if (strcmp(buf, "else") == 0) return new_token(tELSE);
-    if (strcmp(buf, "while") == 0) return new_token(tWHILE);
-    if (strcmp(buf, "break") == 0) return new_token(tBREAK);
-    if (strcmp(buf, "continue") == 0) return new_token(tCONTINUE);
-    if (strcmp(buf, "for") == 0) return new_token(tFOR);
+    if (strcmp(buf, "return") == 0) return new_token(kRETURN);
+    if (strcmp(buf, "if") == 0) return new_token(kIF);
+    if (strcmp(buf, "else") == 0) return new_token(kELSE);
+    if (strcmp(buf, "while") == 0) return new_token(kWHILE);
+    if (strcmp(buf, "break") == 0) return new_token(kBREAK);
+    if (strcmp(buf, "continue") == 0) return new_token(kCONTINUE);
+    if (strcmp(buf, "for") == 0) return new_token(kFOR);
+    if (strcmp(buf, "int") == 0) return new_token(kINT);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);
@@ -248,12 +283,13 @@ AST *new_funccall_ast(char *fname, Vector *args)
     return ast;
 }
 
-AST *new_funcdef_ast(char *fname, Vector *params, AST *body)
+AST *new_funcdef_ast(char *fname, Vector *params, AST *body, Env *env)
 {
     AST *ast = new_ast(AST_FUNCDEF);
     ast->fname = fname;
     ast->params = params;
     ast->body = body;
+    ast->env = env;
     return ast;
 }
 
@@ -292,9 +328,9 @@ AST *new_compound_stmt2(AST *first, AST *second)
     return ast;
 }
 
-AST *parse_assignment_expr(TokenSeq *tokseq);
+AST *parse_assignment_expr(Env *env, TokenSeq *tokseq);
 
-AST *parse_primary_expr(TokenSeq *tokseq)
+AST *parse_primary_expr(Env *env, TokenSeq *tokseq)
 {
     AST *ast;
     Token *token = pop_token(tokseq);
@@ -305,14 +341,13 @@ AST *parse_primary_expr(TokenSeq *tokseq)
             break;
 
         case tLPAREN:
-            ast = parse_expr(tokseq);
+            ast = parse_expr(env, tokseq);
             expect_token(tokseq, tRPAREN);
             break;
 
         case tIDENT:
-            ast = new_ast(AST_VAR);
-            ast->sval = token->sval;
-            break;
+            // ALL tIDENT should be handled in parse_postfix_expr()
+            assert(0);
 
         default:
             error("unexpected token", __FILE__, __LINE__);
@@ -320,14 +355,14 @@ AST *parse_primary_expr(TokenSeq *tokseq)
     return ast;
 }
 
-Vector *parse_argument_expr_list(TokenSeq *tokseq)
+Vector *parse_argument_expr_list(Env *env, TokenSeq *tokseq)
 {
     Vector *args = new_vector();
 
     if (match_token(tokseq, tRPAREN)) return args;
 
     while (1) {
-        vector_push_back(args, parse_assignment_expr(tokseq));
+        vector_push_back(args, parse_assignment_expr(env, tokseq));
         if (match_token(tokseq, tRPAREN)) break;
         expect_token(tokseq, tCOMMA);
     }
@@ -335,81 +370,105 @@ Vector *parse_argument_expr_list(TokenSeq *tokseq)
     return args;
 }
 
-AST *parse_postfix_expr(TokenSeq *tokseq)
+AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_primary_expr(tokseq);
-    Token *token = peek_token(tokseq);
+    // TODO: recursive
 
-    switch (token->kind) {
-        case tLPAREN:
-            if (ast->kind != AST_VAR)
-                error("not func name", __FILE__, __LINE__);
-            pop_token(tokseq);
-            ast = new_funccall_ast(ast->sval, parse_argument_expr_list(tokseq));
-            expect_token(tokseq, tRPAREN);
-            break;
+    if (match_token2(tokseq, tIDENT, tLPAREN)) {  // function call
+        Token *ident;
+        AST *ast;
 
+        ident = pop_token(tokseq);
+        pop_token(tokseq);
+        ast = new_funccall_ast(ident->sval,
+                               parse_argument_expr_list(env, tokseq));
+        expect_token(tokseq, tRPAREN);
+        return ast;
+    }
+
+    AST *ast;
+
+    if (match_token(tokseq, tIDENT)) {  // variable
+        Token *ident;
+
+        ident = pop_token(tokseq);
+        ast = lookup_var(env, ident->sval);
+        if (ast == NULL) error("not declared variable", __FILE__, __LINE__);
+    }
+    else {
+        ast = parse_primary_expr(env, tokseq);
+    }
+
+    switch (peek_token(tokseq)->kind) {
         case tINC: {
+            AST *inc;
+
+            pop_token(tokseq);
             if (ast->kind != AST_VAR)
                 error("not variable name", __FILE__, __LINE__);
-            pop_token(tokseq);
-            ast->kind = AST_POSTINC;
+            inc = new_ast(AST_POSTINC);
+            inc->lhs = ast;
+            ast = inc;
         } break;
     }
 
     return ast;
 }
 
-AST *parse_unary_expr(TokenSeq *tokseq)
+AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
 {
     Token *token = peek_token(tokseq);
     switch (token->kind) {
         case tPLUS:
             pop_token(tokseq);
-            return parse_postfix_expr(tokseq);
+            return parse_postfix_expr(env, tokseq);
 
         case tMINUS: {
             AST *ast;
 
             pop_token(tokseq);
             ast = new_ast(AST_UNARY_MINUS);
-            ast->lhs = parse_postfix_expr(tokseq);
+            ast->lhs = parse_postfix_expr(env, tokseq);
             return ast;
         }
 
         case tINC: {
-            AST *ast;
+            AST *ast, *inc;
 
             pop_token(tokseq);
-            ast = parse_unary_expr(tokseq);
+            ast = parse_unary_expr(env, tokseq);
             if (ast->kind != AST_VAR)
                 error("unexpected token", __FILE__, __LINE__);
-            ast->kind = AST_PREINC;
-            return ast;
+            inc = new_ast(AST_PREINC);
+            inc->lhs = ast;
+            return inc;
         }
     }
 
-    return parse_postfix_expr(tokseq);
+    return parse_postfix_expr(env, tokseq);
 }
 
-AST *parse_multiplicative_expr(TokenSeq *tokseq)
+AST *parse_multiplicative_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_unary_expr(tokseq);
+    AST *ast = parse_unary_expr(env, tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
             case tSTAR:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_MUL, ast, parse_unary_expr(tokseq));
+                ast =
+                    new_binop_ast(AST_MUL, ast, parse_unary_expr(env, tokseq));
                 break;
             case tSLASH:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_DIV, ast, parse_unary_expr(tokseq));
+                ast =
+                    new_binop_ast(AST_DIV, ast, parse_unary_expr(env, tokseq));
                 break;
             case tPERCENT:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_REM, ast, parse_unary_expr(tokseq));
+                ast =
+                    new_binop_ast(AST_REM, ast, parse_unary_expr(env, tokseq));
                 break;
             default:
                 return ast;
@@ -417,9 +476,9 @@ AST *parse_multiplicative_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_additive_expr(TokenSeq *tokseq)
+AST *parse_additive_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_multiplicative_expr(tokseq);
+    AST *ast = parse_multiplicative_expr(env, tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
@@ -427,12 +486,12 @@ AST *parse_additive_expr(TokenSeq *tokseq)
             case tPLUS:
                 pop_token(tokseq);
                 ast = new_binop_ast(AST_ADD, ast,
-                                    parse_multiplicative_expr(tokseq));
+                                    parse_multiplicative_expr(env, tokseq));
                 break;
             case tMINUS:
                 pop_token(tokseq);
                 ast = new_binop_ast(AST_SUB, ast,
-                                    parse_multiplicative_expr(tokseq));
+                                    parse_multiplicative_expr(env, tokseq));
                 break;
             default:
                 return ast;
@@ -440,22 +499,22 @@ AST *parse_additive_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_shift_expr(TokenSeq *tokseq)
+AST *parse_shift_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_additive_expr(tokseq);
+    AST *ast = parse_additive_expr(env, tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
             case tLSHIFT:
                 pop_token(tokseq);
-                ast =
-                    new_binop_ast(AST_LSHIFT, ast, parse_additive_expr(tokseq));
+                ast = new_binop_ast(AST_LSHIFT, ast,
+                                    parse_additive_expr(env, tokseq));
                 break;
             case tRSHIFT:
                 pop_token(tokseq);
-                ast =
-                    new_binop_ast(AST_RSHIFT, ast, parse_additive_expr(tokseq));
+                ast = new_binop_ast(AST_RSHIFT, ast,
+                                    parse_additive_expr(env, tokseq));
                 break;
             default:
                 return ast;
@@ -463,28 +522,30 @@ AST *parse_shift_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_relational_expr(TokenSeq *tokseq)
+AST *parse_relational_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_shift_expr(tokseq);
+    AST *ast = parse_shift_expr(env, tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
             case tLT:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_LT, ast, parse_shift_expr(tokseq));
+                ast = new_binop_ast(AST_LT, ast, parse_shift_expr(env, tokseq));
                 break;
             case tGT:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_GT, ast, parse_shift_expr(tokseq));
+                ast = new_binop_ast(AST_GT, ast, parse_shift_expr(env, tokseq));
                 break;
             case tLTE:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_LTE, ast, parse_shift_expr(tokseq));
+                ast =
+                    new_binop_ast(AST_LTE, ast, parse_shift_expr(env, tokseq));
                 break;
             case tGTE:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_GTE, ast, parse_shift_expr(tokseq));
+                ast =
+                    new_binop_ast(AST_GTE, ast, parse_shift_expr(env, tokseq));
                 break;
             default:
                 return ast;
@@ -492,21 +553,22 @@ AST *parse_relational_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_equality_expr(TokenSeq *tokseq)
+AST *parse_equality_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_relational_expr(tokseq);
+    AST *ast = parse_relational_expr(env, tokseq);
 
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
             case tEQEQ:
                 pop_token(tokseq);
-                ast = new_binop_ast(AST_EQ, ast, parse_relational_expr(tokseq));
+                ast = new_binop_ast(AST_EQ, ast,
+                                    parse_relational_expr(env, tokseq));
                 break;
             case tNEQ:
                 pop_token(tokseq);
-                ast =
-                    new_binop_ast(AST_NEQ, ast, parse_relational_expr(tokseq));
+                ast = new_binop_ast(AST_NEQ, ast,
+                                    parse_relational_expr(env, tokseq));
                 break;
             default:
                 return ast;
@@ -514,71 +576,72 @@ AST *parse_equality_expr(TokenSeq *tokseq)
     }
 }
 
-AST *parse_and_expr(TokenSeq *tokseq)
+AST *parse_and_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_equality_expr(tokseq);
+    AST *ast = parse_equality_expr(env, tokseq);
 
     while (1) {
         if (peek_token(tokseq)->kind != tAND) return ast;
         pop_token(tokseq);
-        ast = new_binop_ast(AST_AND, ast, parse_equality_expr(tokseq));
+        ast = new_binop_ast(AST_AND, ast, parse_equality_expr(env, tokseq));
     }
 }
 
-AST *parse_exclusive_or_expr(TokenSeq *tokseq)
+AST *parse_exclusive_or_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_and_expr(tokseq);
+    AST *ast = parse_and_expr(env, tokseq);
 
     while (1) {
         if (peek_token(tokseq)->kind != tHAT) return ast;
         pop_token(tokseq);
-        ast = new_binop_ast(AST_XOR, ast, parse_and_expr(tokseq));
+        ast = new_binop_ast(AST_XOR, ast, parse_and_expr(env, tokseq));
     }
 }
 
-AST *parse_inclusive_or_expr(TokenSeq *tokseq)
+AST *parse_inclusive_or_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_exclusive_or_expr(tokseq);
+    AST *ast = parse_exclusive_or_expr(env, tokseq);
 
     while (1) {
         if (peek_token(tokseq)->kind != tBAR) return ast;
         pop_token(tokseq);
-        ast = new_binop_ast(AST_OR, ast, parse_exclusive_or_expr(tokseq));
+        ast = new_binop_ast(AST_OR, ast, parse_exclusive_or_expr(env, tokseq));
     }
 }
 
-AST *parse_logical_and_expr(TokenSeq *tokseq)
+AST *parse_logical_and_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_inclusive_or_expr(tokseq);
+    AST *ast = parse_inclusive_or_expr(env, tokseq);
 
     while (1) {
         if (peek_token(tokseq)->kind != tANDAND) return ast;
         pop_token(tokseq);
-        ast = new_binop_ast(AST_LAND, ast, parse_inclusive_or_expr(tokseq));
+        ast =
+            new_binop_ast(AST_LAND, ast, parse_inclusive_or_expr(env, tokseq));
     }
 }
 
-AST *parse_logical_or_expr(TokenSeq *tokseq)
+AST *parse_logical_or_expr(Env *env, TokenSeq *tokseq)
 {
-    AST *ast = parse_logical_and_expr(tokseq);
+    AST *ast = parse_logical_and_expr(env, tokseq);
 
     while (1) {
         if (peek_token(tokseq)->kind != tBARBAR) return ast;
         pop_token(tokseq);
-        ast = new_binop_ast(AST_LOR, ast, parse_logical_and_expr(tokseq));
+        ast = new_binop_ast(AST_LOR, ast, parse_logical_and_expr(env, tokseq));
     }
 }
 
-AST *parse_conditional_expr(TokenSeq *tokseq)
+AST *parse_conditional_expr(Env *env, TokenSeq *tokseq)
 {
     AST *cond, *then, *els, *ast;
 
-    cond = parse_logical_or_expr(tokseq);
+    cond = parse_logical_or_expr(env, tokseq);
     if (!match_token(tokseq, tQUESTION)) return cond;
     pop_token(tokseq);
-    then = parse_expr(tokseq);
+    then = parse_expr(env, tokseq);
     expect_token(tokseq, tCOLON);
-    els = parse_conditional_expr(tokseq);
+    els = parse_conditional_expr(env, tokseq);
 
     ast = new_ast(AST_COND);
     ast->cond = cond;
@@ -587,49 +650,52 @@ AST *parse_conditional_expr(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_assignment_expr(TokenSeq *tokseq)
+AST *parse_assignment_expr(Env *env, TokenSeq *tokseq)
 {
     Token *token;
     AST *ast;
 
     if (!match_token2(tokseq, tIDENT, tEQ))
-        return parse_conditional_expr(tokseq);
+        return parse_conditional_expr(env, tokseq);
     token = expect_token(tokseq, tIDENT);
     expect_token(tokseq, tEQ);
 
-    ast = new_ast(AST_VAR);
-    ast->sval = token->sval;
-    return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(tokseq));
+    ast = lookup_var(env, token->sval);
+    if (ast == NULL) error("not found such variable", __FILE__, __LINE__);
+    return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(env, tokseq));
 }
 
-AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
+AST *parse_expr(Env *env, TokenSeq *tokseq)
+{
+    return parse_assignment_expr(env, tokseq);
+}
 
-AST *parse_expression_stmt(TokenSeq *tokseq)
+AST *parse_expression_stmt(Env *env, TokenSeq *tokseq)
 {
     AST *expr = NULL;
 
-    if (!match_token(tokseq, tSEMICOLON)) expr = parse_expr(tokseq);
+    if (!match_token(tokseq, tSEMICOLON)) expr = parse_expr(env, tokseq);
     expect_token(tokseq, tSEMICOLON);
 
     return new_expr_stmt(expr);
 }
 
-AST *parse_jump_stmt(TokenSeq *tokseq)
+AST *parse_jump_stmt(Env *env, TokenSeq *tokseq)
 {
     Token *token = pop_token(tokseq);
     AST *ast = NULL;
 
     switch (token->kind) {
-        case tRETURN:
-            if (!match_token(tokseq, tSEMICOLON)) ast = parse_expr(tokseq);
+        case kRETURN:
+            if (!match_token(tokseq, tSEMICOLON)) ast = parse_expr(env, tokseq);
             ast = new_binop_ast(AST_RETURN, ast, NULL);
             expect_token(tokseq, tSEMICOLON);
             break;
-        case tBREAK:
+        case kBREAK:
             ast = new_ast(AST_BREAK);
             expect_token(tokseq, tSEMICOLON);
             break;
-        case tCONTINUE:
+        case kCONTINUE:
             ast = new_ast(AST_CONTINUE);
             expect_token(tokseq, tSEMICOLON);
             break;
@@ -640,44 +706,44 @@ AST *parse_jump_stmt(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_stmt(TokenSeq *tokseq);
+AST *parse_stmt(Env *env, TokenSeq *tokseq);
 
-AST *parse_iteration_stmt(TokenSeq *tokseq)
+AST *parse_iteration_stmt(Env *env, TokenSeq *tokseq)
 {
     Token *token = pop_token(tokseq);
     AST *ast;
 
     switch (token->kind) {
-        case tWHILE: {
+        case kWHILE: {
             AST *cond, *body;
             expect_token(tokseq, tLPAREN);
-            cond = parse_expr(tokseq);
+            cond = parse_expr(env, tokseq);
             expect_token(tokseq, tRPAREN);
-            body = parse_stmt(tokseq);
+            body = parse_stmt(env, tokseq);
 
             ast = new_while_stmt(cond, body);
         } break;
 
-        case tFOR: {
+        case kFOR: {
             AST *initer, *cond, *iterer, *body;
 
             expect_token(tokseq, tLPAREN);
             if (match_token(tokseq, tSEMICOLON))
                 initer = NULL;
             else
-                initer = parse_expr(tokseq);
+                initer = parse_expr(env, tokseq);
             expect_token(tokseq, tSEMICOLON);
             if (match_token(tokseq, tSEMICOLON))
                 cond = NULL;
             else
-                cond = parse_expr(tokseq);
+                cond = parse_expr(env, tokseq);
             expect_token(tokseq, tSEMICOLON);
             if (match_token(tokseq, tRPAREN))
                 iterer = NULL;
             else
-                iterer = parse_expr(tokseq);
+                iterer = parse_expr(env, tokseq);
             expect_token(tokseq, tRPAREN);
-            body = parse_stmt(tokseq);
+            body = parse_stmt(env, tokseq);
 
             ast = new_ast(AST_FOR);
             ast->initer = initer;
@@ -693,14 +759,29 @@ AST *parse_iteration_stmt(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_compound_stmt(TokenSeq *tokseq)
+void parse_declaration(Env *env, TokenSeq *tokseq)
+{
+    AST *ast;
+
+    expect_token(tokseq, kINT);
+    ast = new_ast(AST_VAR);
+    ast->varname = expect_token(tokseq, tIDENT)->sval;
+    ast->type = new_type(TY_INT);
+    expect_token(tokseq, tSEMICOLON);
+    add_var(env, ast->varname, ast);
+}
+
+AST *parse_compound_stmt(Env *env, TokenSeq *tokseq)
 {
     AST *ast;
     Vector *stmts = new_vector();
 
     expect_token(tokseq, tLBRACE);
-    while (peek_token(tokseq)->kind != tRBRACE) {
-        vector_push_back(stmts, parse_stmt(tokseq));
+    while (!match_token(tokseq, tRBRACE)) {
+        if (match_token(tokseq, kINT))
+            parse_declaration(env, tokseq);
+        else
+            vector_push_back(stmts, parse_stmt(env, tokseq));
     }
     expect_token(tokseq, tRBRACE);
 
@@ -710,18 +791,18 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_selection_stmt(TokenSeq *tokseq)
+AST *parse_selection_stmt(Env *env, TokenSeq *tokseq)
 {
     AST *ast, *cond, *then, *els = NULL;
 
-    expect_token(tokseq, tIF);
+    expect_token(tokseq, kIF);
     expect_token(tokseq, tLPAREN);
-    cond = parse_expr(tokseq);
+    cond = parse_expr(env, tokseq);
     expect_token(tokseq, tRPAREN);
-    then = parse_stmt(tokseq);
-    if (match_token(tokseq, tELSE)) {
+    then = parse_stmt(env, tokseq);
+    if (match_token(tokseq, kELSE)) {
         pop_token(tokseq);
-        els = parse_stmt(tokseq);
+        els = parse_stmt(env, tokseq);
     }
 
     ast = new_ast(AST_IF);
@@ -731,28 +812,28 @@ AST *parse_selection_stmt(TokenSeq *tokseq)
     return ast;
 }
 
-AST *parse_stmt(TokenSeq *tokseq)
+AST *parse_stmt(Env *env, TokenSeq *tokseq)
 {
     Token *token = peek_token(tokseq);
 
     switch (token->kind) {
-        case tBREAK:
-        case tCONTINUE:
-        case tRETURN:
-            return parse_jump_stmt(tokseq);
+        case kBREAK:
+        case kCONTINUE:
+        case kRETURN:
+            return parse_jump_stmt(env, tokseq);
         case tLBRACE:
-            return parse_compound_stmt(tokseq);
-        case tIF:
-            return parse_selection_stmt(tokseq);
-        case tWHILE:
-        case tFOR:
-            return parse_iteration_stmt(tokseq);
+            return parse_compound_stmt(env, tokseq);
+        case kIF:
+            return parse_selection_stmt(env, tokseq);
+        case kWHILE:
+        case kFOR:
+            return parse_iteration_stmt(env, tokseq);
     }
 
-    return parse_expression_stmt(tokseq);
+    return parse_expression_stmt(env, tokseq);
 }
 
-Vector *parse_parameter_list(TokenSeq *tokseq)
+Vector *parse_parameter_list(Env *env, TokenSeq *tokseq)
 {
     Vector *params = new_vector();
 
@@ -767,25 +848,40 @@ Vector *parse_parameter_list(TokenSeq *tokseq)
     return params;
 }
 
-AST *parse_function_definition(TokenSeq *tokseq)
+AST *parse_function_definition(Env *env, TokenSeq *tokseq)
 {
     char *fname;
     Vector *params;
+    Env *nenv;
+    AST *stmts;
+    int i;
 
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
-    params = parse_parameter_list(tokseq);
+    params = parse_parameter_list(env, tokseq);
     expect_token(tokseq, tRPAREN);
 
-    return new_funcdef_ast(fname, params, parse_compound_stmt(tokseq));
+    nenv = new_env(env);
+    // add param into nenv
+    for (i = 0; i < vector_size(params); i++) {
+        AST *ast;
+
+        ast = new_ast(AST_VAR);
+        ast->varname = (char *)(vector_get(params, i));
+        add_var(nenv, ast->varname, ast);
+    }
+
+    stmts = parse_compound_stmt(nenv, tokseq);
+
+    return new_funcdef_ast(fname, params, stmts, nenv);
 }
 
-Vector *parse_prog(TokenSeq *tokseq)
+Vector *parse_prog(Env *env, TokenSeq *tokseq)
 {
     Vector *asts = new_vector();
 
     while (peek_token(tokseq)->kind != tEOF) {
-        vector_push_back(asts, parse_function_definition(tokseq));
+        vector_push_back(asts, parse_function_definition(env, tokseq));
     }
 
     return asts;
@@ -1065,17 +1161,13 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_POSTINC: {
-            KeyValue *kv = map_lookup(env->var_map, ast->sval);
-            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
-            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
-            appcode(env->codes, "incl %d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "push %d(#rbp)", ast->lhs->offset);
+            appcode(env->codes, "incl %d(#rbp)", ast->lhs->offset);
         } break;
 
         case AST_PREINC: {
-            KeyValue *kv = map_lookup(env->var_map, ast->sval);
-            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
-            appcode(env->codes, "incl %d(#rbp)", *(int *)(kv->value));
-            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "incl %d(#rbp)", ast->lhs->offset);
+            appcode(env->codes, "push %d(#rbp)", ast->lhs->offset);
         } break;
 
         case AST_IF:
@@ -1094,28 +1186,17 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_ASSIGN: {
-            KeyValue *kv;
-
             generate_code_detail(env, ast->rhs);
 
             assert(ast->lhs->kind == AST_VAR);
-            kv = map_lookup(env->var_map, ast->lhs->sval);
-            if (kv == NULL) {  // not exists
-                env->stack_idx -= 4;
-                kv = map_insert(env->var_map, ast->lhs->sval,
-                                new_int(env->stack_idx));
-            }
             appcode(env->codes, "pop #rax");
-            appcode(env->codes, "mov #eax, %d(#rbp)", *(int *)(kv->value));
+            appcode(env->codes, "mov #eax, %d(#rbp)", ast->lhs->offset);
             appcode(env->codes, "push #rax");
         } break;
 
-        case AST_VAR: {
-            KeyValue *kv = map_lookup(env->var_map, ast->sval);
-            if (kv == NULL) error("undefined variable.", __FILE__, __LINE__);
-            appcode(env->codes, "push %d(#rbp)", *(int *)(kv->value));
+        case AST_VAR:
+            appcode(env->codes, "push %d(#rbp)", ast->offset);
             break;
-        } break;
 
         case AST_FUNCCALL: {
             int i;
@@ -1129,37 +1210,41 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_FUNCDEF: {
-            CodeEnv *new_env = new_code_env();
-            int i;
+            int i, stack_idx;
 
+            // allocate stack
+            // TODO: depends on map impl.
+            stack_idx = 0;
+            for (i = 0; i < map_size(ast->env->vars) -
+                                max(0, vector_size(ast->params) - 6);
+                 i++) {
+                stack_idx -= 4;
+                ((AST *)(((KeyValue *)vector_get(ast->env->vars->data, i))
+                             ->value))
+                    ->offset = stack_idx;
+            }
+
+            // generate code
             appcode(env->codes, "%s:", ast->fname);
             appcode(env->codes, "push #rbp");
             appcode(env->codes, "mov #rsp, #rbp");
+            appcode(env->codes, "sub $%d, #rsp",
+                    (int)(ceil(-stack_idx / 8.)) * 8);
 
+            // assign param to localvar
             for (i = 0; i < vector_size(ast->params); i++) {
-                const char *pname = (const char *)(vector_get(ast->params, i));
-                int stack_idx;
-
-                if (i < 6) {
-                    stack_idx = new_env->stack_idx - 4;
-                    appcode(new_env->codes, "mov %s, %d(#rbp)", ereg[i],
-                            stack_idx);
-                }
-                else {
+                AST *var = lookup_var(
+                    ast->env, (const char *)(vector_get(ast->params, i)));
+                if (i < 6)
+                    appcode(env->codes, "mov %s, %d(#rbp)", ereg[i],
+                            var->offset);
+                else
                     // should avoid return pointer and saved %rbp
-                    stack_idx = 16 + (i - 6) * 8;
-                }
-
-                new_env->stack_idx = stack_idx;
-                map_insert(new_env->var_map, pname, new_int(stack_idx));
+                    var->offset = 16 + (i - 6) * 8;
             }
 
-            generate_code_detail(new_env, ast->body);
-            if (new_env->stack_idx != 0)
-                appcode(env->codes, "sub $%d, #rsp",
-                        (int)(ceil(-new_env->stack_idx / 8.)) * 8);
-            for (i = 0; i < vector_size(new_env->codes); i++)
-                vector_push_back(env->codes, vector_get(new_env->codes, i));
+            // generate body
+            generate_code_detail(env, ast->body);
 
             // avoid duplicate needless `ret`
             if (strcmp((const char *)vector_get(env->codes,
@@ -1289,7 +1374,7 @@ int main(int argc, char **argv)
 
     tokens = read_all_tokens(stdin);
     tokseq = new_token_seq(tokens);
-    asts = parse_prog(tokseq);
+    asts = parse_prog(NULL, tokseq);
 
     env = new_code_env();
     appcode(env->codes, ".global main");

@@ -56,16 +56,17 @@ enum {
     tCOMMA,
     tLBRACE,
     tRBRACE,
-    tRETURN,
+    kRETURN,
     tCOLON,
     tQUESTION,
-    tIF,
-    tELSE,
-    tWHILE,
-    tBREAK,
-    tCONTINUE,
-    tFOR,
     tINC,
+    kIF,
+    kELSE,
+    kWHILE,
+    kBREAK,
+    kCONTINUE,
+    kFOR,
+    kINT,
     tEOF,
 };
 
@@ -122,13 +123,31 @@ enum {
     AST_POSTINC,
 };
 
+typedef struct Env Env;
+struct Env {
+    Env *parent;
+    Map *vars;
+};
+
+enum {
+    TY_INT,
+};
+typedef struct {
+    int kind;
+} Type;
+
 typedef struct AST AST;
 struct AST {
     int kind;
+    Type *type;
 
     union {
         int ival;
-        char *sval;
+
+        struct {
+            char *varname;
+            int offset;
+        };
 
         struct {
             AST *lhs, *rhs;
@@ -151,6 +170,7 @@ struct AST {
             Vector *args;    // actual arguments
             Vector *params;  // formal parameters
             AST *body;
+            Env *env;
         };
 
         Vector *stmts;
@@ -166,6 +186,6 @@ void *safe_realloc(void *ptr, size_t size);
 char *new_str(const char *src);
 int *new_int(int src);
 
-AST *parse_expr(TokenSeq *tokseq);
+AST *parse_expr(Env *env, TokenSeq *tokseq);
 
 #endif

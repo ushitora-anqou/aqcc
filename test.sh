@@ -114,14 +114,14 @@ test_aqcc "main(){return 0 || 1;}" 1
 test_aqcc "main(){return 0 || 0;}" 0
 test_aqcc "main(){return 2 || 1;}" 1
 test_aqcc "main(){return -2 || 1;}" 1
-test_aqcc "main(){return x=1;}" 1
-test_aqcc "main(){return xy = 100+100;}" 200
-test_aqcc "main(){return a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;}" 1
-test_aqcc "main(){return _ = (2 - 1) << 1;}" 2
-test_aqcc "main(){x = 1; return y = 2;}" 2
-test_aqcc "main(){x = 1; y = 2; return z = x + y;}" 3
-test_aqcc "main(){a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
-test_aqcc "main(){x = y = 1; return z = x = x + y;}" 2
+test_aqcc "main(){int x;return x=1;}" 1
+test_aqcc "main(){int xy;return xy = 100+100;}" 200
+test_aqcc "main(){int a_b;return a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;}" 1
+test_aqcc "main(){int _;return _ = (2 - 1) << 1;}" 2
+test_aqcc "main(){int x;int y;x = 1; return y = 2;}" 2
+test_aqcc "main(){int x;int y;int z;x = 1; y = 2; return z = x + y;}" 3
+test_aqcc "main(){int a0;int a1;int a2;int a3;a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
+test_aqcc "main(){int x;int y;int z;x = y = 1; return z = x = x + y;}" 2
 test_aqcc "main(){return ret0();}" 0
 test_aqcc "main(){return (ret0() + ret1()) * 2;}" 2
 test_aqcc "main(){return (ret0() * ret1()) + 2;}" 2
@@ -143,19 +143,19 @@ test_aqcc "main(){if(0 == 1){return 0;}else{return 1;}}" 1
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(0);}" 0
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(1);}" 1
 test_aqcc "fib(n){if(n<=1)return n;return fib(n-1)+fib(n-2);}main(){return fib(5);}" 5
-test_aqcc "main(){a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
+test_aqcc "main(){int a;a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
 # thanks to @hsjoihs
-test_aqcc "foo(){return 2;}bar(){return 7;}main(){a=3;b=5;c=2;if(a)if(0){b=foo();}else{c=bar();}return 162+b+c;}" 174
-test_aqcc "main(){a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
-test_aqcc "main(){a=0;while(a!=10)a=a+1;return a;}" 10
-test_aqcc "main(){a=0;while(a!=10){b=1;a=a+1;}return a;}" 10
-test_aqcc "main(){a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
-test_aqcc "main(){a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
-test_aqcc "main(){a=0;for(i=0;i<=10;i=i+1){a=a+i;}return a;}" 55
-test_aqcc "main(){a=0;for(;;){a=a+1;if(a>=10)break;}return a;}" 10
-test_aqcc "main(){a=0;for(;;a=a+1)if(a<10)continue;else break;return a;}" 10;
-test_aqcc "main(){a=0;a++;return a;}" 1
-test_aqcc "main(){a=0;for(i=0;i<=10;i++){a=a+i;}return a;}" 55
-test_aqcc "main(){a=0;b=(a++)+1;return b;}" 1
-test_aqcc "main(){a=0;b=(++a)+1;return b;}" 2
-test_aqcc "main(){a=0;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
+test_aqcc "foo(){return 2;}bar(){return 7;}main(){int a;a=3;int b;b=5;int c;c=2;if(a)if(0){b=foo();}else{c=bar();}return 162+b+c;}" 174
+test_aqcc "main(){int a;a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
+test_aqcc "main(){int a;a=0;while(a!=10)a=a+1;return a;}" 10
+test_aqcc "main(){int a;a=0;while(a!=10){int b;b=1;a=a+1;}return a;}" 10
+test_aqcc "main(){int a;a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
+test_aqcc "main(){int a;a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
+test_aqcc "main(){int a;a=0;int i;for(i=0;i<=10;i=i+1){a=a+i;}return a;}" 55
+test_aqcc "main(){int a;a=0;for(;;){a=a+1;if(a>=10)break;}return a;}" 10
+test_aqcc "main(){int a;a=0;for(;;a=a+1)if(a<10)continue;else break;return a;}" 10;
+test_aqcc "main(){int a;a=0;a++;return a;}" 1
+test_aqcc "main(){int a;a=0;int i;for(i=0;i<=10;i++){a=a+i;}return a;}" 55
+test_aqcc "main(){int a;a=0;int b;b=(a++)+1;return b;}" 1
+test_aqcc "main(){int a;a=0;int b;b=(++a)+1;return b;}" 2
+test_aqcc "main(){int a;a=0;int i;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
