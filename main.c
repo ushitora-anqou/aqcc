@@ -849,6 +849,7 @@ Vector *parse_parameter_list(Env *env, TokenSeq *tokseq)
     if (match_token(tokseq, tRPAREN)) return params;
 
     while (1) {
+        expect_token(tokseq, kINT);
         vector_push_back(params, expect_token(tokseq, tIDENT)->sval);
         if (match_token(tokseq, tRPAREN)) break;
         expect_token(tokseq, tCOMMA);
@@ -865,6 +866,9 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     AST *stmts;
     int i;
 
+    if (match_token(tokseq, kINT)) {
+        pop_token(tokseq);
+    }
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
     params = parse_parameter_list(env, tokseq);
