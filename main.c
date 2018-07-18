@@ -272,12 +272,18 @@ AST *new_ast(int kind)
 {
     AST *this = safe_malloc(sizeof(AST));
     this->kind = kind;
+    this->type = NULL;
     return this;
 }
 
 AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
 {
     AST *ast = new_ast(kind);
+
+    if (lhs != NULL && lhs->type != NULL)  // when lhs is an expr.
+        ast->type = lhs->type;  // TODO: should be determined by both of lhs and
+                                // rhs's types.
+
     ast->lhs = lhs;
     ast->rhs = rhs;
     return ast;
@@ -286,6 +292,7 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
 AST *new_funccall_ast(char *fname, Vector *args)
 {
     AST *ast = new_ast(AST_FUNCCALL);
+    ast->type = TY_INT;  // TODO: func's return value should be there.
     ast->fname = fname;
     ast->args = args;
     return ast;
@@ -346,6 +353,7 @@ AST *parse_primary_expr(Env *env, TokenSeq *tokseq)
         case tINT:
             ast = new_ast(AST_INT);
             ast->ival = token->ival;
+            ast->type = new_type(TY_INT);
             break;
 
         case tLPAREN:
@@ -380,7 +388,7 @@ Vector *parse_argument_expr_list(Env *env, TokenSeq *tokseq)
 
 AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
 {
-    // TODO: recursive
+    // TODO: should be recursive
 
     if (match_token2(tokseq, tIDENT, tLPAREN)) {  // function call
         Token *ident;
@@ -415,6 +423,7 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
             if (ast->kind != AST_VAR)
                 error("not variable name", __FILE__, __LINE__);
             inc = new_ast(AST_POSTINC);
+            inc->type = ast->type;
             inc->lhs = ast;
             ast = inc;
         } break;
@@ -437,6 +446,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
             pop_token(tokseq);
             ast = new_ast(AST_UNARY_MINUS);
             ast->lhs = parse_postfix_expr(env, tokseq);
+            ast->type = ast->lhs->type;
             return ast;
         }
 
@@ -448,6 +458,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
             if (ast->kind != AST_VAR)
                 error("unexpected token", __FILE__, __LINE__);
             inc = new_ast(AST_PREINC);
+            inc->type = ast->type;
             inc->lhs = ast;
             return inc;
         }
@@ -652,6 +663,8 @@ AST *parse_conditional_expr(Env *env, TokenSeq *tokseq)
     els = parse_conditional_expr(env, tokseq);
 
     ast = new_ast(AST_COND);
+    ast->type = then->type;  // TODO: should be determined by both of then and
+                             // els's types.
     ast->cond = cond;
     ast->then = then;
     ast->els = els;
@@ -882,6 +895,7 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
         AST *ast;
 
         ast = new_ast(AST_VAR);
+        ast->type = TY_INT;
         ast->varname = (char *)(vector_get(params, i));
         add_var(nenv, ast->varname, ast);
     }
