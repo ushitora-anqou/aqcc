@@ -15,24 +15,24 @@ Env *new_env(Env *parent)
 
     this = safe_malloc(sizeof(Env));
     this->parent = parent;
-    this->vars = new_map();
-    this->localvars = parent == NULL ? NULL : parent->localvars;
+    this->local_vars = new_map();
+    this->scoped_vars = parent == NULL ? NULL : parent->scoped_vars;
     return this;
 }
 
 AST *add_var(Env *env, const char *name, AST *ast)
 {
-    KeyValue *kv = map_lookup(env->vars, name);
+    KeyValue *kv = map_lookup(env->local_vars, name);
     if (kv != NULL)
         error("var already exists in same scope.", __FILE__, __LINE__);
-    map_insert(env->vars, name, ast);
-    vector_push_back(env->localvars, ast);
+    map_insert(env->local_vars, name, ast);
+    vector_push_back(env->scoped_vars, ast);
     return ast;
 }
 
 AST *lookup_var(Env *env, const char *name)
 {
-    KeyValue *kv = map_lookup(env->vars, name);
+    KeyValue *kv = map_lookup(env->local_vars, name);
     if (kv == NULL) {
         if (env->parent == NULL) return NULL;
         return lookup_var(env->parent, name);
@@ -871,7 +871,7 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     expect_token(tokseq, tRPAREN);
 
     nenv = new_env(env);
-    nenv->localvars = new_vector();
+    nenv->scoped_vars = new_vector();
     // add param into nenv
     // add in reversed order for code generation.
     for (i = vector_size(params) - 1; i >= 0; i--) {
@@ -1221,12 +1221,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             int i, stack_idx;
 
             // allocate stack
-            // TODO: depends on map impl.
             stack_idx = 0;
             for (i = max(0, vector_size(ast->params) - 6);
-                 i < vector_size(ast->env->localvars); i++) {
+                 i < vector_size(ast->env->scoped_vars); i++) {
                 stack_idx -= 4;
-                ((AST *)(vector_get(ast->env->localvars, i)))->stack_idx =
+                ((AST *)(vector_get(ast->env->scoped_vars, i)))->stack_idx =
                     stack_idx;
             }
 
