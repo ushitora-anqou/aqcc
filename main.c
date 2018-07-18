@@ -888,9 +888,8 @@ Vector *parse_prog(Env *env, TokenSeq *tokseq)
 }
 
 typedef struct {
-    int nlabel, stack_idx, loop_continue_label, loop_break_label;
+    int nlabel, loop_continue_label, loop_break_label;
     Vector *codes;
-    Map *var_map;
 } CodeEnv;
 
 CodeEnv *new_code_env()
@@ -899,10 +898,8 @@ CodeEnv *new_code_env()
 
     this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
     this->nlabel = 0;
-    this->stack_idx = 0;
     this->loop_continue_label = this->loop_break_label = -1;
     this->codes = new_vector();
-    this->var_map = new_map();
     return this;
 }
 
@@ -1161,13 +1158,13 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_POSTINC: {
-            appcode(env->codes, "push %d(#rbp)", ast->lhs->offset);
-            appcode(env->codes, "incl %d(#rbp)", ast->lhs->offset);
+            appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
+            appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
         case AST_PREINC: {
-            appcode(env->codes, "incl %d(#rbp)", ast->lhs->offset);
-            appcode(env->codes, "push %d(#rbp)", ast->lhs->offset);
+            appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
+            appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
         case AST_IF:
@@ -1190,12 +1187,12 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             assert(ast->lhs->kind == AST_VAR);
             appcode(env->codes, "pop #rax");
-            appcode(env->codes, "mov #eax, %d(#rbp)", ast->lhs->offset);
+            appcode(env->codes, "mov #eax, %d(#rbp)", ast->lhs->stack_idx);
             appcode(env->codes, "push #rax");
         } break;
 
         case AST_VAR:
-            appcode(env->codes, "push %d(#rbp)", ast->offset);
+            appcode(env->codes, "push %d(#rbp)", ast->stack_idx);
             break;
 
         case AST_FUNCCALL: {
@@ -1221,7 +1218,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 stack_idx -= 4;
                 ((AST *)(((KeyValue *)vector_get(ast->env->vars->data, i))
                              ->value))
-                    ->offset = stack_idx;
+                    ->stack_idx = stack_idx;
             }
 
             // generate code
@@ -1237,10 +1234,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                     ast->env, (const char *)(vector_get(ast->params, i)));
                 if (i < 6)
                     appcode(env->codes, "mov %s, %d(#rbp)", ereg[i],
-                            var->offset);
+                            var->stack_idx);
                 else
                     // should avoid return pointer and saved %rbp
-                    var->offset = 16 + (i - 6) * 8;
+                    var->stack_idx = 16 + (i - 6) * 8;
             }
 
             // generate body

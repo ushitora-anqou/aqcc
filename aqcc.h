@@ -146,7 +146,7 @@ struct AST {
 
         struct {
             char *varname;
-            int offset;
+            int stack_idx;
         };
 
         struct {
