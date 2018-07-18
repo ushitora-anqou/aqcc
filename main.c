@@ -16,19 +16,27 @@ Env *new_env(Env *parent)
     this = safe_malloc(sizeof(Env));
     this->parent = parent;
     this->vars = new_map();
+    this->localvars = parent == NULL ? NULL : parent->localvars;
     return this;
 }
 
 AST *add_var(Env *env, const char *name, AST *ast)
 {
+    KeyValue *kv = map_lookup(env->vars, name);
+    if (kv != NULL)
+        error("var already exists in same scope.", __FILE__, __LINE__);
     map_insert(env->vars, name, ast);
+    vector_push_back(env->localvars, ast);
     return ast;
 }
 
 AST *lookup_var(Env *env, const char *name)
 {
     KeyValue *kv = map_lookup(env->vars, name);
-    if (kv == NULL) return NULL;
+    if (kv == NULL) {
+        if (env->parent == NULL) return NULL;
+        return lookup_var(env->parent, name);
+    }
     return (AST *)(kv->value);
 }
 
@@ -775,13 +783,14 @@ AST *parse_compound_stmt(Env *env, TokenSeq *tokseq)
 {
     AST *ast;
     Vector *stmts = new_vector();
+    Env *nenv = new_env(env);
 
     expect_token(tokseq, tLBRACE);
     while (!match_token(tokseq, tRBRACE)) {
         if (match_token(tokseq, kINT))
-            parse_declaration(env, tokseq);
+            parse_declaration(nenv, tokseq);
         else
-            vector_push_back(stmts, parse_stmt(env, tokseq));
+            vector_push_back(stmts, parse_stmt(nenv, tokseq));
     }
     expect_token(tokseq, tRBRACE);
 
@@ -862,8 +871,10 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     expect_token(tokseq, tRPAREN);
 
     nenv = new_env(env);
+    nenv->localvars = new_vector();
     // add param into nenv
-    for (i = 0; i < vector_size(params); i++) {
+    // add in reversed order for code generation.
+    for (i = vector_size(params) - 1; i >= 0; i--) {
         AST *ast;
 
         ast = new_ast(AST_VAR);
@@ -1212,13 +1223,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             // allocate stack
             // TODO: depends on map impl.
             stack_idx = 0;
-            for (i = 0; i < map_size(ast->env->vars) -
-                                max(0, vector_size(ast->params) - 6);
-                 i++) {
+            for (i = max(0, vector_size(ast->params) - 6);
+                 i < vector_size(ast->env->localvars); i++) {
                 stack_idx -= 4;
-                ((AST *)(((KeyValue *)vector_get(ast->env->vars->data, i))
-                             ->value))
-                    ->stack_idx = stack_idx;
+                ((AST *)(vector_get(ast->env->localvars, i)))->stack_idx =
+                    stack_idx;
             }
 
             // generate code

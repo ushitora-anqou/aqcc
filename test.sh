@@ -159,3 +159,6 @@ test_aqcc "main(){int a;a=0;int i;for(i=0;i<=10;i++){a=a+i;}return a;}" 55
 test_aqcc "main(){int a;a=0;int b;b=(a++)+1;return b;}" 1
 test_aqcc "main(){int a;a=0;int b;b=(++a)+1;return b;}" 2
 test_aqcc "main(){int a;a=0;int i;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
+test_aqcc "main(){int a;a=0;if(a==0){int a;a=1;}return a;}" 0
+test_aqcc "main(){int a;a=0;int i;for(i=0;i<10;i++){int a;a=1;}return a;}" 0
+test_aqcc "main(){int a;a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){a=a+1;}}return a;}" 100

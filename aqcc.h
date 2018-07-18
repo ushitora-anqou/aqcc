@@ -127,6 +127,7 @@ typedef struct Env Env;
 struct Env {
     Env *parent;
     Map *vars;
+    Vector *localvars;
 };
 
 enum {
