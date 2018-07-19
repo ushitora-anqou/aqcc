@@ -170,6 +170,7 @@ struct AST {
             char *fname;
             Vector *args;    // actual arguments
             Vector *params;  // formal parameters
+            Type *ret_type;
             AST *body;
             Env *env;
         };

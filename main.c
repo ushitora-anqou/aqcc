@@ -292,19 +292,21 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
 AST *new_funccall_ast(char *fname, Vector *args)
 {
     AST *ast = new_ast(AST_FUNCCALL);
-    ast->type = TY_INT;  // TODO: func's return value should be there.
+    ast->type = new_type(TY_INT);  // TODO: func's return value should be there.
     ast->fname = fname;
     ast->args = args;
     return ast;
 }
 
-AST *new_funcdef_ast(char *fname, Vector *params, AST *body, Env *env)
+AST *new_funcdef_ast(char *fname, Vector *params, AST *body, Env *env,
+                     Type *ret_type)
 {
     AST *ast = new_ast(AST_FUNCDEF);
     ast->fname = fname;
     ast->params = params;
     ast->body = body;
     ast->env = env;
+    ast->ret_type = ret_type;
     return ast;
 }
 
@@ -780,14 +782,22 @@ AST *parse_iteration_stmt(Env *env, TokenSeq *tokseq)
     return ast;
 }
 
+Type *parse_type_name(Env *env, TokenSeq *tokseq)
+{
+    Type *type;
+
+    expect_token(tokseq, kINT);
+    type = new_type(TY_INT);
+    return type;
+}
+
 void parse_declaration(Env *env, TokenSeq *tokseq)
 {
     AST *ast;
 
-    expect_token(tokseq, kINT);
     ast = new_ast(AST_VAR);
+    ast->type = parse_type_name(env, tokseq);
     ast->varname = expect_token(tokseq, tIDENT)->sval;
-    ast->type = new_type(TY_INT);
     expect_token(tokseq, tSEMICOLON);
     add_var(env, ast->varname, ast);
 }
@@ -878,10 +888,9 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     Env *nenv;
     AST *stmts;
     int i;
+    Type *ret_type;
 
-    if (match_token(tokseq, kINT)) {
-        pop_token(tokseq);
-    }
+    if (match_token(tokseq, kINT)) ret_type = parse_type_name(env, tokseq);
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
     params = parse_parameter_list(env, tokseq);
@@ -895,14 +904,14 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
         AST *ast;
 
         ast = new_ast(AST_VAR);
-        ast->type = TY_INT;
+        ast->type = new_type(TY_INT);
         ast->varname = (char *)(vector_get(params, i));
         add_var(nenv, ast->varname, ast);
     }
 
     stmts = parse_compound_stmt(nenv, tokseq);
 
-    return new_funcdef_ast(fname, params, stmts, nenv);
+    return new_funcdef_ast(fname, params, stmts, nenv, ret_type);
 }
 
 Vector *parse_prog(Env *env, TokenSeq *tokseq)
