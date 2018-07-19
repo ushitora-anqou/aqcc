@@ -39,3 +39,33 @@ int *new_int(int src)
     *ret = src;
     return ret;
 }
+
+const char *reg_name(int byte, int i)
+{
+    const char *rreg[] = {"%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    const char *ereg[] = {"%eax", "%edi", "%esi", "%edx",
+                          "%ecx", "%r8d", "%r9d"};
+
+    assert(0 <= i && i <= 6);
+
+    switch (byte) {
+        case 4:
+            return ereg[i];
+        case 8:
+            return rreg[i];
+        default:
+            assert(0);
+    }
+}
+
+int type2byte(Type *type)
+{
+    switch (type->kind) {
+        case TY_INT:
+            return 4;
+        case TY_PTR:
+            return 8;
+        default:
+            assert(0);
+    }
+}

@@ -49,6 +49,15 @@ Type *new_type(int kind)
     return this;
 }
 
+Type *new_pointer_type(Type *src)
+{
+    Type *this;
+
+    this = new_type(TY_PTR);
+    this->ptr_of = src;
+    return this;
+}
+
 Token *new_token(int kind)
 {
     Token *token = safe_malloc(sizeof(Token));
@@ -268,6 +277,25 @@ int match_token2(TokenSeq *seq, int kind0, int kind1)
     return 1;
 }
 
+TokenSeqSaved *new_token_seq_saved(TokenSeq *tokseq)
+{
+    TokenSeqSaved *this;
+
+    this = (TokenSeqSaved *)safe_malloc(sizeof(TokenSeqSaved));
+    this->idx = tokseq->idx;
+
+    return this;
+}
+
+void restore_token_seq_saved(TokenSeqSaved *saved, TokenSeq *tokseq)
+{
+    tokseq->idx = saved->idx;
+}
+
+#define SAVE_TOKSEQ \
+    TokenSeqSaved *token_seq_saved__dummy = new_token_seq_saved(tokseq);
+#define RESTORE_TOKSEQ restore_token_seq_saved(token_seq_saved__dummy, tokseq);
+
 AST *new_ast(int kind)
 {
     AST *this = safe_malloc(sizeof(AST));
@@ -463,6 +491,30 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
             inc->type = ast->type;
             inc->lhs = ast;
             return inc;
+        }
+
+        case tAND: {
+            AST *ast;
+
+            pop_token(tokseq);
+            ast = new_ast(AST_ADDR);
+            ast->lhs = parse_postfix_expr(env, tokseq);
+            if (ast->lhs->kind != AST_VAR)
+                error("var should be here.", __FILE__, __LINE__);
+            ast->type = new_pointer_type(ast->lhs->type);
+            return ast;
+        }
+
+        case tSTAR: {
+            AST *ast;
+
+            pop_token(tokseq);
+            ast = new_ast(AST_INDIR);
+            ast->lhs = parse_postfix_expr(env, tokseq);
+            if (ast->lhs->type->kind != TY_PTR)
+                error("pointer type should be here.", __FILE__, __LINE__);
+            ast->type = ast->lhs->type->ptr_of;
+            return ast;
         }
     }
 
@@ -675,16 +727,23 @@ AST *parse_conditional_expr(Env *env, TokenSeq *tokseq)
 
 AST *parse_assignment_expr(Env *env, TokenSeq *tokseq)
 {
-    Token *token;
     AST *ast;
 
-    if (!match_token2(tokseq, tIDENT, tEQ))
+    SAVE_TOKSEQ;
+    ast = parse_unary_expr(env, tokseq);
+    if (!match_token(tokseq, tEQ)) {
+        RESTORE_TOKSEQ;
         return parse_conditional_expr(env, tokseq);
-    token = expect_token(tokseq, tIDENT);
-    expect_token(tokseq, tEQ);
+    }
+    pop_token(tokseq);
 
-    ast = lookup_var(env, token->sval);
-    if (ast == NULL) error("not found such variable", __FILE__, __LINE__);
+    if (ast->kind == AST_INDIR)
+        return new_binop_ast(AST_ASSIGN, ast,
+                             parse_assignment_expr(env, tokseq));
+
+    if (ast->kind != AST_VAR)
+        error("only lvalue can be lhs of assignment.", __FILE__, __LINE__);
+
     return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(env, tokseq));
 }
 
@@ -788,6 +847,12 @@ Type *parse_type_name(Env *env, TokenSeq *tokseq)
 
     expect_token(tokseq, kINT);
     type = new_type(TY_INT);
+
+    while (match_token(tokseq, tSTAR)) {
+        pop_token(tokseq);
+        type = new_pointer_type(type);
+    }
+
     return type;
 }
 
@@ -890,6 +955,7 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     int i;
     Type *ret_type;
 
+    ret_type = NULL;
     if (match_token(tokseq, kINT)) ret_type = parse_type_name(env, tokseq);
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
@@ -988,9 +1054,6 @@ void generate_code(CodeEnv *env, Vector *asts);
 
 void generate_code_detail(CodeEnv *env, AST *ast)
 {
-    const char *rreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
-    const char *ereg[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
-
     switch (ast->kind) {
         case AST_ADD:
             generate_code_detail(env, ast->lhs);
@@ -1205,6 +1268,18 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
+        case AST_ADDR: {
+            appcode(env->codes, "lea %d(#rbp), %rax", ast->lhs->stack_idx);
+            appcode(env->codes, "push %rax");
+        } break;
+
+        case AST_INDIR: {
+            generate_code_detail(env, ast->lhs);
+            appcode(env->codes, "pop %rax");
+            appcode(env->codes, "mov (%rax), %rdi");
+            appcode(env->codes, "push %rdi");
+        } break;
+
         case AST_IF:
         case AST_COND: {
             int false_label = env->nlabel++, exit_label = env->nlabel++;
@@ -1223,10 +1298,28 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_ASSIGN: {
             generate_code_detail(env, ast->rhs);
 
-            assert(ast->lhs->kind == AST_VAR);
-            appcode(env->codes, "pop #rax");
-            appcode(env->codes, "mov #eax, %d(#rbp)", ast->lhs->stack_idx);
-            appcode(env->codes, "push #rax");
+            if (ast->lhs->kind == AST_INDIR) {
+                // should be treated as lvalue.
+                generate_code_detail(env, ast->lhs->lhs);
+
+                appcode(env->codes, "pop #rdi");
+                appcode(env->codes, "pop #rax");
+                appcode(env->codes, "mov #rax, (#rdi)");
+                appcode(env->codes, "push #rax");
+                break;
+            }
+
+            if (ast->lhs->kind == AST_VAR) {
+                assert(ast->lhs->kind == AST_VAR);
+                appcode(env->codes, "pop #rax");
+                appcode(env->codes, "mov %s, %d(#rbp)",
+                        reg_name(type2byte(ast->lhs->type), 0),
+                        ast->lhs->stack_idx);
+                appcode(env->codes, "push #rax");
+                break;
+            }
+
+            assert(0);
         } break;
 
         case AST_VAR:
@@ -1238,7 +1331,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             for (i = vector_size(ast->args) - 1; i >= 0; i--) {
                 generate_code_detail(env, (AST *)(vector_get(ast->args, i)));
-                if (i < 6) appcode(env->codes, "pop %s", rreg[i]);
+                if (i < 6) appcode(env->codes, "pop %s", reg_name(8, i + 1));
             }
             appcode(env->codes, "call %s", ast->fname);
             appcode(env->codes, "push #rax");
@@ -1251,9 +1344,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             stack_idx = 0;
             for (i = max(0, vector_size(ast->params) - 6);
                  i < vector_size(ast->env->scoped_vars); i++) {
-                stack_idx -= 4;
-                ((AST *)(vector_get(ast->env->scoped_vars, i)))->stack_idx =
-                    stack_idx;
+                AST *var = (AST *)(vector_get(ast->env->scoped_vars, i));
+
+                stack_idx -= type2byte(var->type);
+                var->stack_idx = stack_idx;
             }
 
             // generate code
@@ -1268,7 +1362,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 AST *var = lookup_var(
                     ast->env, (const char *)(vector_get(ast->params, i)));
                 if (i < 6)
-                    appcode(env->codes, "mov %s, %d(#rbp)", ereg[i],
+                    appcode(env->codes, "mov %s, %d(#rbp)",
+                            reg_name(type2byte(var->type), i + 1),
                             var->stack_idx);
                 else
                     // should avoid return pointer and saved %rbp

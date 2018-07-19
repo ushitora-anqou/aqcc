@@ -60,6 +60,7 @@ enum {
     tCOLON,
     tQUESTION,
     tINC,
+    tEOF,
     kIF,
     kELSE,
     kWHILE,
@@ -67,7 +68,6 @@ enum {
     kCONTINUE,
     kFOR,
     kINT,
-    tEOF,
 };
 
 typedef struct {
@@ -83,6 +83,10 @@ typedef struct {
     Vector *tokens;
     size_t idx;
 } TokenSeq;
+
+typedef struct {
+    size_t idx;
+} TokenSeqSaved;
 
 enum {
     AST_ADD,
@@ -121,6 +125,8 @@ enum {
     AST_FOR,
     AST_PREINC,
     AST_POSTINC,
+    AST_ADDR,
+    AST_INDIR,
 };
 
 typedef struct Env Env;
@@ -132,10 +138,13 @@ struct Env {
 
 enum {
     TY_INT,
+    TY_PTR,
 };
-typedef struct {
+typedef struct Type Type;
+struct Type {
     int kind;
-} Type;
+    Type *ptr_of;
+};
 
 typedef struct AST AST;
 struct AST {
@@ -189,5 +198,8 @@ char *new_str(const char *src);
 int *new_int(int src);
 
 AST *parse_expr(Env *env, TokenSeq *tokseq);
+
+const char *reg_name(int byte, int i);
+int type2byte(Type *type);
 
 #endif
