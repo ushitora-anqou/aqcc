@@ -1,6 +1,11 @@
 #include <stdlib.h>
 #include "aqcc.h"
 
+struct Vector {
+    size_t size, rsved_size;
+    void **data;
+};
+
 Vector *new_vector()
 {
     Vector *ret;

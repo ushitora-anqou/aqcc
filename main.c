@@ -37,7 +37,7 @@ AST *lookup_var(Env *env, const char *name)
         if (env->parent == NULL) return NULL;
         return lookup_var(env->parent, name);
     }
-    return (AST *)(kv->value);
+    return (AST *)kv_value(kv);
 }
 
 Type *new_type(int kind)

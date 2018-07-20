@@ -2,6 +2,15 @@
 #include <string.h>
 #include "aqcc.h"
 
+struct KeyValue {
+    const char *key;
+    void *value;
+};
+
+struct Map {
+    Vector *data;
+};
+
 Map *new_map()
 {
     Map *this;
@@ -33,3 +42,7 @@ KeyValue *map_lookup(Map *this, const char *key)
 
     return NULL;
 }
+
+const char *kv_key(KeyValue *kv) { return kv->key; }
+
+void *kv_value(KeyValue *kv) { return kv->value; }

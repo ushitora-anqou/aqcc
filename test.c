@@ -12,7 +12,7 @@ void test_vector(int n)
         vector_push_back(vec, d);
     }
 
-    assert(vec->size == n);
+    assert(vector_size(vec) == n);
 
     for (i = 0; i < n; i++) {
         int *d = (int *)vector_get(vec, i);
@@ -21,7 +21,7 @@ void test_vector(int n)
     }
 
     // out-of-range access should return NULL.
-    assert(vector_get(vec, vec->size) == NULL);
+    assert(vector_get(vec, vector_size(vec)) == NULL);
 }
 
 void test_map()
@@ -32,16 +32,16 @@ void test_map()
 
     for (int i = 0; i < 4; i++) {
         KeyValue *kv = map_insert(map, key[i], &data[i]);
-        assert(strcmp(kv->key, key[i]) == 0);
-        assert(*(int *)(kv->value) == data[i]);
+        assert(strcmp(kv_key(kv), key[i]) == 0);
+        assert(*(int *)(kv_value(kv)) == data[i]);
     }
 
     assert(map_size(map) == sizeof(data) / sizeof(int));
 
     for (int i = 0; i < 4; i++) {
         KeyValue *kv = map_lookup(map, key[i]);
-        assert(strcmp(kv->key, key[i]) == 0);
-        assert(*(int *)(kv->value) == data[i]);
+        assert(strcmp(kv_key(kv), key[i]) == 0);
+        assert(*(int *)kv_value(kv) == data[i]);
     }
 }
 

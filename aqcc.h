@@ -3,29 +3,22 @@
 
 #include <stdlib.h>
 
-typedef struct {
-    size_t size, rsved_size;
-    void **data;
-} Vector;
+typedef struct Vector Vector;
 
 Vector *new_vector();
 void vector_push_back(Vector *this, void *item);
 void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
 
-typedef struct {
-    const char *key;
-    void *value;
-} KeyValue;
-
-typedef struct {
-    Vector *data;
-} Map;
+typedef struct KeyValue KeyValue;
+typedef struct Map Map;
 
 Map *new_map();
 size_t map_size(Map *map);
 KeyValue *map_insert(Map *this, const char *key, void *item);
 KeyValue *map_lookup(Map *this, const char *key);
+const char *kv_key(KeyValue *kv);
+void *kv_value(KeyValue *kv);
 
 enum {
     tINT,
