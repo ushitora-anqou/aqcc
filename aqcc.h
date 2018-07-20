@@ -1,4 +1,3 @@
-#pragma once
 #ifndef AQCC_AQCC_H
 #define AQCC_AQCC_H
 
