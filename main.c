@@ -1485,7 +1485,7 @@ void generate_code(CodeEnv *env, Vector *asts)
     }
 }
 
-#include "test.c"
+#include "test.inc"
 
 int main(int argc, char **argv)
 {

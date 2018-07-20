@@ -1,4 +1,4 @@
-main: main.c vector.c utility.c aqcc.h test.c map.c
+main: main.c vector.c utility.c aqcc.h test.inc map.c
 	gcc -o $@ main.c vector.c utility.c map.c -O0 -g -Wall -lm
 
 test: main testutil.o
