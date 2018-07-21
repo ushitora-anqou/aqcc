@@ -1355,7 +1355,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rbp");
             appcode(env->codes, "mov #rsp, #rbp");
             appcode(env->codes, "sub $%d, #rsp",
-                    (int)(ceil(-stack_idx / 8.)) * 8);
+                    (int)(ceil(-stack_idx / 16.)) * 16);
 
             // assign param to localvar
             for (i = 0; i < vector_size(ast->params); i++) {
