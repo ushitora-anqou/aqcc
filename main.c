@@ -475,7 +475,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
 
             pop_token(tokseq);
             ast = new_ast(AST_UNARY_MINUS);
-            ast->lhs = parse_postfix_expr(env, tokseq);
+            ast->lhs = parse_unary_expr(env, tokseq);
             ast->type = ast->lhs->type;
             return ast;
         }
@@ -498,7 +498,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
 
             pop_token(tokseq);
             ast = new_ast(AST_ADDR);
-            ast->lhs = parse_postfix_expr(env, tokseq);
+            ast->lhs = parse_unary_expr(env, tokseq);
             if (ast->lhs->kind != AST_VAR)
                 error("var should be here.", __FILE__, __LINE__);
             ast->type = new_pointer_type(ast->lhs->type);
@@ -510,7 +510,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
 
             pop_token(tokseq);
             ast = new_ast(AST_INDIR);
-            ast->lhs = parse_postfix_expr(env, tokseq);
+            ast->lhs = parse_unary_expr(env, tokseq);
             if (ast->lhs->type->kind != TY_PTR)
                 error("pointer type should be here.", __FILE__, __LINE__);
             ast->type = ast->lhs->type->ptr_of;

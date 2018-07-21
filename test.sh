@@ -165,3 +165,4 @@ test_aqcc "int main(){int a;a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){
 test_aqcc "main(){return 0;}" 0 # function without return value should be also valid.
 test_aqcc "main(){int x;x=3;int *y;y=&x;return *y;}" 3
 test_aqcc "main(){int x;x=3;int *y;y=&x;*y=10;return x;}" 10
+test_aqcc "main(){int *x;int **y;int z;x=&z;y=&x;**y=1;return z;}" 1
