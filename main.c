@@ -1398,7 +1398,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 assert(ast->lhs->kind == AST_VAR);
                 appcode(env->codes, "pop #rax");
                 appcode(env->codes, "mov %s, %d(#rbp)",
-                        reg_name(type2byte(ast->lhs->type), 0),
+                        reg_name(ast->lhs->type->nbytes, 0),
                         ast->lhs->stack_idx);
                 appcode(env->codes, "push #rax");
                 break;
@@ -1431,7 +1431,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                  i < vector_size(ast->env->scoped_vars); i++) {
                 AST *var = (AST *)(vector_get(ast->env->scoped_vars, i));
 
-                stack_idx -= type2byte(var->type);
+                stack_idx -= var->type->nbytes;
                 var->stack_idx = stack_idx;
             }
 
@@ -1450,8 +1450,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                                        ->second));
                 if (i < 6)
                     appcode(env->codes, "mov %s, %d(#rbp)",
-                            reg_name(type2byte(var->type), i + 1),
-                            var->stack_idx);
+                            reg_name(var->type->nbytes, i + 1), var->stack_idx);
                 else
                     // should avoid return pointer and saved %rbp
                     var->stack_idx = 16 + (i - 6) * 8;

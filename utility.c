@@ -62,15 +62,3 @@ const char *reg_name(int byte, int i)
             assert(0);
     }
 }
-
-int type2byte(Type *type)
-{
-    switch (type->kind) {
-        case TY_INT:
-            return 4;
-        case TY_PTR:
-            return 8;
-        default:
-            assert(0);
-    }
-}
