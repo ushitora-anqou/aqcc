@@ -138,7 +138,7 @@ enum {
 };
 typedef struct Type Type;
 struct Type {
-    int kind;
+    int kind, nbytes;
     Type *ptr_of;
 };
 

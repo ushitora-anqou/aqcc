@@ -90,20 +90,31 @@ AST *lookup_func(Env *env, const char *name)
     return ast;
 }
 
-Type *new_type(int kind)
+Type *new_type(int kind, int nbytes)
 {
     Type *this;
 
     this = safe_malloc(sizeof(Type));
     this->kind = kind;
+    this->nbytes = nbytes;
     return this;
+}
+
+Type *type_int()
+{
+    static Type *type = NULL;
+    if (type == NULL) {
+        type = new_type(TY_INT, 8);
+    }
+
+    return type;
 }
 
 Type *new_pointer_type(Type *src)
 {
     Type *this;
 
-    this = new_type(TY_PTR);
+    this = new_type(TY_PTR, 8);
     this->ptr_of = src;
     return this;
 }
@@ -433,7 +444,7 @@ AST *parse_primary_expr(Env *env, TokenSeq *tokseq)
         case tINT:
             ast = new_ast(AST_INT);
             ast->ival = token->ival;
-            ast->type = new_type(TY_INT);
+            ast->type = type_int();
             break;
 
         case tLPAREN:
@@ -481,7 +492,7 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
         ast = lookup_func(env, ident->sval);
         if (ast == NULL) {
             // warn("function call type is deduced to int", __FILE__, __LINE__);
-            type = new_type(TY_INT);
+            type = type_int();
         }
         else {
             type = ast->ret_type;
@@ -907,7 +918,7 @@ Type *parse_type_name(Env *env, TokenSeq *tokseq)
     Type *type;
 
     expect_token(tokseq, kINT);
-    type = new_type(TY_INT);
+    type = type_int();
 
     while (match_token(tokseq, tSTAR)) {
         pop_token(tokseq);
@@ -1022,7 +1033,7 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     if (match_token(tokseq, kINT)) ret_type = parse_type_name(env, tokseq);
     if (ret_type == NULL) {
         // warn("returning type is deduced to int", __FILE__, __LINE__);
-        ret_type = new_type(TY_INT);
+        ret_type = type_int();
     }
 
     fname = expect_token(tokseq, tIDENT)->sval;
