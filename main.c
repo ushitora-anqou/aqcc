@@ -9,6 +9,16 @@
 
 int max(int a, int b) { return a > b ? a : b; }
 
+Pair *new_pair(void *first, void *second)
+{
+    Pair *this;
+
+    this = safe_malloc(sizeof(Pair));
+    this->first = first;
+    this->second = second;
+    return this;
+}
+
 Env *new_env(Env *parent)
 {
     Env *this;
@@ -937,8 +947,10 @@ Vector *parse_parameter_list(Env *env, TokenSeq *tokseq)
     if (match_token(tokseq, tRPAREN)) return params;
 
     while (1) {
-        expect_token(tokseq, kINT);
-        vector_push_back(params, expect_token(tokseq, tIDENT)->sval);
+        Type *type = parse_type_name(env, tokseq);
+        char *name = expect_token(tokseq, tIDENT)->sval;
+
+        vector_push_back(params, new_pair(type, name));
         if (match_token(tokseq, tRPAREN)) break;
         expect_token(tokseq, tCOMMA);
     }
@@ -968,10 +980,11 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     // add in reversed order for code generation.
     for (i = vector_size(params) - 1; i >= 0; i--) {
         AST *ast;
+        Pair *param = (Pair *)vector_get(params, i);
 
         ast = new_ast(AST_VAR);
-        ast->type = new_type(TY_INT);
-        ast->varname = (char *)(vector_get(params, i));
+        ast->type = (Type *)(param->first);
+        ast->varname = (char *)(param->second);
         add_var(nenv, ast->varname, ast);
     }
 
@@ -1360,7 +1373,9 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             // assign param to localvar
             for (i = 0; i < vector_size(ast->params); i++) {
                 AST *var = lookup_var(
-                    ast->env, (const char *)(vector_get(ast->params, i)));
+                    ast->env,
+                    (const char *)(((Pair *)vector_get(ast->params, i))
+                                       ->second));
                 if (i < 6)
                     appcode(env->codes, "mov %s, %d(#rbp)",
                             reg_name(type2byte(var->type), i + 1),

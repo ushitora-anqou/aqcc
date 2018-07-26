@@ -20,6 +20,10 @@ KeyValue *map_lookup(Map *this, const char *key);
 const char *kv_key(KeyValue *kv);
 void *kv_value(KeyValue *kv);
 
+typedef struct {
+    void *first, *second;
+} Pair;
+
 enum {
     tINT,
     tPLUS,
