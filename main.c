@@ -25,29 +25,69 @@ Env *new_env(Env *parent)
 
     this = safe_malloc(sizeof(Env));
     this->parent = parent;
-    this->local_vars = new_map();
+    this->symbols = new_map();
     this->scoped_vars = parent == NULL ? NULL : parent->scoped_vars;
     return this;
 }
 
+AST *add_symbol(Env *env, const char *name, AST *ast)
+{
+    KeyValue *kv;
+
+    kv = map_lookup(env->symbols, name);
+    if (kv != NULL) error("same symbol already exists.", __FILE__, __LINE__);
+    map_insert(env->symbols, name, ast);
+    return ast;
+}
+
+AST *lookup_symbol(Env *env, const char *name)
+{
+    KeyValue *kv;
+
+    kv = map_lookup(env->symbols, name);
+    if (kv == NULL) {
+        if (env->parent == NULL) return NULL;
+        return lookup_symbol(env->parent, name);
+    }
+
+    return (AST *)kv_value(kv);
+}
+
 AST *add_var(Env *env, const char *name, AST *ast)
 {
-    KeyValue *kv = map_lookup(env->local_vars, name);
-    if (kv != NULL)
-        error("var already exists in same scope.", __FILE__, __LINE__);
-    map_insert(env->local_vars, name, ast);
+    assert(ast->kind == AST_VAR);
+    add_symbol(env, name, ast);
     vector_push_back(env->scoped_vars, ast);
+
     return ast;
 }
 
 AST *lookup_var(Env *env, const char *name)
 {
-    KeyValue *kv = map_lookup(env->local_vars, name);
-    if (kv == NULL) {
-        if (env->parent == NULL) return NULL;
-        return lookup_var(env->parent, name);
-    }
-    return (AST *)kv_value(kv);
+    AST *ast;
+
+    ast = lookup_symbol(env, name);
+    if (ast && ast->kind != AST_VAR)
+        error("found but not var", __FILE__, __LINE__);
+    return ast;
+}
+
+AST *add_func(Env *env, const char *name, AST *ast)
+{
+    assert(ast->kind == AST_FUNCDEF);
+    add_symbol(env, name, ast);
+
+    return ast;
+}
+
+AST *lookup_func(Env *env, const char *name)
+{
+    AST *ast;
+
+    ast = lookup_symbol(env, name);
+    if (ast && ast->kind != AST_FUNCDEF)
+        error("found but not func", __FILE__, __LINE__);
+    return ast;
 }
 
 Type *new_type(int kind)
@@ -327,12 +367,12 @@ AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
     return ast;
 }
 
-AST *new_funccall_ast(char *fname, Vector *args)
+AST *new_funccall_ast(char *fname, Vector *args, Type *ret_type)
 {
     AST *ast = new_ast(AST_FUNCCALL);
-    ast->type = new_type(TY_INT);  // TODO: func's return value should be there.
     ast->fname = fname;
     ast->args = args;
+    ast->type = ret_type;
     return ast;
 }
 
@@ -433,11 +473,22 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
     if (match_token2(tokseq, tIDENT, tLPAREN)) {  // function call
         Token *ident;
         AST *ast;
+        Type *type;
 
         ident = pop_token(tokseq);
         pop_token(tokseq);
+
+        ast = lookup_func(env, ident->sval);
+        if (ast == NULL) {
+            // warn("function call type is deduced to int", __FILE__, __LINE__);
+            type = new_type(TY_INT);
+        }
+        else {
+            type = ast->ret_type;
+        }
+
         ast = new_funccall_ast(ident->sval,
-                               parse_argument_expr_list(env, tokseq));
+                               parse_argument_expr_list(env, tokseq), type);
         expect_token(tokseq, tRPAREN);
         return ast;
     }
@@ -969,6 +1020,11 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
 
     ret_type = NULL;
     if (match_token(tokseq, kINT)) ret_type = parse_type_name(env, tokseq);
+    if (ret_type == NULL) {
+        // warn("returning type is deduced to int", __FILE__, __LINE__);
+        ret_type = new_type(TY_INT);
+    }
+
     fname = expect_token(tokseq, tIDENT)->sval;
     expect_token(tokseq, tLPAREN);
     params = parse_parameter_list(env, tokseq);
@@ -990,12 +1046,17 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
 
     stmts = parse_compound_stmt(nenv, tokseq);
 
-    return new_funcdef_ast(fname, params, stmts, nenv, ret_type);
+    return add_func(env, fname,
+                    new_funcdef_ast(fname, params, stmts, nenv, ret_type));
 }
 
-Vector *parse_prog(Env *env, TokenSeq *tokseq)
+Vector *parse_prog(TokenSeq *tokseq)
 {
-    Vector *asts = new_vector();
+    Vector *asts;
+    Env *env;
+
+    asts = new_vector();
+    env = new_env(NULL);
 
     while (peek_token(tokseq)->kind != tEOF) {
         vector_push_back(asts, parse_function_definition(env, tokseq));
@@ -1516,7 +1577,7 @@ int main(int argc, char **argv)
 
     tokens = read_all_tokens(stdin);
     tokseq = new_token_seq(tokens);
-    asts = parse_prog(NULL, tokseq);
+    asts = parse_prog(tokseq);
 
     env = new_code_env();
     appcode(env->codes, ".global main");

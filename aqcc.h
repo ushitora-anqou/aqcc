@@ -128,7 +128,7 @@ enum {
 typedef struct Env Env;
 struct Env {
     Env *parent;
-    Map *local_vars;
+    Map *symbols;
     Vector *scoped_vars;
 };
 
@@ -186,6 +186,7 @@ struct AST {
 
 // error("msg", __FILE__, __LINE__);
 void error(const char *msg, const char *filename, int lineno);
+void warn(const char *msg, const char *filename, int lineno);
 
 void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);

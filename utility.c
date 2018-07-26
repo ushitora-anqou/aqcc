@@ -6,8 +6,13 @@
 
 void error(const char *msg, const char *filename, int lineno)
 {
-    fprintf(stderr, "%s: %s, %d\n", msg, filename, lineno);
+    fprintf(stderr, "[ERROR] %s: %s, %d\n", msg, filename, lineno);
     exit(EXIT_FAILURE);
+}
+
+void warn(const char *msg, const char *filename, int lineno)
+{
+    fprintf(stderr, "[WARN] %s: %s, %d\n", msg, filename, lineno);
 }
 
 void *safe_malloc(size_t size)
