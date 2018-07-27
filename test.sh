@@ -122,12 +122,12 @@ test_aqcc "int main(){int x;int y;x = 1; return y = 2;}" 2
 test_aqcc "int main(){int x;int y;int z;x = 1; y = 2; return z = x + y;}" 3
 test_aqcc "int main(){int a0;int a1;int a2;int a3;a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
 test_aqcc "int main(){int x;int y;int z;x = y = 1; return z = x = x + y;}" 2
-test_aqcc "int main(){return ret0();}" 0
-test_aqcc "int main(){return (ret0() + ret1()) * 2;}" 2
-test_aqcc "int main(){return (ret0() * ret1()) + 2;}" 2
-test_aqcc "int main(){return add1(1);}" 2
-test_aqcc "int main(){return add_two(1, 2);}" 3
-test_aqcc "int main(){return add_all(1, 2, 4, 8, 16, 32, 64, 128);}" 1
+test_aqcc "int ret0();int main(){return ret0();}" 0
+test_aqcc "int ret1();int ret0();int main(){return (ret0() + ret1()) * 2;}" 2
+test_aqcc "int ret1();int ret0();int main(){return (ret0() * ret1()) + 2;}" 2
+test_aqcc "int add1();int main(){return add1(1);}" 2
+test_aqcc "int add_two();int main(){return add_two(1, 2);}" 3
+test_aqcc "int add_all();int main(){return add_all(1, 2, 4, 8, 16, 32, 64, 128);}" 1
 test_aqcc "int iret0(){return 0;}main(){return iret0();}" 0
 test_aqcc "int iret0(){return 0;}iret1(){return 1;}main(){return iret0() + iret1();}" 1
 test_aqcc "int main(){return;}" 0

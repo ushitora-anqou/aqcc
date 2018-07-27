@@ -387,14 +387,13 @@ AST *new_funccall_ast(char *fname, Vector *args, Type *ret_type)
     return ast;
 }
 
-AST *new_funcdef_ast(char *fname, Vector *params, AST *body, Env *env,
-                     Type *ret_type)
+AST *new_funcdef_ast(char *fname, Vector *params, Type *ret_type)
 {
     AST *ast = new_ast(AST_FUNCDEF);
     ast->fname = fname;
     ast->params = params;
-    ast->body = body;
-    ast->env = env;
+    ast->body = NULL;
+    ast->env = NULL;
     ast->ret_type = ret_type;
     return ast;
 }
@@ -491,7 +490,8 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
 
         ast = lookup_func(env, ident->sval);
         if (ast == NULL) {
-            // warn("function call type is deduced to int", __FILE__, __LINE__);
+            warn("function call type is deduced to int", __FILE__, __LINE__);
+            warn(ident->sval, __FILE__, __LINE__);
             type = type_int();
         }
         else {
@@ -1020,12 +1020,11 @@ Vector *parse_parameter_list(Env *env, TokenSeq *tokseq)
     return params;
 }
 
-AST *parse_function_definition(Env *env, TokenSeq *tokseq)
+AST *parse_function_definition_or_declaration(Env *env, TokenSeq *tokseq)
 {
     char *fname;
     Vector *params;
-    Env *nenv;
-    AST *stmts;
+    AST *func;
     int i;
     Type *ret_type;
 
@@ -1041,24 +1040,41 @@ AST *parse_function_definition(Env *env, TokenSeq *tokseq)
     params = parse_parameter_list(env, tokseq);
     expect_token(tokseq, tRPAREN);
 
-    nenv = new_env(env);
-    nenv->scoped_vars = new_vector();
-    // add param into nenv
-    // add in reversed order for code generation.
-    for (i = vector_size(params) - 1; i >= 0; i--) {
-        AST *ast;
-        Pair *param = (Pair *)vector_get(params, i);
-
-        ast = new_ast(AST_VAR);
-        ast->type = (Type *)(param->first);
-        ast->varname = (char *)(param->second);
-        add_var(nenv, ast->varname, ast);
+    // if semicolon follows the function parameter list,
+    // it's a function declaration.
+    if (match_token(tokseq, tSEMICOLON)) {
+        pop_token(tokseq);
+        add_func(env, fname, new_funcdef_ast(fname, params, ret_type));
+        return NULL;
     }
 
-    stmts = parse_compound_stmt(nenv, tokseq);
+    // already declared
+    // TODO: validate params
+    func = lookup_func(env, fname);
+    if (func == NULL) {
+        // ...or new defined function.
+        func = new_funcdef_ast(fname, params, ret_type);
+        add_func(env, fname, func);
+    }
 
-    return add_func(env, fname,
-                    new_funcdef_ast(fname, params, stmts, nenv, ret_type));
+    // make function's local scope/env
+    func->env = new_env(env);
+    func->env->scoped_vars = new_vector();
+    // add param into functions's scope
+    // in reversed order for code generation.
+    for (i = vector_size(params) - 1; i >= 0; i--) {
+        AST *var;
+        Pair *param = (Pair *)vector_get(params, i);
+
+        var = new_ast(AST_VAR);
+        var->type = (Type *)(param->first);
+        var->varname = (char *)(param->second);
+        add_var(func->env, var->varname, var);
+    }
+
+    func->body = parse_compound_stmt(func->env, tokseq);
+
+    return func;
 }
 
 Vector *parse_prog(TokenSeq *tokseq)
@@ -1070,7 +1086,10 @@ Vector *parse_prog(TokenSeq *tokseq)
     env = new_env(NULL);
 
     while (peek_token(tokseq)->kind != tEOF) {
-        vector_push_back(asts, parse_function_definition(env, tokseq));
+        AST *ast;
+
+        ast = parse_function_definition_or_declaration(env, tokseq);
+        if (ast != NULL) vector_push_back(asts, ast);
     }
 
     return asts;
