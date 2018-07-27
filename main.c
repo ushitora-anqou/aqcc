@@ -1432,11 +1432,19 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_POSTINC: {
             appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
-            appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
+            if (match_type(ast->lhs, TY_PTR))
+                appcode(env->codes, "add $%d, %d(#rbp)",
+                        ast->lhs->type->ptr_of->nbytes, ast->lhs->stack_idx);
+            else
+                appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
         case AST_PREINC: {
-            appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
+            if (match_type(ast->lhs, TY_PTR))
+                appcode(env->codes, "add $%d, %d(#rbp)",
+                        ast->lhs->type->ptr_of->nbytes, ast->lhs->stack_idx);
+            else
+                appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
             appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
