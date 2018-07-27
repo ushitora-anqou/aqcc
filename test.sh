@@ -171,6 +171,7 @@ test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p +
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 3; return *q; }" 13
 test_aqcc "int *alloc4(int **p);int main() { int *p; return *((1 + 1) + alloc4(&p)); }" 12
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return q - p; }" 2
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; q = q - 1; return q - p; }" 1
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return ((q + 1) - p) == (q - p) + 1; }" 1
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return (q - p) + 1 == -(p - (q + 1)); }" 1
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); p++; return *p; }" 11

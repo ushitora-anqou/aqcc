@@ -1214,10 +1214,12 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             // int + ptr
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR))
-                appcode(env->codes, "imul $%d, #rax", ast->lhs->type->nbytes);
+                appcode(env->codes, "imul $%d, #rax",
+                        ast->rhs->type->ptr_of->nbytes);
             // ptr + int
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT))
-                appcode(env->codes, "imul $%d, #rdi", ast->rhs->type->nbytes);
+                appcode(env->codes, "imul $%d, #rdi",
+                        ast->lhs->type->ptr_of->nbytes);
 
             appcode(env->codes, "add %s, %s", reg_name(ast->type->nbytes, 1),
                     reg_name(ast->type->nbytes, 0));
@@ -1227,13 +1229,18 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_SUB: {
             int nbytes;
 
-            nbytes = max_type(ast->lhs, ast->rhs)->nbytes;
-
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);
 
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
+
+            // ptr - int
+            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT))
+                appcode(env->codes, "imul $%d, #rdi",
+                        ast->lhs->type->ptr_of->nbytes);
+
+            nbytes = max_type(ast->lhs, ast->rhs)->nbytes;
             appcode(env->codes, "sub %s, %s", reg_name(nbytes, 1),
                     reg_name(nbytes, 0));
 
