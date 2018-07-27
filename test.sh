@@ -167,3 +167,10 @@ test_aqcc "main(){int x;x=3;int *y;y=&x;return *y;}" 3
 test_aqcc "main(){int x;x=3;int *y;y=&x;*y=10;return x;}" 10
 test_aqcc "main(){int *x;int **y;int z;x=&z;y=&x;**y=1;return z;}" 1
 test_aqcc "int *test(int *p) { *p = 1; return p; } int main() { int x; int *y; y = test(&x); return *y; }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return *q; }" 12
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 3; return *q; }" 13
+test_aqcc "int *alloc4(int **p);int main() { int *p; return *((1 + 1) + alloc4(&p)); }" 12
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return q - p; }" 2
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return ((q + 1) - p) == (q - p) + 1; }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return (q - p) + 1 == -(p - (q + 1)); }" 1
+
