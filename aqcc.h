@@ -55,6 +55,8 @@ enum {
     kRETURN,
     tCOLON,
     tQUESTION,
+    tLBRACKET,
+    tRBRACKET,
     tINC,
     tEOF,
     kIF,
@@ -123,6 +125,7 @@ enum {
     AST_POSTINC,
     AST_ADDR,
     AST_INDIR,
+    AST_ARY2PTR,
 };
 
 typedef struct Env Env;
@@ -135,11 +138,20 @@ struct Env {
 enum {
     TY_INT,
     TY_PTR,
+    TY_ARY,
 };
 typedef struct Type Type;
 struct Type {
     int kind, nbytes;
-    Type *ptr_of;
+
+    union {
+        Type *ptr_of;
+
+        struct {
+            Type *ary_of;
+            int len;
+        };
+    };
 };
 
 typedef struct AST AST;
@@ -181,6 +193,11 @@ struct AST {
         };
 
         Vector *stmts;
+
+        // AST_ARY2PTR
+        struct {
+            AST *ary;
+        };
     };
 };
 

@@ -176,4 +176,11 @@ test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p +
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return (q - p) + 1 == -(p - (q + 1)); }" 1
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); p++; return *p; }" 11
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); ++p; return *p; }" 11
+test_aqcc "int main() { int n; n = n++; return n; }" 0
+test_aqcc "int main() { int n; n = 0; return *&n; }" 0
+test_aqcc "int main() { int n; n = 0; int i; int j; for(i = 0; i < 10; i++) for (j = 0; j < 10; j++) n++; return n; }" 100
+test_aqcc "int main() { int ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
+test_aqcc "int main() { int ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
+test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
+test_aqcc "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
 

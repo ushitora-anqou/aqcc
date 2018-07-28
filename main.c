@@ -119,15 +119,14 @@ Type *new_pointer_type(Type *src)
     return this;
 }
 
-Type *max_type(AST *lhs, AST *rhs)
+Type *new_array_type(Type *src, int len)
 {
-    Type *ltype, *rtype;
+    Type *this;
 
-    ltype = lhs->type;
-    rtype = rhs->type;
-    if (ltype == NULL) return rtype;
-    if (rtype == NULL) return ltype;
-    return ltype->nbytes > rtype->nbytes ? ltype : rtype;
+    this = new_type(TY_ARY, src->nbytes * len);
+    this->ary_of = src;
+    this->len = len;
+    return this;
 }
 
 int match_type(AST *ast, int kind)
@@ -291,6 +290,10 @@ Token *read_next_token(FILE *fh)
                 return new_token(tCOLON);
             case '?':
                 return new_token(tQUESTION);
+            case '[':
+                return new_token(tLBRACKET);
+            case ']':
+                return new_token(tRBRACKET);
             case EOF:
                 return new_token(tEOF);
         }
@@ -449,6 +452,25 @@ AST *new_compound_stmt2(AST *first, AST *second)
     ast->stmts = stmts;
 
     return ast;
+}
+
+AST *new_ary2ptr_ast(AST *ary)
+{
+    AST *ast;
+
+    assert(match_type(ary, TY_ARY));
+
+    ast = new_ast(AST_ARY2PTR);
+    ast->ary = ary;
+    ast->type = new_pointer_type(ary->type->ary_of);
+
+    return ast;
+}
+
+AST *ary2ptr(AST *ary)
+{
+    if (!match_type(ary, TY_ARY)) return ary;
+    return new_ary2ptr_ast(ary);
 }
 
 AST *parse_assignment_expr(Env *env, TokenSeq *tokseq);
@@ -648,22 +670,40 @@ AST *parse_additive_expr(Env *env, TokenSeq *tokseq)
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
-            case tPLUS:
+            case tPLUS: {
+                Type *ret_type;
+
                 pop_token(tokseq);
                 rhs = parse_multiplicative_expr(env, tokseq);
+
+                lhs = ary2ptr(lhs);
+                rhs = ary2ptr(rhs);
 
                 if (match_type2(lhs, rhs, TY_PTR, TY_PTR))
                     error("ptr + ptr is not allowed", __FILE__, __LINE__);
 
-                lhs = new_binop_ast(AST_ADD, lhs, rhs, max_type(lhs, rhs));
+                // convert ptr+int to int+ptr
+                if (match_type(lhs, TY_PTR)) {
+                    // swap(lhs, rhs)
+                    AST *tmp;
+                    tmp = lhs;
+                    lhs = rhs;
+                    rhs = tmp;
+                }
 
-                break;
+                ret_type = rhs->type;
+
+                lhs = new_binop_ast(AST_ADD, lhs, rhs, ret_type);
+            } break;
 
             case tMINUS: {
                 Type *ret_type;
 
                 pop_token(tokseq);
                 rhs = parse_multiplicative_expr(env, tokseq);
+
+                lhs = ary2ptr(lhs);
+                rhs = ary2ptr(rhs);
 
                 if (match_type2(lhs, rhs, TY_INT, TY_PTR))
                     error("int - ptr is not allowed", __FILE__, __LINE__);
@@ -982,7 +1022,18 @@ void parse_declaration(Env *env, TokenSeq *tokseq)
     ast = new_ast(AST_VAR);
     ast->type = parse_type_name(env, tokseq);
     ast->varname = expect_token(tokseq, tIDENT)->sval;
+
+    while (match_token(tokseq, tLBRACKET)) {  // array
+        Token *num;
+
+        pop_token(tokseq);
+        num = expect_token(tokseq, tINT);  // TODO: parse assignment-expr
+        expect_token(tokseq, tRBRACKET);
+        ast->type = new_array_type(ast->type, num->ival);
+    }
+
     expect_token(tokseq, tSEMICOLON);
+
     add_var(env, ast->varname, ast);
 }
 
@@ -1213,13 +1264,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "pop #rax");
 
             // int + ptr
-            if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR))
+            if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
+                appcode(env->codes, "cltq");  // TODO: long
                 appcode(env->codes, "imul $%d, #rax",
                         ast->rhs->type->ptr_of->nbytes);
-            // ptr + int
-            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT))
-                appcode(env->codes, "imul $%d, #rdi",
-                        ast->lhs->type->ptr_of->nbytes);
+            }
 
             appcode(env->codes, "add %s, %s", reg_name(ast->type->nbytes, 1),
                     reg_name(ast->type->nbytes, 0));
@@ -1232,24 +1281,26 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);
 
-            appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
+            appcode(env->codes, "pop #rdi");
 
             // ptr - int
-            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT))
-                appcode(env->codes, "imul $%d, #rdi",
+            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
+                appcode(env->codes, "cltq");  // TODO: long
+                appcode(env->codes, "imul $%d, #rax",
                         ast->lhs->type->ptr_of->nbytes);
+            }
 
-            nbytes = max_type(ast->lhs, ast->rhs)->nbytes;
-            appcode(env->codes, "sub %s, %s", reg_name(nbytes, 1),
-                    reg_name(nbytes, 0));
+            nbytes = ast->lhs->type->nbytes;
+            appcode(env->codes, "sub %s, %s", reg_name(nbytes, 0),
+                    reg_name(nbytes, 1));
 
             // ptr - ptr
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 // TODO: assume pointer size is 8.
-                appcode(env->codes, "sar $%d, #rax", 2);
+                appcode(env->codes, "sar $%d, #rdi", 2);
 
-            appcode(env->codes, "push #rax");
+            appcode(env->codes, "push #rdi");
         } break;
 
         case AST_MUL:
@@ -1456,14 +1507,14 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_ADDR: {
-            appcode(env->codes, "lea %d(#rbp), %rax", ast->lhs->stack_idx);
+            appcode(env->codes, "lea %d(#rbp), #rax", ast->lhs->stack_idx);
             appcode(env->codes, "push %rax");
         } break;
 
         case AST_INDIR: {
             generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop %rax");
-            appcode(env->codes, "mov (%rax), %rdi");
+            appcode(env->codes, "mov (%rax), #rdi");
             appcode(env->codes, "push %rdi");
         } break;
 
@@ -1618,7 +1669,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             env->loop_continue_label = env->nlabel++;
             env->loop_break_label = env->nlabel++;
 
-            if (ast->initer != NULL) generate_code_detail(env, ast->initer);
+            if (ast->initer != NULL) {
+                generate_code_detail(env, ast->initer);
+                appcode(env->codes, "pop #rax");
+            }
             appcode(env->codes, ".L%d:", loop_start_label);
             if (ast->midcond != NULL) {
                 generate_code_detail(env, ast->midcond);
@@ -1628,7 +1682,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             }
             generate_code_detail(env, ast->for_body);
             appcode(env->codes, ".L%d:", env->loop_continue_label);
-            if (ast->iterer != NULL) generate_code_detail(env, ast->iterer);
+            if (ast->iterer != NULL) {
+                generate_code_detail(env, ast->iterer);
+                appcode(env->codes, "pop #rax");
+            }
             appcode(env->codes, "jmp .L%d", loop_start_label);
             appcode(env->codes, ".L%d:", env->loop_break_label);
 
@@ -1658,6 +1715,18 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_NOP:
+            break;
+
+        case AST_ARY2PTR:
+            if (ast->ary->kind == AST_VAR) {
+                appcode(env->codes, "lea %d(#rbp), #rax", ast->ary->stack_idx);
+                appcode(env->codes, "push #rax");
+            }
+            else {
+                // TODO: always indirection?
+                assert(ast->ary->kind == AST_INDIR);
+                generate_code_detail(env, ast->ary->lhs);
+            }
             break;
 
         default:
