@@ -55,7 +55,7 @@ AST *lookup_symbol(Env *env, const char *name)
 
 AST *add_var(Env *env, const char *name, AST *ast)
 {
-    assert(ast->kind == AST_VAR);
+    assert(ast->kind == AST_LVAR);
     add_symbol(env, name, ast);
     vector_push_back(env->scoped_vars, ast);
 
@@ -67,7 +67,7 @@ AST *lookup_var(Env *env, const char *name)
     AST *ast;
 
     ast = lookup_symbol(env, name);
-    if (ast && ast->kind != AST_VAR)
+    if (ast && ast->kind != AST_LVAR)
         error("found but not var", __FILE__, __LINE__);
     return ast;
 }
@@ -599,7 +599,7 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
                 AST *inc;
 
                 pop_token(tokseq);
-                if (ast->kind != AST_VAR)
+                if (ast->kind != AST_LVAR)
                     error("not variable name", __FILE__, __LINE__);
                 inc = new_ast(AST_POSTINC);
                 inc->type = ast->type;
@@ -645,7 +645,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
 
             pop_token(tokseq);
             ast = parse_unary_expr(env, tokseq);
-            if (ast->kind != AST_VAR)
+            if (ast->kind != AST_LVAR)
                 error("unexpected token", __FILE__, __LINE__);
             inc = new_ast(AST_PREINC);
             inc->type = ast->type;
@@ -659,7 +659,7 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
             pop_token(tokseq);
             ast = new_ast(AST_ADDR);
             ast->lhs = parse_unary_expr(env, tokseq);
-            if (ast->lhs->kind != AST_VAR)
+            if (ast->lhs->kind != AST_LVAR)
                 error("var should be here.", __FILE__, __LINE__);
             ast->type = new_pointer_type(ast->lhs->type);
             return ast;
@@ -920,7 +920,7 @@ AST *parse_assignment_expr(Env *env, TokenSeq *tokseq)
         return new_binop_ast(AST_ASSIGN, ast,
                              parse_assignment_expr(env, tokseq), ast->type);
 
-    if (ast->kind != AST_VAR)
+    if (ast->kind != AST_LVAR)
         error("only lvalue can be lhs of assignment.", __FILE__, __LINE__);
 
     return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(env, tokseq),
@@ -1040,7 +1040,7 @@ void parse_declaration(Env *env, TokenSeq *tokseq)
 {
     AST *ast;
 
-    ast = new_ast(AST_VAR);
+    ast = new_ast(AST_LVAR);
     ast->type = parse_type_name(env, tokseq);
     ast->varname = expect_token(tokseq, tIDENT)->sval;
 
@@ -1185,7 +1185,7 @@ AST *parse_function_definition_or_declaration(Env *env, TokenSeq *tokseq)
         AST *var;
         Pair *param = (Pair *)vector_get(params, i);
 
-        var = new_ast(AST_VAR);
+        var = new_ast(AST_LVAR);
         var->type = (Type *)(param->first);
         var->varname = (char *)(param->second);
         add_var(func->env, var->varname, var);
@@ -1568,8 +1568,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 break;
             }
 
-            if (ast->lhs->kind == AST_VAR) {
-                assert(ast->lhs->kind == AST_VAR);
+            if (ast->lhs->kind == AST_LVAR) {
+                assert(ast->lhs->kind == AST_LVAR);
                 appcode(env->codes, "pop #rax");
                 appcode(env->codes, "mov %s, %d(#rbp)",
                         reg_name(ast->lhs->type->nbytes, 0),
@@ -1581,7 +1581,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             assert(0);
         } break;
 
-        case AST_VAR:
+        case AST_LVAR:
             appcode(env->codes, "push %d(#rbp)", ast->stack_idx);
             break;
 
@@ -1739,7 +1739,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_ARY2PTR:
-            if (ast->ary->kind == AST_VAR) {
+            if (ast->ary->kind == AST_LVAR) {
                 appcode(env->codes, "lea %d(#rbp), #rax", ast->ary->stack_idx);
                 appcode(env->codes, "push #rax");
             }

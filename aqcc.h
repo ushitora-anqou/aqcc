@@ -109,7 +109,7 @@ enum {
     AST_LOR,
     AST_COND,
     AST_ASSIGN,
-    AST_VAR,
+    AST_LVAR,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_NOP,
