@@ -6,8 +6,8 @@ function fail(){
 }
 
 function test_aqcc() {
-    echo "$1" | ./main > _test.s
-    [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./main > _test.s"
+    echo "$1" | ./aqcc > _test.s
+    [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./aqcc > _test.s"
     gcc _test.s -o _test.o testutil.o
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": gcc _test.s -o _test.o"
     ./_test.o
@@ -15,7 +15,7 @@ function test_aqcc() {
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
 }
 
-./main test
+./aqcc test
 [ $? -eq 0 ] || fail "./main test"
 
 test_aqcc "int main(){return 2;}" 2
