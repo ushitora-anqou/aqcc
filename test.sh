@@ -183,4 +183,7 @@ test_aqcc "int main() { int ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
 test_aqcc "int main() { int ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
 test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
 test_aqcc "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
-
+test_aqcc "int main() { int ary[10]; ary[5] = 10; return ary[5]; }" 10
+test_aqcc "int main() { int ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
+test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i; return ary[5]; }" 5
+test_aqcc "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2

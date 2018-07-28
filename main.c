@@ -467,10 +467,46 @@ AST *new_ary2ptr_ast(AST *ary)
     return ast;
 }
 
+AST *new_indir_ast(AST *src)
+{
+    AST *ast;
+
+    if (!match_type(src, TY_PTR))
+        error("pointer should come after indirection op", __FILE__, __LINE__);
+    ast = new_ast(AST_INDIR);
+    ast->lhs = src;
+    ast->type = src->type->ptr_of;
+    return ast;
+}
+
 AST *ary2ptr(AST *ary)
 {
     if (!match_type(ary, TY_ARY)) return ary;
     return new_ary2ptr_ast(ary);
+}
+
+AST *new_add_ast(AST *lhs, AST *rhs)
+{
+    Type *ret_type;
+
+    lhs = ary2ptr(lhs);
+    rhs = ary2ptr(rhs);
+
+    if (match_type2(lhs, rhs, TY_PTR, TY_PTR))
+        error("ptr + ptr is not allowed", __FILE__, __LINE__);
+
+    // convert ptr+int to int+ptr
+    if (match_type(lhs, TY_PTR)) {
+        // swap(lhs, rhs)
+        AST *tmp;
+        tmp = lhs;
+        lhs = rhs;
+        rhs = tmp;
+    }
+
+    ret_type = rhs->type;
+
+    return new_binop_ast(AST_ADD, lhs, rhs, ret_type);
 }
 
 AST *parse_assignment_expr(Env *env, TokenSeq *tokseq);
@@ -557,20 +593,32 @@ AST *parse_postfix_expr(Env *env, TokenSeq *tokseq)
         ast = parse_primary_expr(env, tokseq);
     }
 
-    switch (peek_token(tokseq)->kind) {
-        case tINC: {
-            AST *inc;
+    while (1) {
+        switch (peek_token(tokseq)->kind) {
+            case tINC: {
+                AST *inc;
 
-            pop_token(tokseq);
-            if (ast->kind != AST_VAR)
-                error("not variable name", __FILE__, __LINE__);
-            inc = new_ast(AST_POSTINC);
-            inc->type = ast->type;
-            inc->lhs = ast;
-            ast = inc;
-        } break;
+                pop_token(tokseq);
+                if (ast->kind != AST_VAR)
+                    error("not variable name", __FILE__, __LINE__);
+                inc = new_ast(AST_POSTINC);
+                inc->type = ast->type;
+                inc->lhs = ast;
+                ast = inc;
+            } break;
+
+            case tLBRACKET:
+                pop_token(tokseq);
+                ast = new_indir_ast(new_add_ast(parse_expr(env, tokseq), ast));
+                expect_token(tokseq, tRBRACKET);
+                break;
+
+            default:
+                goto end;
+        }
     }
 
+end:
     return ast;
 }
 
@@ -617,17 +665,9 @@ AST *parse_unary_expr(Env *env, TokenSeq *tokseq)
             return ast;
         }
 
-        case tSTAR: {
-            AST *ast;
-
+        case tSTAR:
             pop_token(tokseq);
-            ast = new_ast(AST_INDIR);
-            ast->lhs = parse_unary_expr(env, tokseq);
-            if (ast->lhs->type->kind != TY_PTR)
-                error("pointer type should be here.", __FILE__, __LINE__);
-            ast->type = ast->lhs->type->ptr_of;
-            return ast;
-        }
+            return new_indir_ast(parse_unary_expr(env, tokseq));
     }
 
     return parse_postfix_expr(env, tokseq);
@@ -670,31 +710,12 @@ AST *parse_additive_expr(Env *env, TokenSeq *tokseq)
     while (1) {
         Token *token = peek_token(tokseq);
         switch (token->kind) {
-            case tPLUS: {
-                Type *ret_type;
+            case tPLUS:
 
                 pop_token(tokseq);
                 rhs = parse_multiplicative_expr(env, tokseq);
-
-                lhs = ary2ptr(lhs);
-                rhs = ary2ptr(rhs);
-
-                if (match_type2(lhs, rhs, TY_PTR, TY_PTR))
-                    error("ptr + ptr is not allowed", __FILE__, __LINE__);
-
-                // convert ptr+int to int+ptr
-                if (match_type(lhs, TY_PTR)) {
-                    // swap(lhs, rhs)
-                    AST *tmp;
-                    tmp = lhs;
-                    lhs = rhs;
-                    rhs = tmp;
-                }
-
-                ret_type = rhs->type;
-
-                lhs = new_binop_ast(AST_ADD, lhs, rhs, ret_type);
-            } break;
+                lhs = new_add_ast(lhs, rhs);
+                break;
 
             case tMINUS: {
                 Type *ret_type;
