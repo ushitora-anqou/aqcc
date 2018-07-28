@@ -1,5 +1,8 @@
-main: main.c vector.c utility.c aqcc.h test.inc map.c
-	gcc -o $@ main.c vector.c utility.c map.c -O0 -g -Wall -lm
+SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c
+
+
+main: $(SRC) test.inc
+	gcc -o $@ $(SRC) -O0 -g -Wall -lm
 
 test: main testutil.o
 	./test.sh

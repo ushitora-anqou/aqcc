@@ -62,3 +62,15 @@ const char *reg_name(int byte, int i)
             assert(0);
     }
 }
+
+Pair *new_pair(void *first, void *second)
+{
+    Pair *this;
+
+    this = safe_malloc(sizeof(Pair));
+    this->first = first;
+    this->second = second;
+    return this;
+}
+
+int max(int a, int b) { return a > b ? a : b; }
