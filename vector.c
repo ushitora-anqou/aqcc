@@ -35,3 +35,10 @@ void *vector_get(Vector *this, size_t i)
     if (i >= this->size) return NULL;
     return this->data[i];
 }
+
+void *vector_set(Vector *this, size_t i, void *item)
+{
+    assert(this != NULL && i < vector_size(this));
+    this->data[i] = item;
+    return item;
+}

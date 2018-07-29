@@ -403,9 +403,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             // assign param to localvar
             for (i = 0; i < vector_size(ast->params); i++) {
                 AST *var = lookup_var(
-                    ast->env,
-                    (const char *)(((Pair *)vector_get(ast->params, i))
-                                       ->second));
+                    ast->env, ((AST *)vector_get(ast->params, i))->varname);
                 if (i < 6)
                     appcode(env->codes, "mov %s, %d(#rbp)",
                             reg_name(var->type->nbytes, i + 1), var->stack_idx);
@@ -522,6 +520,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
+        case AST_FUNCDECL:
+        case AST_LVAR_DECL:
         case AST_NOP:
             break;
 

@@ -20,6 +20,9 @@ void test_vector(int n)
         assert(*d == i);
     }
 
+    vector_set(vec, n - 1, new_int(1));
+    assert(*(int*)vector_get(vec, n - 1) == 1);
+
     // out-of-range access should return NULL.
     assert(vector_get(vec, vector_size(vec)) == NULL);
 }

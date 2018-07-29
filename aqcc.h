@@ -15,6 +15,7 @@ Vector *new_vector();
 void vector_push_back(Vector *this, void *item);
 void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
+void *vector_set(Vector *this, size_t i, void *item);
 
 typedef struct KeyValue KeyValue;
 typedef struct Map Map;
@@ -25,10 +26,6 @@ KeyValue *map_insert(Map *this, const char *key, void *item);
 KeyValue *map_lookup(Map *this, const char *key);
 const char *kv_key(KeyValue *kv);
 void *kv_value(KeyValue *kv);
-
-typedef struct {
-    void *first, *second;
-} Pair;
 
 enum {
     tINT,
@@ -116,8 +113,10 @@ enum {
     AST_COND,
     AST_ASSIGN,
     AST_LVAR,
+    AST_LVAR_DECL,
     AST_FUNCCALL,
     AST_FUNCDEF,
+    AST_FUNCDECL,
     AST_NOP,
     AST_RETURN,
     AST_EXPR_STMT,
@@ -195,7 +194,7 @@ struct AST {
             Vector *args;    // actual arguments
             Vector *params;  // formal parameters
             Type *ret_type;
-            AST *body;
+            AST *body;  // If NULL then only declaration exists.
             Env *env;
         };
 
@@ -217,7 +216,6 @@ void *safe_realloc(void *ptr, size_t size);
 char *new_str(const char *src);
 int *new_int(int src);
 const char *reg_name(int byte, int i);
-Pair *new_pair(void *first, void *second);
 int max(int a, int b);
 
 // lex.c
@@ -237,7 +235,7 @@ Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
 
 // env.c
-AST *add_var(Env *env, const char *name, AST *ast);
+AST *add_var(Env *env, AST *ast);
 AST *lookup_var(Env *env, const char *name);
 AST *add_func(Env *env, const char *name, AST *ast);
 AST *lookup_func(Env *env, const char *name);
@@ -246,15 +244,18 @@ AST *lookup_func(Env *env, const char *name);
 int match_type(AST *ast, int kind);
 int match_type2(AST *lhs, AST *rhs, int lkind, int rkind);
 AST *new_ast(int kind);
-AST *new_binop_ast(int kind, AST *lhs, AST *rhs, Type *type);
-AST *new_funccall_ast(char *fname, Vector *args, Type *ret_type);
-AST *new_funcdef_ast(char *fname, Vector *params, Type *ret_type);
-AST *new_expr_stmt(AST *expr);
+AST *new_binop_ast(int kind, AST *lhs, AST *rhs);
 AST *new_while_stmt(AST *cond, AST *body);
 AST *new_compound_stmt2(AST *first, AST *second);
 AST *new_ary2ptr_ast(AST *ary);
-AST *new_indir_ast(AST *src);
 AST *ary2ptr(AST *ary);
-AST *new_add_ast(AST *lhs, AST *rhs);
+AST *new_lvar_ast(char *varname);
+AST *new_lvar_decl_ast(Type *type, char *varname);
+AST *new_unary_ast(int kind, AST *that);
+AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
+                  Type *ret_type);
+
+// analyze.c
+void analyze_ast(Vector *asts);
 
 #endif

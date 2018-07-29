@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
     tokens = read_all_tokens(stdin);
     asts = parse_prog(tokens);
-
+    analyze_ast(asts);
     codes = generate_code(asts);
 
     dump_codes(codes, stdout);
