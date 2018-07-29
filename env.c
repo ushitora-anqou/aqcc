@@ -41,8 +41,8 @@ AST *add_var(Env *env, AST *ast)
     assert(ast->kind == AST_LVAR_DECL);
 
     // Create a local variable instance.
-    // All AST_LVAR pointers that have `ast->varname`  will swap the pointer to
-    // this instance when analysis.
+    // All AST_LVAR pointers that have the same varname will be replaced with
+    // the pointer to this instance when analyzing.
     var = new_ast(AST_LVAR);
     var->type = ast->type;
     var->varname = ast->varname;
