@@ -188,3 +188,4 @@ test_aqcc "int main() { int ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
 test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i; return ary[5]; }" 5
 test_aqcc "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
 test_aqcc "int main() { int ary[10]; 3[ary] = 4; return 3[ary]; }" 4
+test_aqcc "int fib(int n){if (n <= 1) return n; int p0; int p1; p0 = fib(n - 1); p1 = fib(n - 2); return p0 + p1; } int main(){return fib(5);}" 5
