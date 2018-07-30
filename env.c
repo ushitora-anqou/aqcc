@@ -66,7 +66,7 @@ AST *lookup_var(Env *env, const char *name)
 
 AST *add_func(Env *env, const char *name, AST *ast)
 {
-    assert(ast->kind == AST_FUNCDEF || ast->kind == AST_FUNCDECL);
+    assert(ast->kind == AST_FUNCDEF || ast->kind == AST_FUNC_DECL);
     add_symbol(env, name, ast);
 
     return ast;
@@ -77,7 +77,7 @@ AST *lookup_func(Env *env, const char *name)
     AST *ast;
 
     ast = lookup_symbol(env, name);
-    if (ast && ast->kind != AST_FUNCDEF && ast->kind != AST_FUNCDECL)
+    if (ast && ast->kind != AST_FUNCDEF && ast->kind != AST_FUNC_DECL)
         error("found but not func", __FILE__, __LINE__);
     return ast;
 }

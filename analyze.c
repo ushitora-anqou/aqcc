@@ -123,7 +123,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                     analyze_ast_detail(env, (AST *)vector_get(ast->args, i)));
         } break;
 
-        case AST_FUNCDECL:
+        case AST_FUNC_DECL:
             add_func(env, ast->fname, ast);
             break;
 

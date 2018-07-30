@@ -689,7 +689,7 @@ AST *parse_function_definition_or_declaration(TokenSeq *tokseq)
     // it's a function declaration.
     if (match_token(tokseq, tSEMICOLON)) {
         pop_token(tokseq);
-        return new_func_ast(AST_FUNCDECL, fname, NULL, params, ret_type);
+        return new_func_ast(AST_FUNC_DECL, fname, NULL, params, ret_type);
     }
 
     func = new_func_ast(AST_FUNCDEF, fname, NULL, params, ret_type);

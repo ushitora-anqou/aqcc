@@ -520,7 +520,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
-        case AST_FUNCDECL:
+        case AST_FUNC_DECL:
         case AST_LVAR_DECL:
         case AST_NOP:
             break;
