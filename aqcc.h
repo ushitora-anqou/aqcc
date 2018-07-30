@@ -59,6 +59,8 @@ enum {
     tANDEQ,
     tHATEQ,
     tBAREQ,
+    tLSHIFTEQ,
+    tRSHIFTEQ,
     tSEMICOLON,
     tCOMMA,
     tLBRACE,

@@ -440,6 +440,14 @@ AST *parse_assignment_expr(TokenSeq *tokseq)
             kind = AST_OR;
             break;
 
+        case tLSHIFTEQ:
+            kind = AST_LSHIFT;
+            break;
+
+        case tRSHIFTEQ:
+            kind = AST_RSHIFT;
+            break;
+
         default:
             RESTORE_TOKSEQ;
             return parse_conditional_expr(tokseq);

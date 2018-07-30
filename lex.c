@@ -115,6 +115,9 @@ Token *read_next_token(FILE *fh)
                 ch = fgetc(fh);
                 switch (ch) {
                     case '<':
+                        ch = fgetc(fh);
+                        if (ch == '=') return new_token(tLSHIFTEQ);
+                        ungetc(ch, fh);
                         return new_token(tLSHIFT);
                     case '=':
                         return new_token(tLTE);
@@ -125,6 +128,9 @@ Token *read_next_token(FILE *fh)
                 ch = fgetc(fh);
                 switch (ch) {
                     case '>':
+                        ch = fgetc(fh);
+                        if (ch == '=') return new_token(tRSHIFTEQ);
+                        ungetc(ch, fh);
                         return new_token(tRSHIFT);
                     case '=':
                         return new_token(tGTE);
