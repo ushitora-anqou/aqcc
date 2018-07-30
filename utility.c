@@ -4,7 +4,7 @@
 #include <string.h>
 #include "aqcc.h"
 
-void error(const char *msg, const char *filename, int lineno)
+_Noreturn void error(const char *msg, const char *filename, int lineno)
 {
     fprintf(stderr, "[ERROR] %s: %s, %d\n", msg, filename, lineno);
     exit(EXIT_FAILURE);
