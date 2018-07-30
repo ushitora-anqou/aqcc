@@ -84,15 +84,28 @@ Token *read_next_token(FILE *fh)
             case '+':
                 ch = fgetc(fh);
                 if (ch == '+') return new_token(tINC);
+                if (ch == '=') return new_token(tPLUSEQ);
                 ungetc(ch, fh);
                 return new_token(tPLUS);
             case '-':
+                ch = fgetc(fh);
+                if (ch == '=') return new_token(tMINUSEQ);
+                ungetc(ch, fh);
                 return new_token(tMINUS);
             case '*':
+                ch = fgetc(fh);
+                if (ch == '=') return new_token(tSTAREQ);
+                ungetc(ch, fh);
                 return new_token(tSTAR);
             case '/':
+                ch = fgetc(fh);
+                if (ch == '=') return new_token(tSLASHEQ);
+                ungetc(ch, fh);
                 return new_token(tSLASH);
             case '%':
+                ch = fgetc(fh);
+                if (ch == '=') return new_token(tPERCENTEQ);
+                ungetc(ch, fh);
                 return new_token(tPERCENT);
             case '(':
                 return new_token(tLPAREN);
@@ -130,13 +143,18 @@ Token *read_next_token(FILE *fh)
             case '&':
                 ch = fgetc(fh);
                 if (ch == '&') return new_token(tANDAND);
+                if (ch == '=') return new_token(tANDEQ);
                 ungetc(ch, fh);
                 return new_token(tAND);
             case '^':
+                ch = fgetc(fh);
+                if (ch == '=') return new_token(tHATEQ);
+                ungetc(ch, fh);
                 return new_token(tHAT);
             case '|':
                 ch = fgetc(fh);
                 if (ch == '|') return new_token(tBARBAR);
+                if (ch == '=') return new_token(tBAREQ);
                 ungetc(ch, fh);
                 return new_token(tBAR);
             case ';':

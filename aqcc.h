@@ -9,17 +9,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+// vector.c
 typedef struct Vector Vector;
-
 Vector *new_vector();
 void vector_push_back(Vector *this, void *item);
 void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
 void *vector_set(Vector *this, size_t i, void *item);
 
+// map.c
 typedef struct KeyValue KeyValue;
 typedef struct Map Map;
-
 Map *new_map();
 size_t map_size(Map *map);
 KeyValue *map_insert(Map *this, const char *key, void *item);
@@ -51,6 +51,14 @@ enum {
     tBARBAR,
     tIDENT,
     tEQ,
+    tPLUSEQ,
+    tMINUSEQ,
+    tSTAREQ,
+    tSLASHEQ,
+    tPERCENTEQ,
+    tANDEQ,
+    tHATEQ,
+    tBAREQ,
     tSEMICOLON,
     tCOMMA,
     tLBRACE,

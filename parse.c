@@ -396,20 +396,58 @@ AST *parse_conditional_expr(TokenSeq *tokseq)
 
 AST *parse_assignment_expr(TokenSeq *tokseq)
 {
-    AST *ast;
+    AST *last, *rast;
+    Token *token;
+    int kind;
 
     SAVE_TOKSEQ;
-    ast = parse_unary_expr(tokseq);
-    if (!match_token(tokseq, tEQ)) {
-        RESTORE_TOKSEQ;
-        return parse_conditional_expr(tokseq);
+    last = parse_unary_expr(tokseq);
+    token = pop_token(tokseq);
+    switch (token->kind) {
+        case tEQ:
+            kind = AST_NOP;
+            break;
+
+        case tPLUSEQ:
+            kind = AST_ADD;
+            break;
+
+        case tMINUSEQ:
+            kind = AST_SUB;
+            break;
+
+        case tSTAREQ:
+            kind = AST_MUL;
+            break;
+
+        case tSLASHEQ:
+            kind = AST_DIV;
+            break;
+
+        case tPERCENTEQ:
+            kind = AST_REM;
+            break;
+
+        case tANDEQ:
+            kind = AST_AND;
+            break;
+
+        case tHATEQ:
+            kind = AST_XOR;
+            break;
+
+        case tBAREQ:
+            kind = AST_OR;
+            break;
+
+        default:
+            RESTORE_TOKSEQ;
+            return parse_conditional_expr(tokseq);
     }
-    pop_token(tokseq);
 
-    if (ast->kind == AST_INDIR)
-        return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(tokseq));
-
-    return new_binop_ast(AST_ASSIGN, ast, parse_assignment_expr(tokseq));
+    rast = parse_assignment_expr(tokseq);
+    if (kind != AST_NOP) rast = new_binop_ast(kind, last, rast);
+    return new_binop_ast(AST_ASSIGN, last, rast);
 }
 
 AST *parse_expr(TokenSeq *tokseq) { return parse_assignment_expr(tokseq); }
