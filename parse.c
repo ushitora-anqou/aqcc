@@ -396,61 +396,33 @@ AST *parse_conditional_expr(TokenSeq *tokseq)
 
 AST *parse_assignment_expr(TokenSeq *tokseq)
 {
+    static int tok2ast[256];  // TODO: number of ast kind;  enough?
     AST *last, *rast;
     Token *token;
     int kind;
 
+    if (tok2ast[0] == 0) {                       // if not initialized
+        memset(tok2ast, 0xff, sizeof(tok2ast));  // fill tok2ast with -1
+        tok2ast[tEQ] = AST_NOP;
+        tok2ast[tPLUSEQ] = AST_ADD;
+        tok2ast[tMINUSEQ] = AST_SUB;
+        tok2ast[tSTAREQ] = AST_MUL;
+        tok2ast[tSLASHEQ] = AST_DIV;
+        tok2ast[tPERCENTEQ] = AST_REM;
+        tok2ast[tANDEQ] = AST_AND;
+        tok2ast[tHATEQ] = AST_XOR;
+        tok2ast[tBAREQ] = AST_OR;
+        tok2ast[tLSHIFTEQ] = AST_LSHIFT;
+        tok2ast[tRSHIFTEQ] = AST_RSHIFT;
+    }
+
     SAVE_TOKSEQ;
     last = parse_unary_expr(tokseq);
     token = pop_token(tokseq);
-    switch (token->kind) {
-        case tEQ:
-            kind = AST_NOP;
-            break;
-
-        case tPLUSEQ:
-            kind = AST_ADD;
-            break;
-
-        case tMINUSEQ:
-            kind = AST_SUB;
-            break;
-
-        case tSTAREQ:
-            kind = AST_MUL;
-            break;
-
-        case tSLASHEQ:
-            kind = AST_DIV;
-            break;
-
-        case tPERCENTEQ:
-            kind = AST_REM;
-            break;
-
-        case tANDEQ:
-            kind = AST_AND;
-            break;
-
-        case tHATEQ:
-            kind = AST_XOR;
-            break;
-
-        case tBAREQ:
-            kind = AST_OR;
-            break;
-
-        case tLSHIFTEQ:
-            kind = AST_LSHIFT;
-            break;
-
-        case tRSHIFTEQ:
-            kind = AST_RSHIFT;
-            break;
-
-        default:
-            RESTORE_TOKSEQ;
-            return parse_conditional_expr(tokseq);
+    kind = tok2ast[token->kind];
+    if (kind == -1) {
+        RESTORE_TOKSEQ;
+        return parse_conditional_expr(tokseq);
     }
 
     rast = parse_assignment_expr(tokseq);
