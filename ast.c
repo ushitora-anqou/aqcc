@@ -85,11 +85,11 @@ AST *ary2ptr(AST *ary)
     return new_ary2ptr_ast(ary);
 }
 
-AST *new_lvar_ast(char *varname)
+AST *new_var_ast(char *varname)
 {
     AST *ast;
 
-    ast = new_ast(AST_LVAR);
+    ast = new_ast(AST_VAR);
     ast->varname = varname;
     return ast;
 }
@@ -108,6 +108,16 @@ AST *new_lvar_decl_ast(Type *type, char *varname)
     AST *ast;
 
     ast = new_ast(AST_LVAR_DECL);
+    ast->type = type;
+    ast->varname = varname;
+    return ast;
+}
+
+AST *new_gvar_decl_ast(Type *type, char *varname)
+{
+    AST *ast;
+
+    ast = new_ast(AST_GVAR_DECL);
     ast->type = type;
     ast->varname = varname;
     return ast;

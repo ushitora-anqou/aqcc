@@ -294,6 +294,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_POSTINC: {
+            // TODO: lvalue
             appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
             if (match_type(ast->lhs, TY_PTR))
                 appcode(env->codes, "add $%d, %d(#rbp)",
@@ -303,6 +304,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_PREINC: {
+            // TODO: lvalue
             if (match_type(ast->lhs, TY_PTR))
                 appcode(env->codes, "add $%d, %d(#rbp)",
                         ast->lhs->type->ptr_of->nbytes, ast->lhs->stack_idx);
@@ -311,7 +313,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
         } break;
 
-        case AST_ADDR: {
+        case AST_ADDR: {  // TODO: lvalue
             appcode(env->codes, "lea %d(#rbp), #rax", ast->lhs->stack_idx);
             appcode(env->codes, "push %rax");
         } break;
@@ -341,7 +343,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_ASSIGN: {
             generate_code_detail(env, ast->rhs);
 
-            if (ast->lhs->kind == AST_INDIR) {
+            if (ast->lhs->kind == AST_INDIR) {  // TODO: generate lvalue code
                 // should be treated as lvalue.
                 generate_code_detail(env, ast->lhs->lhs);
 
@@ -352,12 +354,19 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 break;
             }
 
-            if (ast->lhs->kind == AST_LVAR) {
-                assert(ast->lhs->kind == AST_LVAR);
+            if (ast->lhs->kind == AST_LVAR) {  // TODO: generate lvalue code
                 appcode(env->codes, "pop #rax");
                 appcode(env->codes, "mov %s, %d(#rbp)",
                         reg_name(ast->lhs->type->nbytes, 0),
                         ast->lhs->stack_idx);
+                appcode(env->codes, "push #rax");
+                break;
+            }
+
+            if (ast->lhs->kind == AST_GVAR) {  // TODO: generate lvalue code
+                appcode(env->codes, "pop #rax");
+                appcode(env->codes, "mov %s, %s(#rip)",
+                        reg_name(ast->lhs->type->nbytes, 0), ast->lhs->varname);
                 appcode(env->codes, "push #rax");
                 break;
             }
@@ -367,6 +376,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_LVAR:
             appcode(env->codes, "push %d(#rbp)", ast->stack_idx);
+            break;
+
+        case AST_GVAR:
+            appcode(env->codes, "mov %s(#rip),#eax", ast->varname);
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_FUNCCALL: {
@@ -523,6 +537,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_FUNC_DECL:
         case AST_LVAR_DECL:
         case AST_NOP:
+            break;
+
+        case AST_GVAR_DECL:
+            appcode(env->codes, ".comm %s,%d", ast->varname, ast->type->nbytes);
             break;
 
         case AST_ARY2PTR:

@@ -8,6 +8,20 @@ void swap(AST **lhs, AST **rhs)
     *rhs = tmp;
 }
 
+int is_lvalue(AST *ast)
+{
+    if (ast == NULL) return 0;
+
+    switch (ast->kind) {
+        case AST_LVAR:
+        case AST_GVAR:
+        case AST_INDIR:
+            return 1;
+    }
+
+    return 0;
+}
+
 // Returns an analyzed AST pointer that may be the same one of `ast` or not.
 // Caller should replace `ast` with the returned AST pointer.
 AST *analyze_ast_detail(Env *env, AST *ast)
@@ -83,19 +97,20 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_ASSIGN:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
-            if (ast->lhs->kind != AST_INDIR && ast->lhs->kind != AST_LVAR)
-                // TODO: lvalue
+            if (!is_lvalue(ast->lhs))
                 error("should specify lvalue for assignment op", __FILE__,
                       __LINE__);
             ast->type = ast->lhs->type;
             break;
 
-        case AST_LVAR:
+        case AST_VAR:
             ast = lookup_var(env, ast->varname);
+            assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
             if (!ast) error("not declared variable", __FILE__, __LINE__);
             break;
 
         case AST_LVAR_DECL:
+        case AST_GVAR_DECL:
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             add_var(env, ast);
@@ -187,7 +202,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_PREINC:
         case AST_POSTINC:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            if (ast->lhs->kind != AST_LVAR)  // TODO: lvalue
+            if (!is_lvalue(ast->lhs))
                 error("should specify lvalue for pre increment", __FILE__,
                       __LINE__);
             ast->type = ast->lhs->type;
@@ -195,7 +210,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_ADDR:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            if (ast->lhs->kind != AST_LVAR)  // TODO: lvalue
+            if (!is_lvalue(ast->lhs))
                 error("should specify lvalue for address-of op", __FILE__,
                       __LINE__);
             ast->type = new_pointer_type(ast->lhs->type);

@@ -130,7 +130,7 @@ AST *parse_postfix_expr(TokenSeq *tokseq)
     AST *ast;
 
     if (match_token(tokseq, tIDENT))  // variable
-        ast = new_lvar_ast(pop_token(tokseq)->sval);
+        ast = new_var_ast(pop_token(tokseq)->sval);
     else  // primary expr
         ast = parse_primary_expr(tokseq);
 
@@ -647,7 +647,7 @@ Vector *parse_parameter_list(TokenSeq *tokseq)
     return params;
 }
 
-AST *parse_function_definition_or_declaration(TokenSeq *tokseq)
+AST *parse_external_declaration(TokenSeq *tokseq)
 {
     char *fname;
     Vector *params;
@@ -661,6 +661,12 @@ AST *parse_function_definition_or_declaration(TokenSeq *tokseq)
         ret_type = type_int();
 
     fname = expect_token(tokseq, tIDENT)->sval;
+
+    if (match_token(tokseq, tSEMICOLON)) {  // global variable
+        pop_token(tokseq);
+        return new_gvar_decl_ast(ret_type, fname);
+    }
+
     expect_token(tokseq, tLPAREN);
     params = parse_parameter_list(tokseq);
     expect_token(tokseq, tRPAREN);
@@ -689,7 +695,7 @@ Vector *parse_prog(Vector *tokens)
     while (peek_token(tokseq)->kind != tEOF) {
         AST *ast;
 
-        ast = parse_function_definition_or_declaration(tokseq);
+        ast = parse_external_declaration(tokseq);
         vector_push_back(asts, ast);
     }
 

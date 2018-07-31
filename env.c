@@ -7,7 +7,7 @@ Env *new_env(Env *parent)
     this = safe_malloc(sizeof(Env));
     this->parent = parent;
     this->symbols = new_map();
-    this->scoped_vars = parent == NULL ? NULL : parent->scoped_vars;
+    this->scoped_vars = parent == NULL ? new_vector() : parent->scoped_vars;
     return this;
 }
 
@@ -38,15 +38,16 @@ AST *add_var(Env *env, AST *ast)
 {
     AST *var;
 
-    assert(ast->kind == AST_LVAR_DECL);
+    assert(ast->kind == AST_LVAR_DECL || ast->kind == AST_GVAR_DECL);
+    assert(ast->kind != AST_GVAR_DECL || env->parent == NULL);
 
-    // Create a local variable instance.
-    // All AST_LVAR pointers that have the same varname will be replaced with
-    // the pointer to this instance when analyzing.
-    var = new_ast(AST_LVAR);
+    // Create a local/global variable instance.
+    // All AST_VAR that point the same variable will be replaced with
+    // the pointer to this AST_LVAR/AST_GVAR instance when analyzing.
+    var = new_ast(ast->kind == AST_LVAR_DECL ? AST_LVAR : AST_GVAR);
     var->type = ast->type;
     var->varname = ast->varname;
-    var->stack_idx = -1;  // dummy
+    var->stack_idx = -1;
 
     add_symbol(env, ast->varname, var);
     vector_push_back(env->scoped_vars, var);
@@ -59,7 +60,7 @@ AST *lookup_var(Env *env, const char *name)
     AST *ast;
 
     ast = lookup_symbol(env, name);
-    if (ast && ast->kind != AST_LVAR)
+    if (ast && ast->kind != AST_LVAR && ast->kind != AST_GVAR)
         error("found but not var", __FILE__, __LINE__);
     return ast;
 }

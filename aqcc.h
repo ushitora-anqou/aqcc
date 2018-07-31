@@ -122,8 +122,11 @@ enum {
     AST_LOR,
     AST_COND,
     AST_ASSIGN,
+    AST_VAR,
     AST_LVAR,
+    AST_GVAR,
     AST_LVAR_DECL,
+    AST_GVAR_DECL,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_FUNC_DECL,
@@ -141,7 +144,6 @@ enum {
     AST_ADDR,
     AST_INDIR,
     AST_ARY2PTR,
-    AST_GVAR,
 };
 
 typedef struct Env Env;
@@ -259,8 +261,9 @@ AST *new_while_stmt(AST *cond, AST *body);
 AST *new_compound_stmt2(AST *first, AST *second);
 AST *new_ary2ptr_ast(AST *ary);
 AST *ary2ptr(AST *ary);
-AST *new_lvar_ast(char *varname);
+AST *new_var_ast(char *varname);
 AST *new_lvar_decl_ast(Type *type, char *varname);
+AST *new_gvar_decl_ast(Type *type, char *varname);
 AST *new_unary_ast(int kind, AST *that);
 AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
                   Type *ret_type);
