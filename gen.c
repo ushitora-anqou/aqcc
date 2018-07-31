@@ -393,8 +393,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_GVAR:
-            appcode(env->codes, "mov %s(#rip),#eax", ast->varname);
-            appcode(env->codes, "push #rax");
+            // TODO: should insert push %s(%rip), %eax
+            appcode(env->codes, "push %s(#rip)", ast->varname);
             break;
 
         case AST_FUNCCALL: {
@@ -558,15 +558,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_ARY2PTR:
-            if (ast->ary->kind == AST_LVAR) {
-                appcode(env->codes, "lea %d(#rbp), #rax", ast->ary->stack_idx);
-                appcode(env->codes, "push #rax");
-            }
-            else {
-                // TODO: always indirection?
-                assert(ast->ary->kind == AST_INDIR);
-                generate_code_detail(env, ast->ary->lhs);
-            }
+            // TODO: is it always safe to treat ary2ptr as lvalue generation?
+            generate_code_detail_lvalue(env, ast->ary);
             break;
 
         default:

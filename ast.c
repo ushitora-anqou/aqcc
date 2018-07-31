@@ -103,21 +103,11 @@ AST *new_unary_ast(int kind, AST *that)
     return ast;
 }
 
-AST *new_lvar_decl_ast(Type *type, char *varname)
+AST *new_var_decl_ast(int kind, Type *type, char *varname)
 {
     AST *ast;
 
-    ast = new_ast(AST_LVAR_DECL);
-    ast->type = type;
-    ast->varname = varname;
-    return ast;
-}
-
-AST *new_gvar_decl_ast(Type *type, char *varname)
-{
-    AST *ast;
-
-    ast = new_ast(AST_GVAR_DECL);
+    ast = new_ast(kind);
     ast->type = type;
     ast->varname = varname;
     return ast;

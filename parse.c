@@ -537,7 +537,7 @@ Type *parse_type_name(TokenSeq *tokseq)
     return type;
 }
 
-AST *parse_declaration(TokenSeq *tokseq)
+AST *parse_var_declaration(int kind, TokenSeq *tokseq)
 {
     AST *ast;
 
@@ -547,7 +547,7 @@ AST *parse_declaration(TokenSeq *tokseq)
 
         type = parse_type_name(tokseq);
         varname = expect_token(tokseq, tIDENT)->sval;
-        ast = new_lvar_decl_ast(type, varname);
+        ast = new_var_decl_ast(kind, type, varname);
     }
 
     while (match_token(tokseq, tLBRACKET)) {  // array
@@ -572,7 +572,8 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
     expect_token(tokseq, tLBRACE);
     while (!match_token(tokseq, tRBRACE)) {
         if (match_token(tokseq, kINT))
-            vector_push_back(stmts, parse_declaration(tokseq));
+            vector_push_back(stmts,
+                             parse_var_declaration(AST_LVAR_DECL, tokseq));
         else
             vector_push_back(stmts, parse_stmt(tokseq));
     }
@@ -639,7 +640,7 @@ Vector *parse_parameter_list(TokenSeq *tokseq)
         Type *type = parse_type_name(tokseq);
         char *name = expect_token(tokseq, tIDENT)->sval;
 
-        vector_push_back(params, new_lvar_decl_ast(type, name));
+        vector_push_back(params, new_var_decl_ast(AST_LVAR_DECL, type, name));
         if (match_token(tokseq, tRPAREN)) break;
         expect_token(tokseq, tCOMMA);
     }
@@ -654,6 +655,8 @@ AST *parse_external_declaration(TokenSeq *tokseq)
     AST *func;
     Type *ret_type;
 
+    SAVE_TOKSEQ;
+
     ret_type = NULL;
     if (match_token(tokseq, kINT)) ret_type = parse_type_name(tokseq);
     if (ret_type == NULL)
@@ -662,9 +665,9 @@ AST *parse_external_declaration(TokenSeq *tokseq)
 
     fname = expect_token(tokseq, tIDENT)->sval;
 
-    if (match_token(tokseq, tSEMICOLON)) {  // global variable
-        pop_token(tokseq);
-        return new_gvar_decl_ast(ret_type, fname);
+    if (!match_token(tokseq, tLPAREN)) {  // global variable
+        RESTORE_TOKSEQ;
+        return parse_var_declaration(AST_GVAR_DECL, tokseq);
     }
 
     expect_token(tokseq, tLPAREN);

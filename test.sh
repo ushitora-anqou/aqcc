@@ -202,3 +202,7 @@ test_aqcc "int main() { int a; a = 2; a <<= 2; return a; }" 8
 test_aqcc "int main() { int a; a = 4; a >>= 2; return a; }" 1
 test_aqcc "int a; int main() { return a; }" 0
 test_aqcc "int a; int main() { a = 4; return a; }" 4
+test_aqcc "int a; int *p; int main() { p = &a; return a; }" 0
+test_aqcc "int a; int *p; int main() { p = &a; *p = 3; return a; }" 3
+test_aqcc "int a[20]; int main() { a[5] = 5; return a[5]; }" 5
+test_aqcc "int a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
