@@ -63,4 +63,16 @@ const char *reg_name(int byte, int i)
     }
 }
 
+char byte2suffix(int byte)
+{
+    switch (byte) {
+        case 8:
+            return 'q';
+        case 4:
+            return 'l';
+        default:
+            assert(0);
+    }
+}
+
 int max(int a, int b) { return a > b ? a : b; }

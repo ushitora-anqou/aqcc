@@ -5,6 +5,8 @@ typedef struct {
     Vector *codes;
 } CodeEnv;
 
+void generate_code_detail(CodeEnv *env, AST *ast);
+
 CodeEnv *new_code_env()
 {
     CodeEnv *this;
@@ -57,6 +59,28 @@ void dump_codes(Vector *codes, FILE *fh)
 
     for (i = 0; i < vector_size(codes); i++)
         fprintf(fh, "%s\n", (const char *)vector_get(codes, i));
+}
+
+void generate_code_detail_lvalue(CodeEnv *env, AST *ast)
+{
+    switch (ast->kind) {
+        case AST_LVAR:
+            appcode(env->codes, "lea %d(#rbp), #rax", ast->stack_idx);
+            appcode(env->codes, "push #rax");
+            break;
+
+        case AST_GVAR:
+            appcode(env->codes, "lea %s(#rip), #rax", ast->varname);
+            appcode(env->codes, "push #rax");
+            break;
+
+        case AST_INDIR:
+            generate_code_detail(env, ast->lhs);
+            break;
+
+        default:
+            assert(0);
+    }
 }
 
 void generate_code_detail(CodeEnv *env, AST *ast)
@@ -294,29 +318,42 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_POSTINC: {
-            // TODO: lvalue
-            appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
+            char suf;
+
+            suf = byte2suffix(ast->lhs->type->nbytes);
+
+            generate_code_detail_lvalue(env, ast->lhs);
+            appcode(env->codes, "pop %rax");
+            appcode(env->codes, "push (#rax)");
+
             if (match_type(ast->lhs, TY_PTR))
-                appcode(env->codes, "add $%d, %d(#rbp)",
-                        ast->lhs->type->ptr_of->nbytes, ast->lhs->stack_idx);
+                appcode(env->codes, "add%c $%d, (#rax)", suf,
+                        ast->lhs->type->ptr_of->nbytes);
             else
-                appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
+                appcode(env->codes, "inc%c (#rax)", suf);
+
         } break;
 
         case AST_PREINC: {
-            // TODO: lvalue
+            char suf;
+
+            suf = byte2suffix(ast->lhs->type->nbytes);
+
+            generate_code_detail_lvalue(env, ast->lhs);
+            appcode(env->codes, "pop %rax");
+
             if (match_type(ast->lhs, TY_PTR))
-                appcode(env->codes, "add $%d, %d(#rbp)",
-                        ast->lhs->type->ptr_of->nbytes, ast->lhs->stack_idx);
+                appcode(env->codes, "add%c $%d, (#rax)", suf,
+                        ast->lhs->type->ptr_of->nbytes);
             else
-                appcode(env->codes, "incl %d(#rbp)", ast->lhs->stack_idx);
-            appcode(env->codes, "push %d(#rbp)", ast->lhs->stack_idx);
+                appcode(env->codes, "inc%c (#rax)", suf);
+
+            appcode(env->codes, "push (#rax)");
         } break;
 
-        case AST_ADDR: {  // TODO: lvalue
-            appcode(env->codes, "lea %d(#rbp), #rax", ast->lhs->stack_idx);
-            appcode(env->codes, "push %rax");
-        } break;
+        case AST_ADDR:
+            generate_code_detail_lvalue(env, ast->lhs);
+            break;
 
         case AST_INDIR: {
             generate_code_detail(env, ast->lhs);
@@ -340,39 +377,16 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, ".L%d:", exit_label);
         } break;
 
-        case AST_ASSIGN: {
+        case AST_ASSIGN:
             generate_code_detail(env, ast->rhs);
+            generate_code_detail_lvalue(env, ast->lhs);
 
-            if (ast->lhs->kind == AST_INDIR) {  // TODO: generate lvalue code
-                // should be treated as lvalue.
-                generate_code_detail(env, ast->lhs->lhs);
-
-                appcode(env->codes, "pop #rdi");
-                appcode(env->codes, "pop #rax");
-                appcode(env->codes, "mov #rax, (#rdi)");
-                appcode(env->codes, "push #rax");
-                break;
-            }
-
-            if (ast->lhs->kind == AST_LVAR) {  // TODO: generate lvalue code
-                appcode(env->codes, "pop #rax");
-                appcode(env->codes, "mov %s, %d(#rbp)",
-                        reg_name(ast->lhs->type->nbytes, 0),
-                        ast->lhs->stack_idx);
-                appcode(env->codes, "push #rax");
-                break;
-            }
-
-            if (ast->lhs->kind == AST_GVAR) {  // TODO: generate lvalue code
-                appcode(env->codes, "pop #rax");
-                appcode(env->codes, "mov %s, %s(#rip)",
-                        reg_name(ast->lhs->type->nbytes, 0), ast->lhs->varname);
-                appcode(env->codes, "push #rax");
-                break;
-            }
-
-            assert(0);
-        } break;
+            appcode(env->codes, "pop #rdi");
+            appcode(env->codes, "pop #rax");
+            appcode(env->codes, "mov %s, (#rdi)",
+                    reg_name(ast->lhs->type->nbytes, 0));
+            appcode(env->codes, "push #rax");
+            break;
 
         case AST_LVAR:
             appcode(env->codes, "push %d(#rbp)", ast->stack_idx);

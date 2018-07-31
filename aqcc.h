@@ -229,6 +229,7 @@ char *new_str(const char *src);
 int *new_int(int src);
 const char *reg_name(int byte, int i);
 int max(int a, int b);
+char byte2suffix(int byte);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);
