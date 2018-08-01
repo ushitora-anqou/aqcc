@@ -574,7 +574,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_GVAR_DECL:
-            appcode(env->codes, ".comm %s,%d", ast->varname, ast->type->nbytes);
+            appcode(env->codes, ".data");
+            appcode(env->codes, "%s:", ast->varname);
+            appcode(env->codes, ".zero %d", ast->type->nbytes);
+            appcode(env->codes, ".text");
             break;
 
         case AST_ARY2PTR:
