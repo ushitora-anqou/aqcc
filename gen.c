@@ -389,12 +389,32 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_LVAR:
-            appcode(env->codes, "push %d(#rbp)", ast->stack_idx);
+            switch (ast->type->nbytes) {
+                case 1:
+                    appcode(env->codes, "movsbl %d(#rbp), #eax",
+                            ast->stack_idx);
+                    break;
+                case 4:
+                case 8:
+                    appcode(env->codes, "mov %d(#rbp), %s", ast->stack_idx,
+                            reg_name(ast->type->nbytes, 0));
+                    break;
+            }
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_GVAR:
-            // TODO: should insert push %s(%rip), %eax
-            appcode(env->codes, "push %s(#rip)", ast->varname);
+            switch (ast->type->nbytes) {
+                case 1:
+                    appcode(env->codes, "movsbl %s(#rip), #eax", ast->varname);
+                    break;
+                case 4:
+                case 8:
+                    appcode(env->codes, "mov %s(#rip), %s", ast->varname,
+                            reg_name(ast->type->nbytes, 0));
+                    break;
+            }
+            appcode(env->codes, "push #rax");
             break;
 
         case AST_FUNCCALL: {
@@ -560,6 +580,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_ARY2PTR:
             // TODO: is it always safe to treat ary2ptr as lvalue generation?
             generate_code_detail_lvalue(env, ast->ary);
+            break;
+
+        case AST_CHAR2INT:
+            generate_code_detail(env, ast->lhs);
             break;
 
         default:

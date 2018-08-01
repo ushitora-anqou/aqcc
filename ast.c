@@ -85,6 +85,17 @@ AST *ary2ptr(AST *ary)
     return new_ary2ptr_ast(ary);
 }
 
+AST *char2int(AST *ch)
+{
+    AST *ast;
+
+    if (!match_type(ch, TY_CHAR)) return ch;
+    ast = new_ast(AST_CHAR2INT);
+    ast->lhs = ch;
+    ast->type = type_int();
+    return ast;
+}
+
 AST *new_var_ast(char *varname)
 {
     AST *ast;

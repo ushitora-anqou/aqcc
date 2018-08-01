@@ -51,6 +51,14 @@ int match_token2(TokenSeq *seq, int kind0, int kind1)
     return 1;
 }
 
+int match_type_specifier(TokenSeq *seq)
+{
+    int kind;
+
+    kind = peek_token(seq)->kind;
+    return kind == kINT || kind == kCHAR;
+}
+
 TokenSeqSaved *new_token_seq_saved(TokenSeq *tokseq)
 {
     TokenSeqSaved *this;
@@ -522,12 +530,25 @@ AST *parse_iteration_stmt(TokenSeq *tokseq)
     return ast;
 }
 
+Type *parse_type_specifier(TokenSeq *tokseq)
+{
+    Token *token;
+
+    token = pop_token(tokseq);
+    switch (token->kind) {
+        case kINT:
+            return type_int();
+        case kCHAR:
+            return type_char();
+    }
+    error("unexpected token: expect type-specifier", __FILE__, __LINE__);
+}
+
 Type *parse_type_name(TokenSeq *tokseq)
 {
     Type *type;
 
-    expect_token(tokseq, kINT);
-    type = type_int();
+    type = parse_type_specifier(tokseq);
 
     while (match_token(tokseq, tSTAR)) {
         pop_token(tokseq);
@@ -571,7 +592,7 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
 
     expect_token(tokseq, tLBRACE);
     while (!match_token(tokseq, tRBRACE)) {
-        if (match_token(tokseq, kINT))
+        if (match_type_specifier(tokseq))
             vector_push_back(stmts,
                              parse_var_declaration(AST_LVAR_DECL, tokseq));
         else
@@ -658,7 +679,7 @@ AST *parse_external_declaration(TokenSeq *tokseq)
     SAVE_TOKSEQ;
 
     ret_type = NULL;
-    if (match_token(tokseq, kINT)) ret_type = parse_type_name(tokseq);
+    if (match_type_specifier(tokseq)) ret_type = parse_type_name(tokseq);
     if (ret_type == NULL)
         // warn("returning type is deduced to int", __FILE__, __LINE__);
         ret_type = type_int();

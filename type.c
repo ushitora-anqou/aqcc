@@ -20,6 +20,16 @@ Type *type_int()
     return type;
 }
 
+Type *type_char()
+{
+    static Type *type = NULL;
+    if (type == NULL) {
+        type = new_type(TY_CHAR, 1);
+    }
+
+    return type;
+}
+
 Type *new_pointer_type(Type *src)
 {
     Type *this;

@@ -55,6 +55,7 @@ Token *read_next_ident_token(FILE *fh)
     if (strcmp(buf, "continue") == 0) return new_token(kCONTINUE);
     if (strcmp(buf, "for") == 0) return new_token(kFOR);
     if (strcmp(buf, "int") == 0) return new_token(kINT);
+    if (strcmp(buf, "char") == 0) return new_token(kCHAR);
 
     Token *token = new_token(tIDENT);
     token->sval = new_str(buf);

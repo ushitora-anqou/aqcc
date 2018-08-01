@@ -79,6 +79,7 @@ enum {
     kCONTINUE,
     kFOR,
     kINT,
+    kCHAR,
 };
 
 typedef struct {
@@ -144,6 +145,7 @@ enum {
     AST_ADDR,
     AST_INDIR,
     AST_ARY2PTR,
+    AST_CHAR2INT,
 };
 
 typedef struct Env Env;
@@ -155,6 +157,7 @@ struct Env {
 
 enum {
     TY_INT,
+    TY_CHAR,
     TY_PTR,
     TY_ARY,
 };
@@ -221,7 +224,7 @@ struct AST {
 
 // utility.c
 // error("msg", __FILE__, __LINE__);
-void error(const char *msg, const char *filename, int lineno);
+_Noreturn void error(const char *msg, const char *filename, int lineno);
 void warn(const char *msg, const char *filename, int lineno);
 void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);
@@ -243,6 +246,7 @@ void dump_codes(Vector *codes, FILE *fh);
 
 // type.c
 Type *type_int();
+Type *type_char();
 Type *new_pointer_type(Type *src);
 Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
@@ -262,6 +266,7 @@ AST *new_while_stmt(AST *cond, AST *body);
 AST *new_compound_stmt2(AST *first, AST *second);
 AST *new_ary2ptr_ast(AST *ary);
 AST *ary2ptr(AST *ary);
+AST *char2int(AST *ch);
 AST *new_var_ast(char *varname);
 AST *new_var_decl_ast(int kind, Type *type, char *varname);
 AST *new_unary_ast(int kind, AST *that);

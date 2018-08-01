@@ -47,13 +47,19 @@ int *new_int(int src)
 
 const char *reg_name(int byte, int i)
 {
-    const char *rreg[] = {"%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    const char *lreg[] = {"%al", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+    const char *xreg[] = {"%ax", "%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
     const char *ereg[] = {"%eax", "%edi", "%esi", "%edx",
                           "%ecx", "%r8d", "%r9d"};
+    const char *rreg[] = {"%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 
     assert(0 <= i && i <= 6);
 
     switch (byte) {
+        case 1:
+            return lreg[i];
+        case 2:
+            return xreg[i];
         case 4:
             return ereg[i];
         case 8:

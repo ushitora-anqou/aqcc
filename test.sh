@@ -206,3 +206,41 @@ test_aqcc "int a; int *p; int main() { p = &a; return a; }" 0
 test_aqcc "int a; int *p; int main() { p = &a; *p = 3; return a; }" 3
 test_aqcc "int a[20]; int main() { a[5] = 5; return a[5]; }" 5
 test_aqcc "int a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
+test_aqcc "int main() { char c; c = 1; return c; }" 1
+test_aqcc "int main(){char x;return x=1;}" 1
+test_aqcc "int main(){char xy;return xy = 100+100;}" 200
+test_aqcc "int main(){char a_b;return a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;}" 1
+test_aqcc "int main(){char _;return _ = (2 - 1) << 1;}" 2
+test_aqcc "int main(){char x;char y;x = 1; return y = 2;}" 2
+test_aqcc "int main(){char x;char y;char z;x = 1; y = 2; return z = x + y;}" 3
+test_aqcc "int main(){char a0;char a1;char a2;char a3;a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
+test_aqcc "int main(){char x;char y;char z;x = y = 1; return z = x = x + y;}" 2
+test_aqcc "char iadd(char a, char b) { return a + b; }main(){return iadd(1, 2);}" 3
+test_aqcc "char iadd(char a, char b) { return a + b; }main(){return iadd(1, 2) * iadd(2, 3);}" 15
+test_aqcc "char eighth(char a, char b, char c, char d, char e, char f, char g, char h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 8);}" 8
+test_aqcc "int eighth(char a, char b, char c, char d, char e, char f, char g, int h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 255);}" 255
+test_aqcc "int main() { char a; a = 2; a += 5; return a; }" 7
+test_aqcc "int main() { char a; a = 8; a -= 5; return a; }" 3
+test_aqcc "int main() { char a; a = 2; a *= 5; return a; }" 10
+test_aqcc "int main() { char a; a = 10; a /= 5; return a; }" 2
+test_aqcc "int main() { char a; a = 12; a &= 5; return a; }" 4
+test_aqcc "int main() { char a; a = 12; a %= 5; return a; }" 2
+test_aqcc "int main() { char a; a = 2; a |= 5; return a; }" 7
+test_aqcc "int main() { char a; a = 2; a ^= 5; return a; }" 7
+test_aqcc "int main() { char a; a = 2; a <<= 2; return a; }" 8
+test_aqcc "int main() { char a; a = 4; a >>= 2; return a; }" 1
+test_aqcc "int main() { char ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
+test_aqcc "int main() { char ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
+test_aqcc "int main() { char ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
+test_aqcc "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
+test_aqcc "int main() { char ary[10]; ary[5] = 10; return ary[5]; }" 10
+test_aqcc "int main() { char ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
+test_aqcc "int main() { char ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i; return ary[5]; }" 5
+test_aqcc "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
+test_aqcc "int main() { char ary[10]; 3[ary] = 4; return 3[ary]; }" 4
+test_aqcc "char a; int main() { return a; }" 0
+test_aqcc "char a; int main() { a = 4; return a; }" 4
+test_aqcc "char a; int *p; int main() { p = &a; return a; }" 0
+test_aqcc "char a; int *p; int main() { p = &a; *p = 3; return a; }" 3
+test_aqcc "char a[20]; int main() { a[5] = 5; return a[5]; }" 5
+test_aqcc "char a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10

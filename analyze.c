@@ -34,8 +34,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_ADD:
-            ast->lhs = ary2ptr(analyze_ast_detail(env, ast->lhs));
-            ast->rhs = ary2ptr(analyze_ast_detail(env, ast->rhs));
+            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
+            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
 
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 error("ptr + ptr is not allowed", __FILE__, __LINE__);
@@ -47,8 +47,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_SUB:
-            ast->lhs = ary2ptr(analyze_ast_detail(env, ast->lhs));
-            ast->rhs = ary2ptr(analyze_ast_detail(env, ast->rhs));
+            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
+            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
 
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR))
                 error("int - ptr is not allowed", __FILE__, __LINE__);
@@ -77,20 +77,20 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LOR:
             // TODO: ensure both lhs and rhs have arithmetic types or pointer
             // types if needed.
-            ast->lhs = analyze_ast_detail(env, ast->lhs);
-            ast->rhs = analyze_ast_detail(env, ast->rhs);
+            ast->lhs = char2int(analyze_ast_detail(env, ast->lhs));
+            ast->rhs = char2int(analyze_ast_detail(env, ast->rhs));
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
             break;
 
         case AST_UNARY_MINUS:
-            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->lhs = char2int(analyze_ast_detail(env, ast->lhs));
             ast->type = ast->lhs->type;
             break;
 
         case AST_COND:
-            ast->cond = analyze_ast_detail(env, ast->cond);
-            ast->then = analyze_ast_detail(env, ast->then);
-            ast->els = analyze_ast_detail(env, ast->els);
+            ast->cond = char2int(analyze_ast_detail(env, ast->cond));
+            ast->then = char2int(analyze_ast_detail(env, ast->then));
+            ast->els = char2int(analyze_ast_detail(env, ast->els));
             ast->type = ast->then->type;  // TODO: consider both then and els
             break;
 
@@ -133,9 +133,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
             // analyze args
             for (i = 0; i < vector_size(ast->args); i++)
-                vector_set(
-                    ast->args, i,
-                    analyze_ast_detail(env, (AST *)vector_get(ast->args, i)));
+                vector_set(ast->args, i,
+                           char2int(analyze_ast_detail(
+                               env, (AST *)vector_get(ast->args, i))));
         } break;
 
         case AST_FUNC_DECL:
