@@ -9,8 +9,9 @@ Token *new_token(int kind)
 
 Token *read_next_int_token(FILE *fh)
 {
-    char buf[256];  // TODO: enough length?
-    int bufidx = 0;
+    int acc;
+
+    acc = 0;
 
     while (1) {
         int ch = fgetc(fh);
@@ -20,12 +21,11 @@ Token *read_next_int_token(FILE *fh)
             break;
         }
 
-        buf[bufidx++] = ch;
+        acc = 10 * acc + ch - '0';
     }
 
     Token *token = new_token(tINT);
-    buf[bufidx++] = '\0';
-    token->ival = atoi(buf);
+    token->ival = acc;
     return token;
 }
 
