@@ -244,3 +244,30 @@ test_aqcc "char a; int *p; int main() { p = &a; return a; }" 0
 test_aqcc "char a; int *p; int main() { p = &a; *p = 3; return a; }" 3
 test_aqcc "char a[20]; int main() { a[5] = 5; return a[5]; }" 5
 test_aqcc "char a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
+test_aqcc "int main() { return sizeof(int); }" 4
+test_aqcc "int main() { return sizeof(char); }" 1
+test_aqcc "int main() { return sizeof(int*); }" 8
+test_aqcc "int main() { return sizeof(char*); }" 8
+test_aqcc "int main() { return sizeof(int***); }" 8
+test_aqcc "int main() { return sizeof(char**); }" 8
+test_aqcc "int main() { int a; return sizeof(a); }" 4
+test_aqcc "int main() { char a; return sizeof(a); }" 1
+test_aqcc "int main() { int *a; return sizeof(a); }" 8
+test_aqcc "int main() { char *a; return sizeof(a); }" 8
+test_aqcc "int main() { int a[20]; return sizeof(a); }" 80
+test_aqcc "int main() { int a[5][6]; return sizeof(a); }" 120
+test_aqcc "int main() { int a[5][3][2]; return sizeof(a); }" 120
+test_aqcc "int main() { char a[20]; return sizeof(a); }" 20
+test_aqcc "int main() { char a[5][6]; return sizeof(a); }" 30
+test_aqcc "int main() { char a[5][6][4]; return sizeof(a); }" 120
+test_aqcc "int main() { char a[2][4][3][5]; return sizeof(a); }" 120
+test_aqcc "int a; int main() { return sizeof(a); }" 4
+test_aqcc "char a; int main() { return sizeof(a); }" 1
+test_aqcc "int *a; int main() { return sizeof(a); }" 8
+test_aqcc "char *a; int main() { return sizeof(a); }" 8
+test_aqcc "int a[20]; int main() { return sizeof(a); }" 80
+test_aqcc "int a[5][6]; int main() { return sizeof(a); }" 120
+test_aqcc "int a[5][3][2]; int main() { return sizeof(a); }" 120
+test_aqcc "char a[20]; int main() { return sizeof(a); }" 20
+test_aqcc "char a[5][6]; int main() { return sizeof(a); }" 30
+test_aqcc "char a[5][6][4]; int main() { return sizeof(a); }" 120

@@ -80,6 +80,7 @@ enum {
     kFOR,
     kINT,
     kCHAR,
+    kSIZEOF,
 };
 
 typedef struct {
@@ -146,6 +147,7 @@ enum {
     AST_INDIR,
     AST_ARY2PTR,
     AST_CHAR2INT,
+    AST_SIZEOF,
 };
 
 typedef struct Env Env;

@@ -3,6 +3,7 @@
 AST *parse_expr(TokenSeq *tokseq);
 AST *parse_assignment_expr(TokenSeq *tokseq);
 AST *parse_stmt(TokenSeq *tokseq);
+Type *parse_type_name(TokenSeq *tokseq);
 
 TokenSeq *new_token_seq(Vector *tokens)
 {
@@ -188,6 +189,24 @@ AST *parse_unary_expr(TokenSeq *tokseq)
         case tSTAR:
             pop_token(tokseq);
             return new_unary_ast(AST_INDIR, parse_unary_expr(tokseq));
+
+        case kSIZEOF: {
+            AST *ast;
+            ast = new_ast(AST_SIZEOF);
+
+            pop_token(tokseq);
+            expect_token(tokseq, tLPAREN);
+            if (match_type_specifier(tokseq)) {
+                ast->lhs = new_ast(AST_NOP);
+                ast->lhs->type = parse_type_name(tokseq);
+            }
+            else {
+                ast->lhs = parse_unary_expr(tokseq);
+            }
+            expect_token(tokseq, tRPAREN);
+
+            return ast;
+        } break;
     }
 
     return parse_postfix_expr(tokseq);

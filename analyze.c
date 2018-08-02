@@ -229,6 +229,11 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_GVAR:
             break;
+
+        case AST_SIZEOF:
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->type = type_int();  // TODO: size_t
+            break;
     }
 
     return ast;

@@ -168,6 +168,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
+        case AST_SIZEOF:
+            appcode(env->codes, "push $%d", ast->lhs->type->nbytes);
+            break;
+
         case AST_LSHIFT:
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);
