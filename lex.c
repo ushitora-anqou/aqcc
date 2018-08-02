@@ -31,10 +31,13 @@ Token *read_next_int_token(FILE *fh)
 
 Token *read_next_ident_token(FILE *fh)
 {
-    char buf[256];  // TODO: enough length?
-    int bufidx = 0;
+    StringBuilder *sb;
+    char *str;
 
-    buf[bufidx++] = fgetc(fh);
+    sb = new_string_builder();
+
+    string_builder_append(sb, fgetc(fh));
+
     while (1) {
         int ch = fgetc(fh);
 
@@ -43,23 +46,24 @@ Token *read_next_ident_token(FILE *fh)
             break;
         }
 
-        buf[bufidx++] = ch;
+        string_builder_append(sb, ch);
     }
-    buf[bufidx++] = '\0';
 
-    if (strcmp(buf, "return") == 0) return new_token(kRETURN);
-    if (strcmp(buf, "if") == 0) return new_token(kIF);
-    if (strcmp(buf, "else") == 0) return new_token(kELSE);
-    if (strcmp(buf, "while") == 0) return new_token(kWHILE);
-    if (strcmp(buf, "break") == 0) return new_token(kBREAK);
-    if (strcmp(buf, "continue") == 0) return new_token(kCONTINUE);
-    if (strcmp(buf, "for") == 0) return new_token(kFOR);
-    if (strcmp(buf, "int") == 0) return new_token(kINT);
-    if (strcmp(buf, "char") == 0) return new_token(kCHAR);
-    if (strcmp(buf, "sizeof") == 0) return new_token(kSIZEOF);
+    str = string_builder_get(sb);
+
+    if (strcmp(str, "return") == 0) return new_token(kRETURN);
+    if (strcmp(str, "if") == 0) return new_token(kIF);
+    if (strcmp(str, "else") == 0) return new_token(kELSE);
+    if (strcmp(str, "while") == 0) return new_token(kWHILE);
+    if (strcmp(str, "break") == 0) return new_token(kBREAK);
+    if (strcmp(str, "continue") == 0) return new_token(kCONTINUE);
+    if (strcmp(str, "for") == 0) return new_token(kFOR);
+    if (strcmp(str, "int") == 0) return new_token(kINT);
+    if (strcmp(str, "char") == 0) return new_token(kCHAR);
+    if (strcmp(str, "sizeof") == 0) return new_token(kSIZEOF);
 
     Token *token = new_token(tIDENT);
-    token->sval = new_str(buf);
+    token->sval = str;
     return token;
 }
 
