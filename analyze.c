@@ -33,6 +33,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = type_int();
             break;
 
+        case AST_STRING_LITERAL:
+            ast->type = new_pointer_type(type_char());
+            break;
+
         case AST_ADD:
             ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
             ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));

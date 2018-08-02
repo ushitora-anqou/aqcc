@@ -3,6 +3,7 @@
 typedef struct {
     int nlabel, loop_continue_label, loop_break_label;
     Vector *codes;
+    Vector *string_literals, *string_literals_labels;
 } CodeEnv;
 
 void generate_code_detail(CodeEnv *env, AST *ast);
@@ -15,6 +16,8 @@ CodeEnv *new_code_env()
     this->nlabel = 0;
     this->loop_continue_label = this->loop_break_label = -1;
     this->codes = new_vector();
+    this->string_literals = new_vector();
+    this->string_literals_labels = new_vector();
     return this;
 }
 
@@ -428,6 +431,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 generate_code_detail(env, (AST *)(vector_get(ast->args, i)));
                 if (i < 6) appcode(env->codes, "pop %s", reg_name(8, i + 1));
             }
+            appcode(env->codes, "mov $0, #eax");
             appcode(env->codes, "call %s", ast->fname);
             appcode(env->codes, "push #rax");
         } break;
@@ -572,6 +576,19 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
+        case AST_STRING_LITERAL: {
+            int label;
+
+            label = env->nlabel++;
+
+            vector_push_back(env->string_literals, ast->sval);
+            vector_push_back(env->string_literals_labels, new_int(label));
+
+            // appcode(env->codes, "push $.L%d", label);
+            appcode(env->codes, "lea .L%d(#rip), #rax", label);
+            appcode(env->codes, "push #rax");
+        } break;
+
         case AST_FUNC_DECL:
         case AST_LVAR_DECL:
         case AST_NOP:
@@ -606,9 +623,26 @@ Vector *generate_code(Vector *asts)
     env = new_code_env();
 
     appcode(env->codes, ".global main");
+    appcode(env->codes, ".text");
 
     for (i = 0; i < vector_size(asts); i++)
         generate_code_detail(env, (AST *)vector_get(asts, i));
+
+    assert(vector_size(env->string_literals) ==
+           vector_size(env->string_literals_labels));
+
+    appcode(env->codes, ".data");
+
+    for (i = 0; i < vector_size(env->string_literals); i++) {
+        char *str;
+        int label;
+
+        str = (char *)vector_get(env->string_literals, i);
+        label = *(int *)vector_get(env->string_literals_labels, i);
+
+        appcode(env->codes, ".L%d:", label);
+        appcode(env->codes, ".string \"%s\"", str);
+    }
 
     return env->codes;
 }

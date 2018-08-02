@@ -63,6 +63,37 @@ Token *read_next_ident_token(FILE *fh)
     return token;
 }
 
+// assume that the first doublequote has already read.
+Token *read_next_string_literal_token(FILE *fh)
+{
+    char *buf;
+    int bufidx, size;
+    Token *token;
+
+    size = 1;
+    buf = safe_malloc(sizeof(char) * size);
+    bufidx = 0;
+    while (1) {
+        char ch;
+
+        if (bufidx == size) {
+            size *= 2;
+            buf = safe_realloc(buf, sizeof(char) * size);
+        }
+
+        ch = fgetc(fh);
+        if (ch == '"') break;
+
+        buf[bufidx++] = ch;
+    }
+
+    buf[bufidx++] = '\0';
+
+    token = new_token(tSTRING_LITERAL);
+    token->sval = buf;
+    return token;
+}
+
 Token *read_next_token(FILE *fh)
 {
     while (1) {
@@ -83,6 +114,9 @@ Token *read_next_token(FILE *fh)
         }
 
         switch (ch) {
+            case '"':
+                return read_next_string_literal_token(fh);
+
             case '+':
                 ch = fgetc(fh);
                 if (ch == '+') return new_token(tINC);

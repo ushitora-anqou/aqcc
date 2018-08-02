@@ -94,6 +94,11 @@ AST *parse_primary_expr(TokenSeq *tokseq)
             expect_token(tokseq, tRPAREN);
             break;
 
+        case tSTRING_LITERAL:
+            ast = new_ast(AST_STRING_LITERAL);
+            ast->sval = token->sval;
+            break;
+
         case tIDENT:
             // ALL tIDENT should be handled in parse_postfix_expr()
             assert(0);

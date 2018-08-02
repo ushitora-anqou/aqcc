@@ -9,7 +9,7 @@ function test_aqcc() {
     echo "$1" > _test.in
     cat _test.in | ./aqcc > _test.s
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./aqcc > _test.s"
-    gcc _test.s -o _test.o testutil.o
+    gcc _test.s -o _test.o testutil.o -no-pie
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": gcc _test.s -o _test.o"
     ./_test.o
     res=$?
@@ -271,3 +271,6 @@ test_aqcc "int a[5][3][2]; int main() { return sizeof(a); }" 120
 test_aqcc "char a[20]; int main() { return sizeof(a); }" 20
 test_aqcc "char a[5][6]; int main() { return sizeof(a); }" 30
 test_aqcc "char a[5][6][4]; int main() { return sizeof(a); }" 120
+test_aqcc 'int main() { char *str; str = "abc"; return str[0]; }' 97
+test_aqcc 'int main() { return printf("%d", 0); }' 1
+test_aqcc 'char *test() { char *str; str = "abc"; return str; } int main() { char *str; str = test(); return str[1]; }' 98

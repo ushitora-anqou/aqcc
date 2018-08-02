@@ -29,6 +29,7 @@ void *kv_value(KeyValue *kv);
 
 enum {
     tINT,
+    tSTRING_LITERAL,
     tPLUS,
     tMINUS,
     tSTAR,
@@ -108,6 +109,7 @@ enum {
     AST_DIV,
     AST_REM,
     AST_INT,
+    AST_STRING_LITERAL,
     AST_UNARY_MINUS,
     AST_LSHIFT,
     AST_RSHIFT,
@@ -184,6 +186,7 @@ struct AST {
 
     union {
         int ival;
+        char *sval;
 
         struct {
             char *varname;
