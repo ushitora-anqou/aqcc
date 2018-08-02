@@ -66,31 +66,33 @@ Token *read_next_ident_token(FILE *fh)
 // assume that the first doublequote has been already read.
 Token *read_next_string_literal_token(FILE *fh)
 {
-    char *buf;
-    int bufidx, size;
+    Vector *buf;
     Token *token;
+    char *str;
+    int i, size;
 
-    size = 1;
-    buf = safe_malloc(sizeof(char) * size);
-    bufidx = 0;
+    buf = new_vector();
+
     while (1) {
         int ch;
 
-        if (bufidx == size) {
-            size *= 2;
-            buf = safe_realloc(buf, sizeof(char) * size);
-        }
-
         ch = fgetc(fh);
         if (ch == '"') break;
+        if (ch == EOF) error("unexpected EOF", __FILE__, __LINE__);
+        if (ch == '\n')
+            error("unexpected new-line character", __FILE__, __LINE__);
 
-        buf[bufidx++] = ch;
+        vector_push_back(buf, new_char(ch));
     }
 
-    buf[bufidx++] = '\0';
+    // copy buf to str as null-terminated string.
+    size = vector_size(buf);
+    str = safe_malloc(size + 1);
+    for (i = 0; i < size; i++) str[i] = *(char *)vector_get(buf, i);
+    str[size] = '\0';
 
     token = new_token(tSTRING_LITERAL);
-    token->sval = buf;
+    token->sval = str;
     return token;
 }
 
