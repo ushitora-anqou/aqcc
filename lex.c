@@ -66,12 +66,10 @@ Token *read_next_ident_token(FILE *fh)
 // assume that the first doublequote has been already read.
 Token *read_next_string_literal_token(FILE *fh)
 {
-    Vector *buf;
+    StringBuilder *sb;
     Token *token;
-    char *str;
-    int i, size;
 
-    buf = new_vector();
+    sb = new_string_builder();
 
     while (1) {
         int ch;
@@ -82,17 +80,11 @@ Token *read_next_string_literal_token(FILE *fh)
         if (ch == '\n')
             error("unexpected new-line character", __FILE__, __LINE__);
 
-        vector_push_back(buf, new_char(ch));
+        string_builder_append(sb, ch);
     }
 
-    // copy buf to str as null-terminated string.
-    size = vector_size(buf);
-    str = safe_malloc(size + 1);
-    for (i = 0; i < size; i++) str[i] = *(char *)vector_get(buf, i);
-    str[size] = '\0';
-
     token = new_token(tSTRING_LITERAL);
-    token->sval = str;
+    token->sval = string_builder_get(sb);
     return token;
 }
 

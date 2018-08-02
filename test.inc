@@ -48,6 +48,23 @@ void test_map()
     }
 }
 
+void test_string_builder()
+{
+    StringBuilder *sb;
+    char *str;
+
+    sb = new_string_builder();
+    string_builder_append(sb, 'a');
+    string_builder_append(sb, 'b');
+    string_builder_append(sb, 'c');
+
+    str = string_builder_get(sb);
+    assert(str[0] == 'a');
+    assert(str[1] == 'b');
+    assert(str[2] == 'c');
+    assert(str[3] == '\0');
+}
+
 void execute_test()
 {
     test_vector(10);

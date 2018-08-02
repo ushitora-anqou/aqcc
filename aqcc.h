@@ -27,6 +27,12 @@ KeyValue *map_lookup(Map *this, const char *key);
 const char *kv_key(KeyValue *kv);
 void *kv_value(KeyValue *kv);
 
+// string_builder.c
+typedef struct StringBuilder StringBuilder;
+StringBuilder *new_string_builder();
+char string_builder_append(StringBuilder *this, char ch);
+char *string_builder_get(StringBuilder *this);
+
 enum {
     tINT,
     tSTRING_LITERAL,

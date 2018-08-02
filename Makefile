@@ -1,5 +1,5 @@
 TARGET=aqcc
-SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c
+SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c
 
 $(TARGET): $(SRC) test.inc aqcc.h
 	gcc -o $@ $(SRC) -O0 -g -Wall -lm -std=c11
