@@ -1,7 +1,8 @@
 #!/bin/sh
 
 function fail(){
-    echo -e "\e[1;31m[ERROR]\e[0m $1"
+    echo -ne "\e[1;31m[ERROR]\e[0m "
+    echo "$1"
     exit 1
 }
 
@@ -272,5 +273,5 @@ test_aqcc "char a[20]; int main() { return sizeof(a); }" 20
 test_aqcc "char a[5][6]; int main() { return sizeof(a); }" 30
 test_aqcc "char a[5][6][4]; int main() { return sizeof(a); }" 120
 test_aqcc 'int main() { char *str; str = "abc"; return str[0]; }' 97
-test_aqcc 'int main() { return printf("%d", 0); }' 1
+test_aqcc 'int main() { return printf("%d\n", 0); }' 2
 test_aqcc 'char *test() { char *str; str = "abc"; return str; } int main() { char *str; str = test(); return str[1]; }' 98

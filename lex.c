@@ -63,7 +63,7 @@ Token *read_next_ident_token(FILE *fh)
     return token;
 }
 
-// assume that the first doublequote has already read.
+// assume that the first doublequote has been already read.
 Token *read_next_string_literal_token(FILE *fh)
 {
     char *buf;
@@ -74,7 +74,7 @@ Token *read_next_string_literal_token(FILE *fh)
     buf = safe_malloc(sizeof(char) * size);
     bufidx = 0;
     while (1) {
-        char ch;
+        int ch;
 
         if (bufidx == size) {
             size *= 2;
