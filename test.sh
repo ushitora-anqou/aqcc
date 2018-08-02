@@ -9,7 +9,7 @@ function test_aqcc() {
     echo "$1" > _test.in
     cat _test.in | ./aqcc > _test.s
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./aqcc > _test.s"
-    gcc _test.s -o _test.o testutil.o -no-pie
+    gcc _test.s -o _test.o testutil.o
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": gcc _test.s -o _test.o"
     ./_test.o
     res=$?

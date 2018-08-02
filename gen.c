@@ -432,7 +432,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 if (i < 6) appcode(env->codes, "pop %s", reg_name(8, i + 1));
             }
             appcode(env->codes, "mov $0, #eax");
-            appcode(env->codes, "call %s", ast->fname);
+            appcode(env->codes, "call %s@PLT", ast->fname);
             appcode(env->codes, "push #rax");
         } break;
 
