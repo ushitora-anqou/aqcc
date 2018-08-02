@@ -120,9 +120,9 @@ test_aqcc "int main(){int x;return x=1;}" 1
 test_aqcc "int main(){int xy;return xy = 100+100;}" 200
 test_aqcc "int main(){int a_b;return a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;}" 1
 test_aqcc "int main(){int _;return _ = (2 - 1) << 1;}" 2
-test_aqcc "int main(){int x;int y;x = 1; return y = 2;}" 2
-test_aqcc "int main(){int x;int y;int z;x = 1; y = 2; return z = x + y;}" 3
-test_aqcc "int main(){int a0;int a1;int a2;int a3;a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
+test_aqcc "int main(){int x = 1;int y; return y = 2;}" 2
+test_aqcc "int main(){int x = 1; int y = 2; int z; return z = x + y;}" 3
+test_aqcc "int main(){int a0 = 1;int a1 = 1;int a2 = a0 + a1; int a3; return a3 = a1 + a2;}" 3
 test_aqcc "int main(){int x;int y;int z;x = y = 1; return z = x = x + y;}" 2
 test_aqcc "int ret0();int main(){return ret0();}" 0
 test_aqcc "int ret1();int ret0();int main(){return (ret0() + ret1()) * 2;}" 2
@@ -145,42 +145,42 @@ test_aqcc "int main(){if(0 == 1){return 0;}else{return 1;}}" 1
 test_aqcc "int fib(int n){if(n<=1)return n;return fib(n-1)+fib(n-2);}int main(){return fib(0);}" 0
 test_aqcc "int fib(int n){if(n<=1)return n;return fib(n-1)+fib(n-2);}int main(){return fib(1);}" 1
 test_aqcc "int fib(int n){if(n<=1)return n;return fib(n-1)+fib(n-2);}int main(){return fib(5);}" 5
-test_aqcc "int main(){int a;a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
+test_aqcc "int main(){int a=0;if(a == 0){a = 1;a = a + a;}if(a == 3){a = 3;}else{a = 4;}return a;}" 4
 # thanks to @hsjoihs
-test_aqcc "int foo(){return 2;}int bar(){return 7;}int main(){int a;a=3;int b;b=5;int c;c=2;if(a)if(0){b=foo();}else{c=bar();}return 162+b+c;}" 174
-test_aqcc "int main(){int a;a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
-test_aqcc "int main(){int a;a=0;while(a!=10)a=a+1;return a;}" 10
-test_aqcc "int main(){int a;a=0;while(a!=10){int b;b=1;a=a+1;}return a;}" 10
-test_aqcc "int main(){int a;a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
-test_aqcc "int main(){int a;a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
-test_aqcc "int main(){int a;a=0;int i;for(i=0;i<=10;i=i+1){a=a+i;}return a;}" 55
-test_aqcc "int main(){int a;a=0;for(;;){a=a+1;if(a>=10)break;}return a;}" 10
-test_aqcc "int main(){int a;a=0;for(;;a=a+1)if(a<10)continue;else break;return a;}" 10;
-test_aqcc "int main(){int a;a=0;a++;return a;}" 1
-test_aqcc "int main(){int a;a=0;int i;for(i=0;i<=10;i++){a=a+i;}return a;}" 55
-test_aqcc "int main(){int a;a=0;int b;b=(a++)+1;return b;}" 1
-test_aqcc "int main(){int a;a=0;int b;b=(++a)+1;return b;}" 2
-test_aqcc "int main(){int a;a=0;int i;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
-test_aqcc "int main(){int a;a=0;if(a==0){int a;a=1;}return a;}" 0
-test_aqcc "int main(){int a;a=0;int i;for(i=0;i<10;i++){int a;a=1;}return a;}" 0
-test_aqcc "int main(){int a;a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){a=a+1;}}return a;}" 100
+test_aqcc "int foo(){return 2;}int bar(){return 7;}int main(){int a=3;int b=5;int c=2;if(a)if(0){b=foo();}else{c=bar();}return 162+b+c;}" 174
+test_aqcc "int main(){int a=2;if(a==1)return 0;else if(a==2)return 1;}" 1
+test_aqcc "int main(){int a=0;while(a!=10)a=a+1;return a;}" 10
+test_aqcc "int main(){int a=0;while(a!=10){int b;b=1;a=a+1;}return a;}" 10
+test_aqcc "int main(){int a=0;while(a!=10){if(a==5)break;a=a+1;}return a;}" 5
+test_aqcc "int main(){int a=0;while(a<5){a=a+1;if(a==5)continue;a=a+1;}return a;}" 5
+test_aqcc "int main(){int a=0;int i;for(i=0;i<=10;i=i+1){a=a+i;}return a;}" 55
+test_aqcc "int main(){int a=0;for(;;){a=a+1;if(a>=10)break;}return a;}" 10
+test_aqcc "int main(){int a=0;for(;;a=a+1)if(a<10)continue;else break;return a;}" 10;
+test_aqcc "int main(){int a=0;a++;return a;}" 1
+test_aqcc "int main(){int a=0;int i;for(i=0;i<=10;i++){a=a+i;}return a;}" 55
+test_aqcc "int main(){int a=0;int b;b=(a++)+1;return b;}" 1
+test_aqcc "int main(){int a=0;int b;b=(++a)+1;return b;}" 2
+test_aqcc "int main(){int a=0;int i;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
+test_aqcc "int main(){int a=0;if(a==0){int a;a=1;}return a;}" 0
+test_aqcc "int main(){int a=0;int i;for(i=0;i<10;i++){int a;a=1;}return a;}" 0
+test_aqcc "int main(){int a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){a=a+1;}}return a;}" 100
 test_aqcc "main(){return 0;}" 0 # function without return value should be also valid.
-test_aqcc "main(){int x;x=3;int *y;y=&x;return *y;}" 3
-test_aqcc "main(){int x;x=3;int *y;y=&x;*y=10;return x;}" 10
-test_aqcc "main(){int *x;int **y;int z;x=&z;y=&x;**y=1;return z;}" 1
-test_aqcc "int *test(int *p) { *p = 1; return p; } int main() { int x; int *y; y = test(&x); return *y; }" 1
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return *q; }" 12
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 3; return *q; }" 13
+test_aqcc "main(){int x=3;int *y;y=&x;return *y;}" 3
+test_aqcc "main(){int x=3;int *y;y=&x;*y=10;return x;}" 10
+test_aqcc "main(){int **y;int z;int *x=&z;y=&x;**y=1;return z;}" 1
+test_aqcc "int *test(int *p) { *p = 1; return p; } int main() { int x; int *y = test(&x); return *y; }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 2; return *q; }" 12
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 3; return *q; }" 13
 test_aqcc "int *alloc4(int **p);int main() { int *p; return *((1 + 1) + alloc4(&p)); }" 12
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return q - p; }" 2
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; q = q - 1; return q - p; }" 1
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return ((q + 1) - p) == (q - p) + 1; }" 1
-test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q; q = p + 2; return (q - p) + 1 == -(p - (q + 1)); }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 2; return q - p; }" 2
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 2; q = q - 1; return q - p; }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 2; return ((q + 1) - p) == (q - p) + 1; }" 1
+test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); int *q = p + 2; return (q - p) + 1 == -(p - (q + 1)); }" 1
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); p++; return *p; }" 11
 test_aqcc "int *alloc4(int **p);int main() { int *p; alloc4(&p); ++p; return *p; }" 11
-test_aqcc "int main() { int n; n = n++; return n; }" 0
-test_aqcc "int main() { int n; n = 0; return *&n; }" 0
-test_aqcc "int main() { int n; n = 0; int i; int j; for(i = 0; i < 10; i++) for (j = 0; j < 10; j++) n++; return n; }" 100
+test_aqcc "int main() { int n = n++; return n; }" 0
+test_aqcc "int main() { int n = 0; return *&n; }" 0
+test_aqcc "int main() { int n = 0; int i; int j; for(i = 0; i < 10; i++) for (j = 0; j < 10; j++) n++; return n; }" 100
 test_aqcc "int main() { int ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
 test_aqcc "int main() { int ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
 test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
@@ -191,45 +191,45 @@ test_aqcc "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i;
 test_aqcc "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
 test_aqcc "int main() { int ary[10]; 3[ary] = 4; return 3[ary]; }" 4
 test_aqcc "int fib(int n){if (n <= 1) return n; int p0; int p1; p0 = fib(n - 1); p1 = fib(n - 2); return p0 + p1; } int main(){return fib(5);}" 5
-test_aqcc "int main() { int a; a = 2; a += 5; return a; }" 7
-test_aqcc "int main() { int a; a = 8; a -= 5; return a; }" 3
-test_aqcc "int main() { int a; a = 2; a *= 5; return a; }" 10
-test_aqcc "int main() { int a; a = 10; a /= 5; return a; }" 2
-test_aqcc "int main() { int a; a = 12; a &= 5; return a; }" 4
-test_aqcc "int main() { int a; a = 12; a %= 5; return a; }" 2
-test_aqcc "int main() { int a; a = 2; a |= 5; return a; }" 7
-test_aqcc "int main() { int a; a = 2; a ^= 5; return a; }" 7
-test_aqcc "int main() { int a; a = 2; a <<= 2; return a; }" 8
-test_aqcc "int main() { int a; a = 4; a >>= 2; return a; }" 1
+test_aqcc "int main() { int a = 2; a += 5; return a; }" 7
+test_aqcc "int main() { int a = 8; a -= 5; return a; }" 3
+test_aqcc "int main() { int a = 2; a *= 5; return a; }" 10
+test_aqcc "int main() { int a = 10; a /= 5; return a; }" 2
+test_aqcc "int main() { int a = 12; a &= 5; return a; }" 4
+test_aqcc "int main() { int a = 12; a %= 5; return a; }" 2
+test_aqcc "int main() { int a = 2; a |= 5; return a; }" 7
+test_aqcc "int main() { int a = 2; a ^= 5; return a; }" 7
+test_aqcc "int main() { int a = 2; a <<= 2; return a; }" 8
+test_aqcc "int main() { int a = 4; a >>= 2; return a; }" 1
 test_aqcc "int a; int main() { return a; }" 0
 test_aqcc "int a; int main() { a = 4; return a; }" 4
 test_aqcc "int a; int *p; int main() { p = &a; return a; }" 0
 test_aqcc "int a; int *p; int main() { p = &a; *p = 3; return a; }" 3
 test_aqcc "int a[20]; int main() { a[5] = 5; return a[5]; }" 5
 test_aqcc "int a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
-test_aqcc "int main() { char c; c = 1; return c; }" 1
+test_aqcc "int main() { char c = 1; return c; }" 1
 test_aqcc "int main(){char x;return x=1;}" 1
 test_aqcc "int main(){char xy;return xy = 100+100;}" 200
 test_aqcc "int main(){char a_b;return a_b = - ( 33 * ( 1 + 2 ) ) / 3 + 34;}" 1
 test_aqcc "int main(){char _;return _ = (2 - 1) << 1;}" 2
-test_aqcc "int main(){char x;char y;x = 1; return y = 2;}" 2
-test_aqcc "int main(){char x;char y;char z;x = 1; y = 2; return z = x + y;}" 3
+test_aqcc "int main(){char x = 1;char y; return y = 2;}" 2
+test_aqcc "int main(){char x = 1;char y = 2;char z; return z = x + y;}" 3
 test_aqcc "int main(){char a0;char a1;char a2;char a3;a0 = 1; a1 = 1; a2 = a0 + a1; return a3 = a1 + a2;}" 3
 test_aqcc "int main(){char x;char y;char z;x = y = 1; return z = x = x + y;}" 2
 test_aqcc "char iadd(char a, char b) { return a + b; }main(){return iadd(1, 2);}" 3
 test_aqcc "char iadd(char a, char b) { return a + b; }main(){return iadd(1, 2) * iadd(2, 3);}" 15
 test_aqcc "char eighth(char a, char b, char c, char d, char e, char f, char g, char h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 8);}" 8
 test_aqcc "int eighth(char a, char b, char c, char d, char e, char f, char g, int h){return h;}main(){return eighth(1, 2, 3, 4, 5, 6, 7, 255);}" 255
-test_aqcc "int main() { char a; a = 2; a += 5; return a; }" 7
-test_aqcc "int main() { char a; a = 8; a -= 5; return a; }" 3
-test_aqcc "int main() { char a; a = 2; a *= 5; return a; }" 10
-test_aqcc "int main() { char a; a = 10; a /= 5; return a; }" 2
-test_aqcc "int main() { char a; a = 12; a &= 5; return a; }" 4
-test_aqcc "int main() { char a; a = 12; a %= 5; return a; }" 2
-test_aqcc "int main() { char a; a = 2; a |= 5; return a; }" 7
-test_aqcc "int main() { char a; a = 2; a ^= 5; return a; }" 7
-test_aqcc "int main() { char a; a = 2; a <<= 2; return a; }" 8
-test_aqcc "int main() { char a; a = 4; a >>= 2; return a; }" 1
+test_aqcc "int main() { char a = 2; a += 5; return a; }" 7
+test_aqcc "int main() { char a = 8; a -= 5; return a; }" 3
+test_aqcc "int main() { char a = 2; a *= 5; return a; }" 10
+test_aqcc "int main() { char a = 10; a /= 5; return a; }" 2
+test_aqcc "int main() { char a = 12; a &= 5; return a; }" 4
+test_aqcc "int main() { char a = 12; a %= 5; return a; }" 2
+test_aqcc "int main() { char a = 2; a |= 5; return a; }" 7
+test_aqcc "int main() { char a = 2; a ^= 5; return a; }" 7
+test_aqcc "int main() { char a = 2; a <<= 2; return a; }" 8
+test_aqcc "int main() { char a = 4; a >>= 2; return a; }" 1
 test_aqcc "int main() { char ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
 test_aqcc "int main() { char ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
 test_aqcc "int main() { char ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5

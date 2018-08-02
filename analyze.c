@@ -109,8 +109,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_VAR:
             ast = lookup_var(env, ast->varname);
-            assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
             if (!ast) error("not declared variable", __FILE__, __LINE__);
+            assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
             break;
 
         case AST_LVAR_DECL:
@@ -118,6 +118,16 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             add_var(env, ast);
+            break;
+
+        case AST_VAR_DECL_INIT:
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->rhs = analyze_ast_detail(env, ast->rhs);
+            if (ast->rhs->lhs->kind == AST_GVAR &&
+                ast->rhs->rhs->kind != AST_INT)
+                // TODO: constant, not int literal
+                error("global variable initializer must be constant.", __FILE__,
+                      __LINE__);
             break;
 
         case AST_FUNCCALL: {

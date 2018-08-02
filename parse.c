@@ -604,6 +604,11 @@ AST *parse_var_declaration(int kind, TokenSeq *tokseq)
         ast->type = new_array_type(ast->type, num->ival);
     }
 
+    if (match_token(tokseq, tEQ)) {  // initializer
+        pop_token(tokseq);
+        ast = new_var_decl_init_ast(ast, parse_assignment_expr(tokseq));
+    }
+
     expect_token(tokseq, tSEMICOLON);
 
     return ast;

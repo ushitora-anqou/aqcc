@@ -601,6 +601,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, ".text");
             break;
 
+        case AST_VAR_DECL_INIT:
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
+            break;
+
         case AST_ARY2PTR:
             // TODO: is it always safe to treat ary2ptr as lvalue generation?
             generate_code_detail_lvalue(env, ast->ary);

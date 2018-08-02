@@ -137,6 +137,7 @@ enum {
     AST_GVAR,
     AST_LVAR_DECL,
     AST_GVAR_DECL,
+    AST_VAR_DECL_INIT,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_FUNC_DECL,
@@ -281,6 +282,7 @@ AST *ary2ptr(AST *ary);
 AST *char2int(AST *ch);
 AST *new_var_ast(char *varname);
 AST *new_var_decl_ast(int kind, Type *type, char *varname);
+AST *new_var_decl_init_ast(AST *var_decl, AST *initer);
 AST *new_unary_ast(int kind, AST *that);
 AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
                   Type *ret_type);
