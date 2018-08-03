@@ -31,7 +31,10 @@ Token *pop_token(TokenSeq *seq)
 Token *expect_token(TokenSeq *seq, int kind)
 {
     Token *token = pop_token(seq);
-    if (token->kind != kind) error("unexpected token.", __FILE__, __LINE__);
+    if (token->kind != kind)
+        error(format("unexpected token: expect %s, got %s",
+                     token_kind2str(kind), token_kind2str(token->kind)),
+              __FILE__, __LINE__);
     return token;
 }
 

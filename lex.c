@@ -231,3 +231,119 @@ Vector *read_all_tokens(FILE *fh)
 
     return tokens;
 }
+
+const char *token_kind2str(int kind)
+{
+    switch (kind) {
+        case tINT:
+            return "tINT";
+        case tSTRING_LITERAL:
+            return "tSTRING_LITERAL";
+        case tPLUS:
+            return "tPLUS";
+        case tMINUS:
+            return "tMINUS";
+        case tSTAR:
+            return "tSTAR";
+        case tSLASH:
+            return "tSLASH";
+        case tPERCENT:
+            return "tPERCENT";
+        case tLPAREN:
+            return "tLPAREN";
+        case tRPAREN:
+            return "tRPAREN";
+        case tLSHIFT:
+            return "tLSHIFT";
+        case tRSHIFT:
+            return "tRSHIFT";
+        case tLT:
+            return "tLT";
+        case tGT:
+            return "tGT";
+        case tLTE:
+            return "tLTE";
+        case tGTE:
+            return "tGTE";
+        case tEQEQ:
+            return "tEQEQ";
+        case tNEQ:
+            return "tNEQ";
+        case tAND:
+            return "tAND";
+        case tHAT:
+            return "tHAT";
+        case tBAR:
+            return "tBAR";
+        case tANDAND:
+            return "tANDAND";
+        case tBARBAR:
+            return "tBARBAR";
+        case tIDENT:
+            return "tIDENT";
+        case tEQ:
+            return "tEQ";
+        case tPLUSEQ:
+            return "tPLUSEQ";
+        case tMINUSEQ:
+            return "tMINUSEQ";
+        case tSTAREQ:
+            return "tSTAREQ";
+        case tSLASHEQ:
+            return "tSLASHEQ";
+        case tPERCENTEQ:
+            return "tPERCENTEQ";
+        case tANDEQ:
+            return "tANDEQ";
+        case tHATEQ:
+            return "tHATEQ";
+        case tBAREQ:
+            return "tBAREQ";
+        case tLSHIFTEQ:
+            return "tLSHIFTEQ";
+        case tRSHIFTEQ:
+            return "tRSHIFTEQ";
+        case tSEMICOLON:
+            return "tSEMICOLON";
+        case tCOMMA:
+            return "tCOMMA";
+        case tLBRACE:
+            return "tLBRACE";
+        case tRBRACE:
+            return "tRBRACE";
+        case kRETURN:
+            return "kRETURN";
+        case tCOLON:
+            return "tCOLON";
+        case tQUESTION:
+            return "tQUESTION";
+        case tLBRACKET:
+            return "tLBRACKET";
+        case tRBRACKET:
+            return "tRBRACKET";
+        case tINC:
+            return "tINC";
+        case tEOF:
+            return "tEOF";
+        case kIF:
+            return "kIF";
+        case kELSE:
+            return "kELSE";
+        case kWHILE:
+            return "kWHILE";
+        case kBREAK:
+            return "kBREAK";
+        case kCONTINUE:
+            return "kCONTINUE";
+        case kFOR:
+            return "kFOR";
+        case kINT:
+            return "kINT";
+        case kCHAR:
+            return "kCHAR";
+        case kSIZEOF:
+            return "kSIZEOF";
+        default:
+            return "***unknown token***";
+    }
+}

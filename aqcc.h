@@ -260,6 +260,7 @@ char *format(char *src, ...);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);
+const char *token_kind2str(int kind);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);
