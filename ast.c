@@ -126,9 +126,12 @@ AST *new_var_decl_ast(int kind, Type *type, char *varname)
 
 AST *new_var_decl_init_ast(AST *var_decl, AST *initer)
 {
+    assert(var_decl->kind == AST_LVAR_DECL || var_decl->kind == AST_GVAR_DECL);
+
     AST *ast;
 
-    ast = new_ast(AST_VAR_DECL_INIT);
+    ast = new_ast(var_decl->kind == AST_LVAR_DECL ? AST_LVAR_DECL_INIT
+                                                  : AST_GVAR_DECL_INIT);
     ast->lhs = var_decl;
     ast->rhs =
         new_binop_ast(AST_ASSIGN, new_var_ast(var_decl->varname), initer);

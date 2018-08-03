@@ -1,5 +1,37 @@
 #include "aqcc.h"
 
+Vector *gvar_list = NULL;
+int gvar_string_literal_label = 0;
+
+void init_gvar_list() { gvar_list = new_vector(); }
+
+void add_gvar(GVar *gvar) { vector_push_back(gvar_list, gvar); }
+
+Vector *get_gvar_list() { return gvar_list; }
+
+GVar *new_gvar_from_decl(AST *ast, int ival)
+{
+    assert(ast->kind == AST_GVAR_DECL);
+
+    GVar *this;
+    this = safe_malloc(sizeof(GVar));
+    this->name = ast->varname;
+    this->type = ast->type;
+    this->ival = ival;
+    this->sval = NULL;
+    return this;
+}
+
+GVar *new_gvar_from_string_literal(char *sval)
+{
+    GVar *this;
+    this = safe_malloc(sizeof(GVar));
+    this->name = format(".LC%d", gvar_string_literal_label++);
+    this->type = new_pointer_type(type_char());
+    this->sval = sval;
+    return this;
+}
+
 void swap(AST **lhs, AST **rhs)
 {
     AST *tmp;
@@ -114,20 +146,31 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_LVAR_DECL:
-        case AST_GVAR_DECL:
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             add_var(env, ast);
             break;
 
-        case AST_VAR_DECL_INIT:
+        case AST_GVAR_DECL:
+            add_var(env, ast);
+            add_gvar(new_gvar_from_decl(ast, 0));
+            break;
+
+        case AST_LVAR_DECL_INIT:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
-            if (ast->rhs->lhs->kind == AST_GVAR &&
-                ast->rhs->rhs->kind != AST_INT)
-                // TODO: constant, not int literal
-                error("global variable initializer must be constant.", __FILE__,
-                      __LINE__);
+            break;
+
+        case AST_GVAR_DECL_INIT:
+            if (ast->lhs->kind == AST_GVAR_DECL) {
+                if (ast->rhs->rhs->kind != AST_INT)
+                    // TODO: constant, not int literal
+                    error("global variable initializer must be constant.",
+                          __FILE__, __LINE__);
+                add_var(env, ast->lhs);
+                add_gvar(new_gvar_from_decl(ast->lhs, ast->rhs->rhs->ival));
+                ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
+            }
             break;
 
         case AST_FUNCCALL: {
@@ -259,6 +302,7 @@ void analyze_ast(Vector *asts)
     Env *env;
 
     env = new_env(NULL);
+    init_gvar_list();
 
     for (i = 0; i < vector_size(asts); i++)
         vector_set(asts, i,

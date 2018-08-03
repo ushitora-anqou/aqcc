@@ -137,7 +137,8 @@ enum {
     AST_GVAR,
     AST_LVAR_DECL,
     AST_GVAR_DECL,
-    AST_VAR_DECL_INIT,
+    AST_LVAR_DECL_INIT,
+    AST_GVAR_DECL_INIT,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_FUNC_DECL,
@@ -184,6 +185,15 @@ struct Type {
             int len;
         };
     };
+};
+
+typedef struct GVar GVar;
+struct GVar {
+    char *name;
+    Type *type;
+
+    int ival;
+    char *sval;
 };
 
 typedef struct AST AST;
@@ -246,6 +256,7 @@ char *new_char(char ch);
 const char *reg_name(int byte, int i);
 int max(int a, int b);
 char byte2suffix(int byte);
+char *format(char *src, ...);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);
@@ -289,5 +300,6 @@ AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
 
 // analyze.c
 void analyze_ast(Vector *asts);
+Vector *get_gvar_list();
 
 #endif

@@ -89,3 +89,17 @@ char byte2suffix(int byte)
 }
 
 int max(int a, int b) { return a > b ? a : b; }
+
+char *format(char *src, ...)
+{
+    va_list args;
+    char buf[512];  // TODO: enough length?
+
+    va_start(args, src);
+    vsprintf(buf, src, args);
+    va_end(args);
+
+    char *ret = safe_malloc(strlen(buf) + 1);
+    strcpy(ret, buf);
+    return ret;
+}

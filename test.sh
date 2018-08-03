@@ -275,3 +275,7 @@ test_aqcc "char a[5][6][4]; int main() { return sizeof(a); }" 120
 test_aqcc 'int main() { char *str; str = "abc"; return str[0]; }' 97
 test_aqcc 'int main() { return printf("%d\n", 0); }' 2
 test_aqcc 'char *test() { char *str; str = "abc"; return str; } int main() { char *str; str = test(); return str[1]; }' 98
+test_aqcc "int a = 4; int main() { return a; }" 4
+test_aqcc "char a = 4; int main() { return a; }" 4
+test_aqcc "int *a = 0; int main() { return a; }" 0
+test_aqcc "char *a = 0; int main() { return a; }" 0

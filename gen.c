@@ -589,23 +589,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
         } break;
 
-        case AST_FUNC_DECL:
-        case AST_LVAR_DECL:
-        case AST_NOP:
-            break;
-
-        case AST_GVAR_DECL:
-            appcode(env->codes, ".data");
-            appcode(env->codes, "%s:", ast->varname);
-            appcode(env->codes, ".zero %d", ast->type->nbytes);
-            appcode(env->codes, ".text");
-            break;
-
-        case AST_VAR_DECL_INIT:
-            generate_code_detail(env, ast->lhs);
-            generate_code_detail(env, ast->rhs);
-            break;
-
         case AST_ARY2PTR:
             // TODO: is it always safe to treat ary2ptr as lvalue generation?
             generate_code_detail_lvalue(env, ast->ary);
@@ -615,6 +598,18 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             generate_code_detail(env, ast->lhs);
             break;
 
+        case AST_LVAR_DECL_INIT:
+        case AST_GVAR_DECL_INIT:
+            generate_code_detail(env, ast->lhs);
+            generate_code_detail(env, ast->rhs);
+            break;
+
+        case AST_GVAR_DECL:
+        case AST_LVAR_DECL:
+        case AST_FUNC_DECL:
+        case AST_NOP:
+            break;
+
         default:
             assert(0);
     }
@@ -622,7 +617,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
 Vector *generate_code(Vector *asts)
 {
-    int i;
     CodeEnv *env;
 
     env = new_code_env();
@@ -630,7 +624,7 @@ Vector *generate_code(Vector *asts)
     appcode(env->codes, ".global main");
     appcode(env->codes, ".text");
 
-    for (i = 0; i < vector_size(asts); i++)
+    for (int i = 0; i < vector_size(asts); i++)
         generate_code_detail(env, (AST *)vector_get(asts, i));
 
     assert(vector_size(env->string_literals) ==
@@ -638,7 +632,33 @@ Vector *generate_code(Vector *asts)
 
     appcode(env->codes, ".data");
 
-    for (i = 0; i < vector_size(env->string_literals); i++) {
+    Vector *gvar_list = get_gvar_list();
+    for (int i = 0; i < vector_size(gvar_list); i++) {
+        GVar *gvar = (GVar *)vector_get(gvar_list, i);
+
+        appcode(env->codes, "%s:", gvar->name);
+        if (gvar->sval) {
+            assert(gvar->type->kind == TY_PTR &&
+                   gvar->type->ptr_of->kind == TY_CHAR);
+            appcode(env->codes, ".string %s", gvar->sval);
+            continue;
+        }
+
+        if (gvar->ival == 0) {
+            appcode(env->codes, ".zero %d", gvar->type->nbytes);
+            continue;
+        }
+
+        assert(gvar->type->kind != TY_ARY);  // TODO: implement
+
+        const char *type2spec[16];  // TODO: enough length?
+        type2spec[TY_INT] = ".long";
+        type2spec[TY_CHAR] = ".byte";
+        type2spec[TY_PTR] = ".quad";
+        appcode(env->codes, "%s %d", type2spec[gvar->type->kind], gvar->ival);
+    }
+
+    for (int i = 0; i < vector_size(env->string_literals); i++) {
         char *str;
         int label;
 
