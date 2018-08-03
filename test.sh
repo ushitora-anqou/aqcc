@@ -283,3 +283,4 @@ test_aqcc 'int main() { return sizeof("foo"); }' 4
 test_aqcc 'int main() { int a[4]; a[0] = 1; a[1] = 3; a[2] = 4; return a[0] ? a[1] : a[2]; }' 3
 test_aqcc 'int test(int *ary) { ary[0] = 5; } int main() { int ary[2]; ary[0] = 0; test(ary); return ary[0]; }' 5
 test_aqcc "int main() { int n = 0; return *&*&n; }" 0
+test_aqcc 'int main() { char *str = "abc\0abc"; return str[3]; }' 0
