@@ -111,9 +111,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LSHIFT:
         case AST_RSHIFT:
         case AST_LT:
-        case AST_GT:
         case AST_LTE:
-        case AST_GTE:
         case AST_EQ:
         case AST_NEQ:
         case AST_AND:
@@ -128,6 +126,17 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
             // TODO: ptr == ptr is okay, but ptr * ptr is not.
             break;
+
+        case AST_GTE:
+        case AST_GT: {
+            AST *lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs))),
+                *rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
+            // swap lhs and rhs to replace AST_GT(E) with AST_LT(E)
+            ast->lhs = rhs;
+            ast->rhs = lhs;
+            ast->kind = ast->kind == AST_GT ? AST_LT : AST_LTE;
+            ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
+        } break;
 
         case AST_UNARY_MINUS:
             ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
@@ -224,7 +233,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (func) {                  // already declared or defined.
                 if (func->body != NULL)  // TODO: validate params
                     error(
-                        "A function that has the same name as the defined one "
+                        "A function that has the same name as the defined "
+                        "one "
                         "already exists.",
                         __FILE__, __LINE__);
                 func->body = ast->body;
