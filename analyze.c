@@ -304,10 +304,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_GVAR:
             break;
 
-        case AST_SIZEOF:
+        case AST_SIZEOF: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+
+            int nbytes = ast->lhs->type->nbytes;
+            ast = new_ast(AST_INT);
+            ast->ival = nbytes;
             ast->type = type_int();  // TODO: size_t
-            break;
+        } break;
     }
 
     return ast;
