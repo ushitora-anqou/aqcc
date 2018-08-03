@@ -7,22 +7,20 @@ Token *new_token(int kind)
     return token;
 }
 
+char fpeekc(FILE *fh)
+{
+    char ch = fgetc(fh);
+    ungetc(ch, fh);
+    return ch;
+}
+
 Token *read_next_int_token(FILE *fh)
 {
     int acc;
 
     acc = 0;
 
-    while (1) {
-        int ch = fgetc(fh);
-
-        if (!isdigit(ch)) {
-            ungetc(ch, fh);
-            break;
-        }
-
-        acc = 10 * acc + ch - '0';
-    }
+    while (isdigit(fpeekc(fh))) acc = 10 * acc + fgetc(fh) - '0';
 
     Token *token = new_token(tINT);
     token->ival = acc;
