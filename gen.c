@@ -3,7 +3,6 @@
 typedef struct {
     int nlabel, loop_continue_label, loop_break_label;
     Vector *codes;
-    Vector *string_literals, *string_literals_labels;
 } CodeEnv;
 
 void generate_code_detail(CodeEnv *env, AST *ast);
@@ -16,8 +15,6 @@ CodeEnv *new_code_env()
     this->nlabel = 0;
     this->loop_continue_label = this->loop_break_label = -1;
     this->codes = new_vector();
-    this->string_literals = new_vector();
-    this->string_literals_labels = new_vector();
     return this;
 }
 
@@ -576,19 +573,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
-        case AST_STRING_LITERAL: {
-            int label;
-
-            label = env->nlabel++;
-
-            vector_push_back(env->string_literals, ast->sval);
-            vector_push_back(env->string_literals_labels, new_int(label));
-
-            // appcode(env->codes, "push $.L%d", label);
-            appcode(env->codes, "lea .L%d(#rip), #rax", label);
-            appcode(env->codes, "push #rax");
-        } break;
-
         case AST_ARY2PTR:
             // TODO: is it always safe to treat ary2ptr as lvalue generation?
             generate_code_detail_lvalue(env, ast->ary);
@@ -627,9 +611,6 @@ Vector *generate_code(Vector *asts)
     for (int i = 0; i < vector_size(asts); i++)
         generate_code_detail(env, (AST *)vector_get(asts, i));
 
-    assert(vector_size(env->string_literals) ==
-           vector_size(env->string_literals_labels));
-
     appcode(env->codes, ".data");
 
     Vector *gvar_list = get_gvar_list();
@@ -638,9 +619,9 @@ Vector *generate_code(Vector *asts)
 
         appcode(env->codes, "%s:", gvar->name);
         if (gvar->sval) {
-            assert(gvar->type->kind == TY_PTR &&
+            assert(gvar->type->kind == TY_ARY &&
                    gvar->type->ptr_of->kind == TY_CHAR);
-            appcode(env->codes, ".string %s", gvar->sval);
+            appcode(env->codes, ".string \"%s\"", gvar->sval);
             continue;
         }
 
@@ -656,17 +637,6 @@ Vector *generate_code(Vector *asts)
         type2spec[TY_CHAR] = ".byte";
         type2spec[TY_PTR] = ".quad";
         appcode(env->codes, "%s %d", type2spec[gvar->type->kind], gvar->ival);
-    }
-
-    for (int i = 0; i < vector_size(env->string_literals); i++) {
-        char *str;
-        int label;
-
-        str = (char *)vector_get(env->string_literals, i);
-        label = *(int *)vector_get(env->string_literals_labels, i);
-
-        appcode(env->codes, ".L%d:", label);
-        appcode(env->codes, ".string \"%s\"", str);
     }
 
     return env->codes;

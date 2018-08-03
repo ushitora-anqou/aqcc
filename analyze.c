@@ -5,7 +5,11 @@ int gvar_string_literal_label = 0;
 
 void init_gvar_list() { gvar_list = new_vector(); }
 
-void add_gvar(GVar *gvar) { vector_push_back(gvar_list, gvar); }
+GVar *add_gvar(GVar *gvar)
+{
+    vector_push_back(gvar_list, gvar);
+    return gvar;
+}
 
 Vector *get_gvar_list() { return gvar_list; }
 
@@ -27,7 +31,7 @@ GVar *new_gvar_from_string_literal(char *sval)
     GVar *this;
     this = safe_malloc(sizeof(GVar));
     this->name = format(".LC%d", gvar_string_literal_label++);
-    this->type = new_pointer_type(type_char());
+    this->type = new_array_type(type_char(), strlen(sval) + 1);
     this->sval = sval;
     return this;
 }
@@ -65,9 +69,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = type_int();
             break;
 
-        case AST_STRING_LITERAL:
-            ast->type = new_pointer_type(type_char());
-            break;
+        case AST_STRING_LITERAL: {
+            GVar *gvar = add_gvar(new_gvar_from_string_literal(ast->sval));
+
+            AST *ast;
+            ast = new_ast(AST_GVAR);
+            ast->varname = gvar->name;
+            ast->type = gvar->type;
+            return ast;
+        } break;
 
         case AST_ADD:
             ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
@@ -132,7 +142,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_ASSIGN:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            ast->rhs = analyze_ast_detail(env, ast->rhs);
+            ast->rhs = ary2ptr(analyze_ast_detail(env, ast->rhs));
             if (!is_lvalue(ast->lhs))
                 error("should specify lvalue for assignment op", __FILE__,
                       __LINE__);
@@ -191,8 +201,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             // analyze args
             for (i = 0; i < vector_size(ast->args); i++)
                 vector_set(ast->args, i,
-                           char2int(analyze_ast_detail(
-                               env, (AST *)vector_get(ast->args, i))));
+                           char2int(ary2ptr(analyze_ast_detail(
+                               env, (AST *)vector_get(ast->args, i)))));
         } break;
 
         case AST_FUNC_DECL:
