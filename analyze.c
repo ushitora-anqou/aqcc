@@ -123,21 +123,28 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LOR:
             // TODO: ensure both lhs and rhs have arithmetic types or pointer
             // types if needed.
-            ast->lhs = char2int(analyze_ast_detail(env, ast->lhs));
-            ast->rhs = char2int(analyze_ast_detail(env, ast->rhs));
+            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
+            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
+            // TODO: ptr == ptr is okay, but ptr * ptr is not.
             break;
 
         case AST_UNARY_MINUS:
-            ast->lhs = char2int(analyze_ast_detail(env, ast->lhs));
+            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
             ast->type = ast->lhs->type;
+            if (ast->type->kind != TY_INT && ast->type->kind != TY_CHAR)
+                error("expect int or char type for unary minus", __FILE__,
+                      __LINE__);
             break;
 
         case AST_COND:
-            ast->cond = char2int(analyze_ast_detail(env, ast->cond));
-            ast->then = char2int(analyze_ast_detail(env, ast->then));
-            ast->els = char2int(analyze_ast_detail(env, ast->els));
-            ast->type = ast->then->type;  // TODO: consider both then and els
+            ast->cond = char2int(ary2ptr(analyze_ast_detail(env, ast->cond)));
+            ast->then = char2int(ary2ptr(analyze_ast_detail(env, ast->then)));
+            ast->els = char2int(ary2ptr(analyze_ast_detail(env, ast->els)));
+            if (ast->then->type->kind != ast->els->type->kind)
+                error("then and els should have the same type", __FILE__,
+                      __LINE__);
+            ast->type = ast->then->type;
             break;
 
         case AST_ASSIGN:
