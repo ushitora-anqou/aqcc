@@ -26,12 +26,12 @@ GVar *new_gvar_from_decl(AST *ast, int ival)
     return this;
 }
 
-GVar *new_gvar_from_string_literal(char *sval)
+GVar *new_gvar_from_string_literal(char *sval, int ssize)
 {
     GVar *this;
     this = safe_malloc(sizeof(GVar));
     this->name = format(".LC%d", gvar_string_literal_label++);
-    this->type = new_array_type(type_char(), strlen(sval) + 1);
+    this->type = new_array_type(type_char(), ssize);
     this->sval = sval;
     return this;
 }
@@ -70,7 +70,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_STRING_LITERAL: {
-            GVar *gvar = add_gvar(new_gvar_from_string_literal(ast->sval));
+            GVar *gvar =
+                add_gvar(new_gvar_from_string_literal(ast->sval, ast->ssize));
 
             AST *ast;
             ast = new_ast(AST_GVAR);

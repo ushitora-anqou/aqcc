@@ -103,3 +103,85 @@ char *format(char *src, ...)
     strcpy(ret, buf);
     return ret;
 }
+
+int unescape_char(int src)
+{
+    static int table[128];
+    if (table[0] == 0) {
+        memset(table, 0xff, sizeof(table));
+
+        table['n'] = '\n';
+        table['r'] = '\r';
+        table['t'] = '\t';
+        table['0'] = '\0';
+        table['a'] = '\a';
+        table['b'] = '\b';
+        table['v'] = '\v';
+        table['f'] = '\f';
+    }
+
+    int ch = table[src];
+    return ch == -1 ? src : ch;
+}
+
+char *escape_string(char *str, int size)
+{
+    StringBuilder *sb = new_string_builder();
+    for (int i = 0; i < size; i++) {
+        char ch = str[i];
+
+        if (isprint(ch)) {
+            string_builder_append(sb, ch);
+            continue;
+        }
+
+        switch (ch) {
+            case '\n':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'n');
+                break;
+
+            case '\r':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'n');
+                break;
+
+            case '\t':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 't');
+                break;
+
+            case '\0':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, '0');
+                break;
+
+            case '\a':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'a');
+                break;
+
+            case '\b':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'b');
+                break;
+
+            case '\v':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'v');
+                break;
+
+            case '\f':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, 'f');
+                break;
+
+            case '\"':
+                string_builder_append(sb, '\\');
+                string_builder_append(sb, '"');
+                break;
+        }
+    }
+
+    return string_builder_get(sb);
+}

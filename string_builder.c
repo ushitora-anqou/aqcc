@@ -30,3 +30,8 @@ char *string_builder_get(StringBuilder *this)
     ret[size] = '\0';
     return ret;
 }
+
+size_t string_builder_size(StringBuilder *this)
+{
+    return vector_size(this->data) + 1;
+}

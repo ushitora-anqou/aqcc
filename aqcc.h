@@ -32,6 +32,7 @@ typedef struct StringBuilder StringBuilder;
 StringBuilder *new_string_builder();
 char string_builder_append(StringBuilder *this, char ch);
 char *string_builder_get(StringBuilder *this);
+size_t string_builder_size(StringBuilder *this);
 
 enum {
     tINT,
@@ -95,7 +96,12 @@ typedef struct {
 
     union {
         int ival;
-        char *sval;
+
+        struct {
+            char *sval;
+            int ssize;  // only when string literal. including terminating null
+                        // character.
+        };
     };
 } Token;
 
@@ -193,7 +199,10 @@ struct GVar {
     Type *type;
 
     int ival;
-    char *sval;
+
+    struct {
+        char *sval;
+    };
 };
 
 typedef struct AST AST;
@@ -203,7 +212,11 @@ struct AST {
 
     union {
         int ival;
-        char *sval;
+
+        struct {
+            char *sval;
+            int ssize;  // only when string literal. including null character.
+        };
 
         struct {
             char *varname;
@@ -257,6 +270,8 @@ const char *reg_name(int byte, int i);
 int max(int a, int b);
 char byte2suffix(int byte);
 char *format(char *src, ...);
+int unescape_char(int src);
+char *escape_string(char *str, int size);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);

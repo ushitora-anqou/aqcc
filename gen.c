@@ -595,7 +595,8 @@ Vector *generate_code(Vector *asts)
         if (gvar->sval) {
             assert(gvar->type->kind == TY_ARY &&
                    gvar->type->ptr_of->kind == TY_CHAR);
-            appcode(env->codes, ".string \"%s\"", gvar->sval);
+            appcode(env->codes, ".ascii \"%s\"",
+                    escape_string(gvar->sval, gvar->type->nbytes));
             continue;
         }
 

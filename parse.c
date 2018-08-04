@@ -112,6 +112,7 @@ AST *parse_primary_expr(TokenSeq *tokseq)
         case tSTRING_LITERAL:
             ast = new_ast(AST_STRING_LITERAL);
             ast->sval = token->sval;
+            ast->ssize = token->ssize;
             break;
 
         case tIDENT:

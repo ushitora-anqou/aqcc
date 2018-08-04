@@ -65,8 +65,17 @@ void test_string_builder()
     assert(str[3] == '\0');
 }
 
+void test_escape_char()
+{
+    assert(unescape_char('a') == '\a');
+    assert(unescape_char('n') == '\n');
+    assert(unescape_char('s') == 's');
+}
+
 void execute_test()
 {
     test_vector(10);
     test_map();
+    test_string_builder();
+    test_escape_char();
 }

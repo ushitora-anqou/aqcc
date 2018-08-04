@@ -109,17 +109,31 @@ Token *read_next_string_literal_token()
     StringBuilder *sb = new_string_builder();
     while (1) {
         char ch = getch();
-        if (ch == '"') break;
-        if (ch == '\0') error("unexpected EOF", __FILE__, __LINE__);
-        if (ch == '\n')
-            error("unexpected new-line character", __FILE__, __LINE__);
+
+        switch (ch) {
+            case '\\':
+                ch = getch();
+                ch = unescape_char(ch);
+                break;
+
+            case '"':
+                goto end;
+
+            case '\0':
+                error("unexpected EOF", __FILE__, __LINE__);
+
+            case '\n':
+                error("unexpected new-line character", __FILE__, __LINE__);
+        }
 
         string_builder_append(sb, ch);
     }
 
     Token *token;
+end:
     token = new_token(tSTRING_LITERAL);
     token->sval = string_builder_get(sb);
+    token->ssize = string_builder_size(sb);
     return token;
 }
 
