@@ -257,7 +257,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 add_var(ast->env, (AST *)vector_get(ast->params, i));
 
             // analyze body
-            analyze_ast_detail(ast->env, ast->body);
+            ast->body = analyze_ast_detail(ast->env, ast->body);
         } break;
 
         case AST_EXPR_STMT:
@@ -271,7 +271,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
             nenv = new_env(env);
             for (i = 0; i < vector_size(ast->stmts); i++)
-                analyze_ast_detail(nenv, (AST *)vector_get(ast->stmts, i));
+                vector_set(
+                    ast->stmts, i,
+                    analyze_ast_detail(nenv, (AST *)vector_get(ast->stmts, i)));
         } break;
 
         case AST_IF:
