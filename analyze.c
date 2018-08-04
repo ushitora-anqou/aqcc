@@ -166,11 +166,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = ast->lhs->type;
             break;
 
-        case AST_VAR:
-            ast = lookup_var(env, ast->varname);
-            if (!ast) error("not declared variable", __FILE__, __LINE__);
+        case AST_VAR: {
+            char *varname = ast->varname;
+
+            ast = lookup_var(env, varname);
+            if (!ast)
+                error(format("not declared variable: '%s'", varname), __FILE__,
+                      __LINE__);
             assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
-            break;
+        } break;
 
         case AST_LVAR_DECL:
             // ast->type means this variable's type and is alraedy
