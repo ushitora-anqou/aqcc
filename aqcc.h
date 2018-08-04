@@ -91,7 +91,7 @@ enum {
 };
 
 typedef struct {
-    int kind;
+    int kind, line, column;
 
     union {
         int ival;

@@ -5,6 +5,21 @@ AST *parse_assignment_expr(TokenSeq *tokseq);
 AST *parse_stmt(TokenSeq *tokseq);
 Type *parse_type_name(TokenSeq *tokseq);
 
+_Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
+{
+    error(format(":%d:%d: unexpected token: expect %s, got %s", got->line,
+                 got->column, token_kind2str(expect_kind),
+                 token_kind2str(got->kind)),
+          __FILE__, __LINE__);
+}
+
+_Noreturn void error_unexpected_token_str(char *expect_str, Token *got)
+{
+    error(format(":%d:%d: unexpected token: expect %s, got %s", got->line,
+                 got->column, expect_str, token_kind2str(got->kind)),
+          __FILE__, __LINE__);
+}
+
 TokenSeq *new_token_seq(Vector *tokens)
 {
     TokenSeq *this = safe_malloc(sizeof(TokenSeq));
@@ -31,10 +46,7 @@ Token *pop_token(TokenSeq *seq)
 Token *expect_token(TokenSeq *seq, int kind)
 {
     Token *token = pop_token(seq);
-    if (token->kind != kind)
-        error(format("unexpected token: expect %s, got %s",
-                     token_kind2str(kind), token_kind2str(token->kind)),
-              __FILE__, __LINE__);
+    if (token->kind != kind) error_unexpected_token_kind(kind, token);
     return token;
 }
 
@@ -107,7 +119,7 @@ AST *parse_primary_expr(TokenSeq *tokseq)
             assert(0);
 
         default:
-            error("unexpected token", __FILE__, __LINE__);
+            error_unexpected_token_str("primary expression", token);
     }
     return ast;
 }
@@ -500,7 +512,7 @@ AST *parse_jump_stmt(TokenSeq *tokseq)
             break;
 
         default:
-            error("unexpected token", __FILE__, __LINE__);
+            error_unexpected_token_str("jump statement", token);
     }
 
     return ast;
@@ -551,7 +563,7 @@ AST *parse_iteration_stmt(TokenSeq *tokseq)
         } break;
 
         default:
-            error("unexpected token", __FILE__, __LINE__);
+            error_unexpected_token_str("iteraiton statement", token);
     }
 
     return ast;
@@ -568,7 +580,7 @@ Type *parse_type_specifier(TokenSeq *tokseq)
         case kCHAR:
             return type_char();
     }
-    error("unexpected token: expect type-specifier", __FILE__, __LINE__);
+    error_unexpected_token_str("type specifier", token);
 }
 
 Type *parse_type_name(TokenSeq *tokseq)

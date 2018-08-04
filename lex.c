@@ -2,41 +2,82 @@
 
 typedef struct {
     int line, column;
+    Vector *line2length;
     char *src;
-} SrcFile;
+} Source;
+Source source;
 
-char getch(SrcFile *file) { return *file->src++; }
+void init_source(char *src)
+{
+    source.src = src;
+    source.line = source.column = 1;
+    source.line2length = new_vector();
 
-void ungetch(SrcFile *file) { file->src--; }
+    // fill file.line2length
+    vector_push_back(source.line2length, NULL);  // line is 1-based index.
+    for (int i = 0, column = 1; src[i] == '\0'; i++, column++) {
+        if (src[i] == '\n') {
+            vector_push_back(source.line2length, (void *)column);
+            column = 0;
+        }
+    }
+}
 
-char peekch(SrcFile *file) { return *file->src; }
+void ungetch()
+{
+    source.src--;
+    if (*source.src == '\n') {
+        source.line--;
+        source.column = (int)vector_get(source.line2length, source.line);
+    }
+    else {
+        source.column--;
+    }
+}
+
+char peekch() { return *source.src; }
+
+char getch()
+{
+    char ch = peekch();
+    if (ch == '\n') {
+        source.line++;
+        source.column = 0;
+    }
+    else {
+        source.column++;
+    }
+    return *source.src++;
+}
 
 Token *new_token(int kind)
 {
     Token *token = safe_malloc(sizeof(Token));
     token->kind = kind;
+    token->line = source.line;
+    token->column = source.column;
     return token;
 }
 
-Token *read_next_int_token(SrcFile *file)
+Token *read_next_int_token()
 {
     int acc = 0;
 
-    while (isdigit(peekch(file))) acc = 10 * acc + getch(file) - '0';
+    while (isdigit(peekch())) acc = 10 * acc + getch() - '0';
 
     Token *token = new_token(tINT);
     token->ival = acc;
     return token;
 }
 
-Token *read_next_ident_token(SrcFile *file)
+Token *read_next_ident_token()
 {
     StringBuilder *sb = new_string_builder();
     while (1) {
-        int ch = getch(file);
+        int ch = getch();
 
         if (!isalnum(ch) && ch != '_') {
-            ungetch(file);
+            ungetch();
             break;
         }
 
@@ -63,11 +104,11 @@ Token *read_next_ident_token(SrcFile *file)
 }
 
 // assume that the first doublequote has been already read.
-Token *read_next_string_literal_token(SrcFile *file)
+Token *read_next_string_literal_token()
 {
     StringBuilder *sb = new_string_builder();
     while (1) {
-        char ch = getch(file);
+        char ch = getch();
         if (ch == '"') break;
         if (ch == '\0') error("unexpected EOF", __FILE__, __LINE__);
         if (ch == '\n')
@@ -82,56 +123,56 @@ Token *read_next_string_literal_token(SrcFile *file)
     return token;
 }
 
-Token *read_next_token(SrcFile *file)
+Token *read_next_token()
 {
-    while (peekch(file) != '\0') {
-        char ch = getch(file);
+    while (peekch() != '\0') {
+        char ch = getch();
 
         if (isspace(ch)) continue;
 
         if (isdigit(ch)) {
-            ungetch(file);
-            return read_next_int_token(file);
+            ungetch();
+            return read_next_int_token();
         }
 
         if (isalpha(ch) || ch == '_') {
-            ungetch(file);
-            return read_next_ident_token(file);
+            ungetch();
+            return read_next_ident_token();
         }
 
         switch (ch) {
             case '"':
-                return read_next_string_literal_token(file);
+                return read_next_string_literal_token();
 
             case '+':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '+') return new_token(tINC);
                 if (ch == '=') return new_token(tPLUSEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tPLUS);
 
             case '-':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tMINUSEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tMINUS);
 
             case '*':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tSTAREQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tSTAR);
 
             case '/':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tSLASHEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tSLASH);
 
             case '%':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tPERCENTEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tPERCENT);
 
             case '(':
@@ -141,62 +182,62 @@ Token *read_next_token(SrcFile *file)
                 return new_token(tRPAREN);
 
             case '<':
-                ch = getch(file);
+                ch = getch();
                 switch (ch) {
                     case '<':
-                        ch = getch(file);
+                        ch = getch();
                         if (ch == '=') return new_token(tLSHIFTEQ);
-                        ungetch(file);
+                        ungetch();
                         return new_token(tLSHIFT);
                     case '=':
                         return new_token(tLTE);
                 }
-                ungetch(file);
+                ungetch();
                 return new_token(tLT);
 
             case '>':
-                ch = getch(file);
+                ch = getch();
                 switch (ch) {
                     case '>':
-                        ch = getch(file);
+                        ch = getch();
                         if (ch == '=') return new_token(tRSHIFTEQ);
-                        ungetch(file);
+                        ungetch();
                         return new_token(tRSHIFT);
                     case '=':
                         return new_token(tGTE);
                 }
-                ungetch(file);
+                ungetch();
                 return new_token(tGT);
 
             case '=':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tEQEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tEQ);
 
             case '!':
-                ch = getch(file);
+                ch = getch();
                 if (ch != '=') break;
                 return new_token(tNEQ);
 
             case '&':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '&') return new_token(tANDAND);
                 if (ch == '=') return new_token(tANDEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tAND);
 
             case '^':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '=') return new_token(tHATEQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tHAT);
 
             case '|':
-                ch = getch(file);
+                ch = getch();
                 if (ch == '|') return new_token(tBARBAR);
                 if (ch == '=') return new_token(tBAREQ);
-                ungetch(file);
+                ungetch();
                 return new_token(tBAR);
 
             case ';':
@@ -236,12 +277,11 @@ Vector *read_all_tokens(FILE *fh)
     StringBuilder *sb = new_string_builder();
     int ch;
     while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
-    SrcFile file;
-    file.src = string_builder_get(sb);
+    init_source(string_builder_get(sb));
 
     Vector *tokens = new_vector();
     while (1) {
-        Token *token = read_next_token(&file);
+        Token *token = read_next_token();
         vector_push_back(tokens, token);
         if (token->kind == tEOF) break;
     }
