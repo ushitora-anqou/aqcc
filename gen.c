@@ -1,5 +1,7 @@
 #include "aqcc.h"
 
+int min(int a, int b) { return a < b ? a : b; }
+
 typedef struct {
     int nlabel, loop_continue_label, loop_break_label;
     Vector *codes;
@@ -395,17 +397,15 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
-        case AST_FUNCCALL: {
-            int i;
-
-            for (i = vector_size(ast->args) - 1; i >= 0; i--) {
+        case AST_FUNCCALL:
+            for (int i = vector_size(ast->args) - 1; i >= 0; i--)
                 generate_code_detail(env, (AST *)(vector_get(ast->args, i)));
-                if (i < 6) appcode(env->codes, "pop %s", reg_name(8, i + 1));
-            }
+            for (int i = 0; i < min(6, vector_size(ast->args)); i++)
+                appcode(env->codes, "pop %s", reg_name(8, i + 1));
             appcode(env->codes, "mov $0, #eax");
             appcode(env->codes, "call %s@PLT", ast->fname);
             appcode(env->codes, "push #rax");
-        } break;
+            break;
 
         case AST_FUNCDEF: {
             int i, stack_idx;

@@ -295,3 +295,4 @@ prog=`cat <<EOS
 int main() { return 1; }
 EOS`
 test_aqcc "$prog" 1
+test_aqcc "int divdiv(int a, int b) { return a / b; } int add_three(int a, int b) { return a + b + 3; } int main() { return add_three(divdiv(100, 5), 2); }" 25
