@@ -63,6 +63,21 @@ void dump_codes(Vector *codes, FILE *fh)
         fprintf(fh, "%s\n", (const char *)vector_get(codes, i));
 }
 
+void generate_mov_from_memory(CodeEnv *env, int nbytes, const char *src,
+                              int dst_reg)
+{
+    switch (nbytes) {
+        case 1:
+            appcode(env->codes, "movsbl %s, %s", src, reg_name(4, dst_reg));
+            break;
+
+        case 4:
+        case 8:
+            appcode(env->codes, "mov %s, %s", src, reg_name(nbytes, dst_reg));
+            break;
+    }
+}
+
 void generate_code_detail_lvalue(CodeEnv *env, AST *ast)
 {
     switch (ast->kind) {
@@ -338,7 +353,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         case AST_INDIR: {
             generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop %rax");
-            appcode(env->codes, "mov (%rax), #rdi");
+            generate_mov_from_memory(env, ast->type->nbytes, "(%rax)", 1);
             appcode(env->codes, "push %rdi");
         } break;
 
@@ -369,31 +384,14 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_LVAR:
-            switch (ast->type->nbytes) {
-                case 1:
-                    appcode(env->codes, "movsbl %d(#rbp), #eax",
-                            ast->stack_idx);
-                    break;
-                case 4:
-                case 8:
-                    appcode(env->codes, "mov %d(#rbp), %s", ast->stack_idx,
-                            reg_name(ast->type->nbytes, 0));
-                    break;
-            }
+            generate_mov_from_memory(env, ast->type->nbytes,
+                                     format("%d(%rbp)", ast->stack_idx), 0);
             appcode(env->codes, "push #rax");
             break;
 
         case AST_GVAR:
-            switch (ast->type->nbytes) {
-                case 1:
-                    appcode(env->codes, "movsbl %s(#rip), #eax", ast->varname);
-                    break;
-                case 4:
-                case 8:
-                    appcode(env->codes, "mov %s(#rip), %s", ast->varname,
-                            reg_name(ast->type->nbytes, 0));
-                    break;
-            }
+            generate_mov_from_memory(env, ast->type->nbytes,
+                                     format("%s(%rip)", ast->varname), 0);
             appcode(env->codes, "push #rax");
             break;
 
