@@ -40,6 +40,8 @@ char peekch() { return *source.src; }
 char getch()
 {
     char ch = peekch();
+    if (ch == '\0') error("unexpected EOF", __FILE__, __LINE__);
+
     if (ch == '\n') {
         source.line++;
         source.column = 0;
@@ -119,9 +121,6 @@ Token *read_next_string_literal_token()
             case '"':
                 goto end;
 
-            case '\0':
-                error("unexpected EOF", __FILE__, __LINE__);
-
             case '\n':
                 error("unexpected new-line character", __FILE__, __LINE__);
         }
@@ -134,6 +133,20 @@ end:
     token = new_token(tSTRING_LITERAL);
     token->sval = string_builder_get(sb);
     token->ssize = string_builder_size(sb);
+    return token;
+}
+
+// assume that the first singlequote has been already read.
+Token *read_next_character_constant_token()
+{
+    char ch = getch();
+    if (ch == '\'') error("unexpected singlequote.", __FILE__, __LINE__);
+    if (ch == '\\') ch = unescape_char(getch());
+    while (getch() != '\'')
+        ;
+
+    Token *token = new_token(tINT);
+    token->ival = ch;
     return token;
 }
 
@@ -157,6 +170,9 @@ Token *read_next_token()
         switch (ch) {
             case '"':
                 return read_next_string_literal_token();
+
+            case '\'':
+                return read_next_character_constant_token();
 
             case '+':
                 ch = getch();

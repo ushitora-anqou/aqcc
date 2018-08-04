@@ -284,3 +284,8 @@ test_aqcc 'int test(int *ary) { ary[0] = 5; } int main() { int ary[2]; ary[0] = 
 test_aqcc "int main() { int n = 0; return *&*&n; }" 0
 test_aqcc 'int main() { char *str = "abc\0abc"; return str[3]; }' 0
 test_aqcc 'int main() { return sizeof("\t"); }' 2
+test_aqcc "int main() { return 'A'; }" 65
+test_aqcc "int main() { return 'a'; }" 97
+test_aqcc "int main() { return '\t'; }" 9
+test_aqcc "int main() { return '\0'; }" 0
+test_aqcc "int main() { return '\n'; }" 10
