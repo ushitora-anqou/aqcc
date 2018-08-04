@@ -277,11 +277,20 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_IF:
-        case AST_WHILE:
             ast->cond = analyze_ast_detail(env, ast->cond);
             ast->then = analyze_ast_detail(env, ast->then);
             ast->els = analyze_ast_detail(env, ast->els);
             break;
+
+        case AST_WHILE: {
+            AST *cond = analyze_ast_detail(env, ast->cond),
+                *body = analyze_ast_detail(env, ast->then);
+            ast = new_ast(AST_FOR);
+            ast->initer = NULL;
+            ast->midcond = cond;
+            ast->iterer = NULL;
+            ast->for_body = body;
+        } break;
 
         case AST_FOR:
             ast->initer = analyze_ast_detail(env, ast->initer);

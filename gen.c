@@ -470,26 +470,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "ret");
             break;
 
-        case AST_WHILE: {
-            int org_loop_start_label = env->loop_continue_label,
-                org_loop_end_label = env->loop_break_label;
-            env->loop_continue_label = env->nlabel++;
-            env->loop_break_label = env->nlabel++;
-
-            appcode(env->codes, ".L%d:", env->loop_continue_label);
-            assert(ast->cond != NULL);
-            generate_code_detail(env, ast->cond);
-            appcode(env->codes, "pop #rax");
-            appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", env->loop_break_label);
-            generate_code_detail(env, ast->then);
-            appcode(env->codes, "jmp .L%d", env->loop_continue_label);
-            appcode(env->codes, ".L%d:", env->loop_break_label);
-
-            env->loop_continue_label = org_loop_start_label;
-            env->loop_break_label = org_loop_end_label;
-        } break;
-
         case AST_FOR: {
             int org_loop_start_label = env->loop_continue_label,
                 org_loop_end_label = env->loop_break_label;
