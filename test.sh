@@ -289,3 +289,9 @@ test_aqcc "int main() { return 'a'; }" 97
 test_aqcc "int main() { return '\t'; }" 9
 test_aqcc "int main() { return '\0'; }" 0
 test_aqcc "int main() { return '\n'; }" 10
+test_aqcc "int main() { /*** comment *****/ return 1; }" 1
+prog=`cat <<EOS
+// comment
+int main() { return 1; }
+EOS`
+test_aqcc "$prog" 1

@@ -196,6 +196,19 @@ Token *read_next_token()
             case '/':
                 ch = getch();
                 if (ch == '=') return new_token(tSLASHEQ);
+                if (ch == '*') {  // old comment
+                    while (1) {
+                        if (getch() != '*') continue;
+                        if (getch() == '/') break;
+                        ungetch();
+                    }
+                    continue;
+                }
+                if (ch == '/') {  // new comment
+                    while (getch() != '\n')
+                        ;
+                    continue;
+                }
                 ungetch();
                 return new_token(tSLASH);
 
