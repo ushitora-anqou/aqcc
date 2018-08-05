@@ -2,8 +2,15 @@
 
 int min(int a, int b) { return a < b ? a : b; }
 
+#define SAVE_BREAK_CXT char *break_cxt__org_break_label = env->break_label;
+#define RESTORE_BREAK_CXT env->break_label = break_cxt__org_break_label;
+#define SAVE_CONTINUE_CXT \
+    char *continue_cxt__org_continue_label = env->continue_label;
+#define RESTORE_CONTINUE_CXT \
+    env->continue_label = continue_cxt__org_continue_label;
+
 typedef struct {
-    int nlabel, loop_continue_label, loop_break_label;
+    char *continue_label, *break_label;
     Vector *codes;
 } CodeEnv;
 
@@ -14,8 +21,7 @@ CodeEnv *new_code_env()
     CodeEnv *this;
 
     this = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
-    this->nlabel = 0;
-    this->loop_continue_label = this->loop_break_label = -1;
+    this->continue_label = this->break_label = NULL;
     this->codes = new_vector();
     return this;
 }
@@ -275,40 +281,42 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_LAND: {
-            int false_label = env->nlabel++, exit_label = env->nlabel++;
+            char *false_label = make_label_string(),
+                 *exit_label = make_label_string();
             generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", false_label);
+            appcode(env->codes, "je %s", false_label);
             // don't execute rhs expression if lhs is false.
             generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", false_label);
+            appcode(env->codes, "je %s", false_label);
             appcode(env->codes, "mov $1, #eax");
-            appcode(env->codes, "jmp .L%d", exit_label);
-            appcode(env->codes, ".L%d:", false_label);
+            appcode(env->codes, "jmp %s", exit_label);
+            appcode(env->codes, "%s:", false_label);
             appcode(env->codes, "mov $0, #eax");
-            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "%s:", exit_label);
             appcode(env->codes, "push #rax");
         } break;
 
         case AST_LOR: {
-            int true_label = env->nlabel++, exit_label = env->nlabel++;
+            char *true_label = make_label_string(),
+                 *exit_label = make_label_string();
             generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "jne .L%d", true_label);
+            appcode(env->codes, "jne %s", true_label);
             // don't execute rhs expression if lhs is true.
             generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "jne .L%d", true_label);
+            appcode(env->codes, "jne %s", true_label);
             appcode(env->codes, "mov $0, #eax");
-            appcode(env->codes, "jmp .L%d", exit_label);
-            appcode(env->codes, ".L%d:", true_label);
+            appcode(env->codes, "jmp %s", exit_label);
+            appcode(env->codes, "%s:", true_label);
             appcode(env->codes, "mov $1, #eax");
-            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "%s:", exit_label);
             appcode(env->codes, "push #rax");
         } break;
 
@@ -359,17 +367,18 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_IF:
         case AST_COND: {
-            int false_label = env->nlabel++, exit_label = env->nlabel++;
+            char *false_label = make_label_string(),
+                 *exit_label = make_label_string();
 
             generate_code_detail(env, ast->cond);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "cmp $0, #eax");
-            appcode(env->codes, "je .L%d", false_label);
+            appcode(env->codes, "je %s", false_label);
             generate_code_detail(env, ast->then);
-            appcode(env->codes, "jmp .L%d", exit_label);
-            appcode(env->codes, ".L%d:", false_label);
+            appcode(env->codes, "jmp %s", exit_label);
+            appcode(env->codes, "%s:", false_label);
             if (ast->els != NULL) generate_code_detail(env, ast->els);
-            appcode(env->codes, ".L%d:", exit_label);
+            appcode(env->codes, "%s:", exit_label);
         } break;
 
         case AST_SWITCH: {
@@ -381,17 +390,17 @@ void generate_code_detail(CodeEnv *env, AST *ast)
                 appcode(env->codes, "cmp $%d, #eax", cas->cond);
                 appcode(env->codes, "je %s", cas->label_name);
             }
-            int exit_label = env->nlabel++;
+            char *exit_label = make_label_string();
             if (ast->default_label)
                 appcode(env->codes, "jmp %s", ast->default_label);
             else
-                appcode(env->codes, "jmp .L%d", exit_label);
+                appcode(env->codes, "jmp %s", exit_label);
 
-            int org_loop_break_label = env->loop_break_label;
-            env->loop_break_label = exit_label;
+            SAVE_BREAK_CXT;
+            env->break_label = exit_label;
             generate_code_detail(env, ast->switch_body);
-            appcode(env->codes, ".L%d:", exit_label);
-            env->loop_break_label = org_loop_break_label;
+            appcode(env->codes, "%s:", exit_label);
+            RESTORE_BREAK_CXT;
         } break;
 
         case AST_LABEL:
@@ -498,46 +507,46 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_FOR: {
-            int org_loop_start_label = env->loop_continue_label,
-                org_loop_end_label = env->loop_break_label;
-            int loop_start_label = env->nlabel++;
-            env->loop_continue_label = env->nlabel++;
-            env->loop_break_label = env->nlabel++;
+            SAVE_BREAK_CXT;
+            SAVE_CONTINUE_CXT;
+            env->break_label = make_label_string();
+            env->continue_label = make_label_string();
+            char *start_label = make_label_string();
 
             if (ast->initer != NULL) {
                 generate_code_detail(env, ast->initer);
                 appcode(env->codes, "pop #rax");
             }
-            appcode(env->codes, ".L%d:", loop_start_label);
+            appcode(env->codes, "%s:", start_label);
             if (ast->midcond != NULL) {
                 generate_code_detail(env, ast->midcond);
                 appcode(env->codes, "pop #rax");
                 appcode(env->codes, "cmp $0, #eax");
-                appcode(env->codes, "je .L%d", env->loop_break_label);
+                appcode(env->codes, "je %s", env->break_label);
             }
             generate_code_detail(env, ast->for_body);
-            appcode(env->codes, ".L%d:", env->loop_continue_label);
+            appcode(env->codes, "%s:", env->continue_label);
             if (ast->iterer != NULL) {
                 generate_code_detail(env, ast->iterer);
                 appcode(env->codes, "pop #rax");
             }
-            appcode(env->codes, "jmp .L%d", loop_start_label);
-            appcode(env->codes, ".L%d:", env->loop_break_label);
+            appcode(env->codes, "jmp %s", start_label);
+            appcode(env->codes, "%s:", env->break_label);
 
-            env->loop_continue_label = org_loop_start_label;
-            env->loop_break_label = org_loop_end_label;
+            RESTORE_BREAK_CXT;
+            RESTORE_CONTINUE_CXT;
         } break;
 
         case AST_BREAK:
-            if (env->loop_break_label < 0)
+            if (env->break_label < 0)
                 error("invalid break.", __FILE__, __LINE__);
-            appcode(env->codes, "jmp .L%d", env->loop_break_label);
+            appcode(env->codes, "jmp %s", env->break_label);
             break;
 
         case AST_CONTINUE:
-            if (env->loop_continue_label < 0)
+            if (env->continue_label < 0)
                 error("invalid continue.", __FILE__, __LINE__);
-            appcode(env->codes, "jmp .L%d", env->loop_continue_label);
+            appcode(env->codes, "jmp %s", env->continue_label);
             break;
 
         case AST_COMPOUND: {

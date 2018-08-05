@@ -288,13 +288,13 @@ void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);
 char *new_str(const char *src);
 int *new_int(int src);
-char *new_char(char ch);
 const char *reg_name(int byte, int i);
 int max(int a, int b);
 char byte2suffix(int byte);
 char *format(char *src, ...);
 int unescape_char(int src);
 char *escape_string(char *str, int size);
+char *make_label_string();
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);

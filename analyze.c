@@ -36,7 +36,6 @@ GVar *new_gvar_from_string_literal(char *sval, int ssize)
     return this;
 }
 
-int switch_case_label = 0;
 Vector *switch_cases = NULL;
 char *default_label = NULL;
 
@@ -66,8 +65,7 @@ Vector *reset_switch_cases(Vector *cases)
 AST *add_switch_case(AST *case_ast)
 {
     // TODO: check duplicate cases
-    AST *label =
-        new_label_ast(format(".LS%d", switch_case_label++), case_ast->rhs);
+    AST *label = new_label_ast(make_label_string(), case_ast->rhs);
 
     SwitchCase *cas = (SwitchCase *)safe_malloc(sizeof(SwitchCase));
     cas->cond = case_ast->lhs->ival;
@@ -81,8 +79,7 @@ AST *add_switch_default(AST *default_ast)
 {
     if (default_label)
         error("duplicate default label for switch", __FILE__, __LINE__);
-    AST *label =
-        new_label_ast(format(".LS%d", switch_case_label++), default_ast->lhs);
+    AST *label = new_label_ast(make_label_string(), default_ast->lhs);
     default_label = label->label_name;
     return label;
 }

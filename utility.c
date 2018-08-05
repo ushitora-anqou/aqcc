@@ -45,13 +45,6 @@ int *new_int(int src)
     return ret;
 }
 
-char *new_char(char ch)
-{
-    char *ret = safe_malloc(sizeof(char));
-    *ret = ch;
-    return ret;
-}
-
 const char *reg_name(int byte, int i)
 {
     const char *lreg[] = {"%al", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
@@ -184,4 +177,10 @@ char *escape_string(char *str, int size)
     }
 
     return string_builder_get(sb);
+}
+
+char *make_label_string()
+{
+    static int count;
+    return format(".L%d", count++);
 }
