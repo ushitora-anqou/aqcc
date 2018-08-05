@@ -188,6 +188,15 @@ AST *parse_postfix_expr(TokenSeq *tokseq)
                 ast = nast;
             } break;
 
+            case tARROW: {
+                pop_token(tokseq);
+                char *ident = expect_token(tokseq, tIDENT)->sval;
+                AST *nast = new_ast(AST_MEMBER_REF_PTR);
+                nast->stsrc = ast;
+                nast->member = ident;
+                ast = nast;
+            } break;
+
             default:
                 goto end;
         }

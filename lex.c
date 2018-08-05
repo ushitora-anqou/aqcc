@@ -189,6 +189,7 @@ Token *read_next_token()
             case '-':
                 ch = getch();
                 if (ch == '=') return new_token(tMINUSEQ);
+                if (ch == '>') return new_token(tARROW);
                 ungetch();
                 return new_token(tMINUS);
 

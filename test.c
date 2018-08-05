@@ -1176,6 +1176,39 @@ int test287()
     return *a.p;
 }
 
+int test288()
+{
+    struct hoge {
+        int i;
+    } a;
+    struct hoge *b = &a;
+    (*b).i = 1;
+    return (*b).i;
+}
+
+int test289()
+{
+    struct hoge {
+        int i;
+    } a;
+    struct hoge *b = &a;
+    b->i = 1;
+    return b->i;
+}
+
+int test290()
+{
+    struct hoge {
+        int i;
+        char ch[20];
+        int j[10][2];
+    } a;
+    struct hoge *b = &a;
+    b->j[5][1] = 20;
+    b->j[3][0] = 10;
+    return b->j[5][1];
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1460,4 +1493,7 @@ int main()
     expect_int(285, test285(), 1);
     expect_int(286, test286(), 2);
     expect_int(287, test287(), 34);
+    expect_int(288, test288(), 1);
+    expect_int(289, test289(), 1);
+    expect_int(290, test290(), 20);
 }

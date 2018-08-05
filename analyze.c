@@ -152,6 +152,7 @@ AST *lvalue2rvalue(AST *lvalue)
 Type *analyze_type(Env *env, Type *type)
 {
     if (type->kind != TY_STRUCT) return type;
+    if (type->members != NULL) return type;
 
     if (type->decls == NULL) {
         Type *ntype = lookup_type(env, type->stname);
@@ -531,11 +532,18 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_MEMBER_REF: {
             ast->stsrc = analyze_ast_detail(env, ast->stsrc);
+            ast->stsrc->type = analyze_type(env, ast->stsrc->type);
             StructMember *sm =
                 lookup_member(ast->stsrc->type->members, ast->member);
             if (sm == NULL) error("no such member", __FILE__, __LINE__);
             ast->type = sm->type;
         } break;
+
+        case AST_MEMBER_REF_PTR:
+            ast->kind = AST_MEMBER_REF;
+            ast->stsrc = new_unary_ast(AST_INDIR, ast->stsrc);
+            ast = analyze_ast_detail(env, ast);
+            break;
     }
 
     return ast;

@@ -72,6 +72,7 @@ enum {
     tSEMICOLON,
     tCOMMA,
     tDOT,
+    tARROW,
     tLBRACE,
     tRBRACE,
     kRETURN,
@@ -240,6 +241,7 @@ enum {
     AST_GOTO,
     AST_LVALUE2RVALUE,
     AST_MEMBER_REF,
+    AST_MEMBER_REF_PTR,
 };
 
 struct AST {
