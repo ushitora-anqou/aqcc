@@ -237,6 +237,7 @@ enum {
     AST_CHAR2INT,
     AST_SIZEOF,
     AST_GOTO,
+    AST_LVALUE2RVALUE,
 };
 
 struct AST {
@@ -365,6 +366,7 @@ AST *new_unary_ast(int kind, AST *that);
 AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
                   Type *ret_type);
 AST *new_label_ast(char *name, AST *stmt);
+AST *new_lvalue2rvalue_ast(AST *lvalue);
 
 // analyze.c
 void analyze_ast(Vector *asts);

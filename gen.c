@@ -72,35 +72,15 @@ void generate_mov_from_memory(CodeEnv *env, int nbytes, const char *src,
 {
     switch (nbytes) {
         case 1:
-            appcode(env->codes, "movsbl %s, %s", src, reg_name(4, dst_reg));
+            appcode(env->codes, "movsbl %s, %s /* gen_mov */", src,
+                    reg_name(4, dst_reg));
             break;
 
         case 4:
         case 8:
-            appcode(env->codes, "mov %s, %s", src, reg_name(nbytes, dst_reg));
+            appcode(env->codes, "mov %s, %s /* gen_mov */", src,
+                    reg_name(nbytes, dst_reg));
             break;
-    }
-}
-
-void generate_code_detail_lvalue(CodeEnv *env, AST *ast)
-{
-    switch (ast->kind) {
-        case AST_LVAR:
-            appcode(env->codes, "lea %d(#rbp), #rax", ast->stack_idx);
-            appcode(env->codes, "push #rax");
-            break;
-
-        case AST_GVAR:
-            appcode(env->codes, "lea %s(#rip), #rax", ast->varname);
-            appcode(env->codes, "push #rax");
-            break;
-
-        case AST_INDIR:
-            generate_code_detail(env, ast->lhs);
-            break;
-
-        default:
-            assert(0);
     }
 }
 
@@ -323,7 +303,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             suf = byte2suffix(ast->lhs->type->nbytes);
 
-            generate_code_detail_lvalue(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
             appcode(env->codes, "push (#rax)");
 
@@ -340,7 +320,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             suf = byte2suffix(ast->lhs->type->nbytes);
 
-            generate_code_detail_lvalue(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
             appcode(env->codes, "pop #rax");
 
             if (match_type(ast->lhs, TY_PTR))
@@ -353,15 +333,9 @@ void generate_code_detail(CodeEnv *env, AST *ast)
         } break;
 
         case AST_ADDR:
-            generate_code_detail_lvalue(env, ast->lhs);
-            break;
-
-        case AST_INDIR: {
+        case AST_INDIR:
             generate_code_detail(env, ast->lhs);
-            appcode(env->codes, "pop #rax");
-            generate_mov_from_memory(env, ast->type->nbytes, "(%rax)", 1);
-            appcode(env->codes, "push #rdi");
-        } break;
+            break;
 
         case AST_IF:
         case AST_COND: {
@@ -409,7 +383,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_ASSIGN:
             generate_code_detail(env, ast->rhs);
-            generate_code_detail_lvalue(env, ast->lhs);
+            generate_code_detail(env, ast->lhs);
 
             appcode(env->codes, "pop #rdi");
             appcode(env->codes, "pop #rax");
@@ -419,14 +393,12 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_LVAR:
-            generate_mov_from_memory(env, ast->type->nbytes,
-                                     format("%d(%%rbp)", ast->stack_idx), 0);
+            appcode(env->codes, "lea %d(#rbp), #rax", ast->stack_idx);
             appcode(env->codes, "push #rax");
             break;
 
         case AST_GVAR:
-            generate_mov_from_memory(env, ast->type->nbytes,
-                                     format("%s(%%rip)", ast->varname), 0);
+            appcode(env->codes, "lea %s(#rip), #rax", ast->varname);
             appcode(env->codes, "push #rax");
             break;
 
@@ -564,18 +536,25 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             break;
 
         case AST_ARY2PTR:
-            // TODO: is it always safe to treat ary2ptr as lvalue generation?
-            generate_code_detail_lvalue(env, ast->ary);
+            generate_code_detail(env, ast->ary);
             break;
 
         case AST_CHAR2INT:
             generate_code_detail(env, ast->lhs);
             break;
 
+        case AST_LVALUE2RVALUE:
+            generate_code_detail(env, ast->lhs);
+            appcode(env->codes, "pop #rax");
+            generate_mov_from_memory(env, ast->type->nbytes, "(%rax)", 1);
+            appcode(env->codes, "push #rdi");
+            break;
+
         case AST_LVAR_DECL_INIT:
         case AST_GVAR_DECL_INIT:
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);
+            appcode(env->codes, "pop #rax");
             break;
 
         case AST_GVAR_DECL:

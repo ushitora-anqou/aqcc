@@ -141,6 +141,12 @@ int is_lvalue(AST *ast)
     return 0;
 }
 
+AST *lvalue2rvalue(AST *lvalue)
+{
+    if (is_lvalue(lvalue)) return new_lvalue2rvalue_ast(lvalue);
+    return lvalue;
+}
+
 // not recursive.
 Type *analyze_type(Env *env, Type *type)
 {
@@ -204,8 +210,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_ADD:
-            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
-            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
+            ast->lhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs))));
+            ast->rhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs))));
 
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 error("ptr + ptr is not allowed", __FILE__, __LINE__);
@@ -217,8 +225,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_SUB:
-            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
-            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
+            ast->lhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs))));
+            ast->rhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs))));
 
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR))
                 error("int - ptr is not allowed", __FILE__, __LINE__);
@@ -245,16 +255,20 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LOR:
             // TODO: ensure both lhs and rhs have arithmetic types or pointer
             // types if needed.
-            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
-            ast->rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
+            ast->lhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs))));
+            ast->rhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs))));
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
             // TODO: ptr == ptr is okay, but ptr * ptr is not.
             break;
 
         case AST_GTE:
         case AST_GT: {
-            AST *lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs))),
-                *rhs = char2int(ary2ptr(analyze_ast_detail(env, ast->rhs)));
+            AST *lhs = char2int(
+                    lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs)))),
+                *rhs = char2int(
+                    lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs))));
             // swap lhs and rhs to replace AST_GT(E) with AST_LT(E)
             ast->lhs = rhs;
             ast->rhs = lhs;
@@ -263,7 +277,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_UNARY_MINUS:
-            ast->lhs = char2int(ary2ptr(analyze_ast_detail(env, ast->lhs)));
+            ast->lhs = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs))));
             ast->type = ast->lhs->type;
             if (ast->type->kind != TY_INT && ast->type->kind != TY_CHAR)
                 error("expect int or char type for unary minus", __FILE__,
@@ -271,9 +286,12 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_COND:
-            ast->cond = char2int(ary2ptr(analyze_ast_detail(env, ast->cond)));
-            ast->then = char2int(ary2ptr(analyze_ast_detail(env, ast->then)));
-            ast->els = char2int(ary2ptr(analyze_ast_detail(env, ast->els)));
+            ast->cond = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->cond))));
+            ast->then = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->then))));
+            ast->els = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->els))));
             if (ast->then->type->kind != ast->els->type->kind)
                 error("then and els should have the same type", __FILE__,
                       __LINE__);
@@ -282,7 +300,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_ASSIGN:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            ast->rhs = ary2ptr(analyze_ast_detail(env, ast->rhs));
+            ast->rhs =
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs)));
             if (!is_lvalue(ast->lhs))
                 error("should specify lvalue for assignment op", __FILE__,
                       __LINE__);
@@ -349,8 +368,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             // analyze args
             for (i = 0; i < vector_size(ast->args); i++)
                 vector_set(ast->args, i,
-                           char2int(ary2ptr(analyze_ast_detail(
-                               env, (AST *)vector_get(ast->args, i)))));
+                           char2int(lvalue2rvalue(ary2ptr(analyze_ast_detail(
+                               env, (AST *)vector_get(ast->args, i))))));
         } break;
 
         case AST_FUNC_DECL:
@@ -390,9 +409,11 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_EXPR_STMT:
-        case AST_RETURN:
+        case AST_RETURN: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            break;
+            if (ast->lhs)  //
+                ast->lhs = char2int(lvalue2rvalue(ary2ptr(ast->lhs)));
+        } break;
 
         case AST_COMPOUND: {
             int i;
@@ -433,7 +454,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_SWITCH: {
             SAVE_SWITCH_CXT;
-            ast->target = analyze_ast_detail(env, ast->target);
+            ast->target = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->target))));
             ast->switch_body = analyze_ast_detail(env, ast->switch_body);
             ast->cases = get_switch_cases();
             ast->default_label = get_default_label();
@@ -474,8 +496,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = new_pointer_type(ast->lhs->type);
             break;
 
-        case AST_INDIR:
+        case AST_INDIR:  // = rvalue2lvalue
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->lhs = lvalue2rvalue(ast->lhs);
             if (!match_type(ast->lhs, TY_PTR))
                 error("pointer should come after indirection op", __FILE__,
                       __LINE__);

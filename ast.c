@@ -145,3 +145,11 @@ AST *new_label_ast(char *name, AST *stmt)
     label->label_stmt = stmt;
     return label;
 }
+
+AST *new_lvalue2rvalue_ast(AST *lvalue)
+{
+    AST *this = new_ast(AST_LVALUE2RVALUE);
+    this->lhs = lvalue;
+    this->type = lvalue->type;
+    return this;
+}
