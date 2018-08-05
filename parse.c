@@ -179,6 +179,15 @@ AST *parse_postfix_expr(TokenSeq *tokseq)
                 expect_token(tokseq, tRBRACKET);
                 break;
 
+            case tDOT: {
+                pop_token(tokseq);
+                char *ident = expect_token(tokseq, tIDENT)->sval;
+                AST *nast = new_ast(AST_MEMBER_REF);
+                nast->stsrc = ast;
+                nast->member = ident;
+                ast = nast;
+            } break;
+
             default:
                 goto end;
         }

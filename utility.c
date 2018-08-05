@@ -203,3 +203,14 @@ int min(int a, int b) { return a < b ? a : b; }
 int max(int a, int b) { return a < b ? b : a; }
 
 int roundup(int n, int b) { return (int)(ceil(n / (double)b)) * b; }
+
+StructMember *lookup_member(Vector *members, char *member)
+{
+    // O(n)
+    int size = vector_size(members);
+    for (int i = 0; i < size; i++) {
+        StructMember *sm = (StructMember *)vector_get(members, i);
+        if (strcmp(sm->name, member) == 0) return sm;
+    }
+    return NULL;
+}

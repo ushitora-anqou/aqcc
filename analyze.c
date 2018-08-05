@@ -135,6 +135,7 @@ int is_lvalue(AST *ast)
         case AST_LVAR:
         case AST_GVAR:
         case AST_INDIR:
+        case AST_MEMBER_REF:
             return 1;
     }
 
@@ -163,6 +164,7 @@ Type *analyze_type(Env *env, Type *type)
     int max_alignment = 0;
     int size = vector_size(type->decls);
     for (int i = 0; i < size; i++) {
+        // TODO: duplicate name
         AST *decl = (AST *)vector_get(type->decls, i);
         if (decl->kind != AST_STRUCT_VAR_DECL)
             error("struct should have only var decls", __FILE__, __LINE__);
@@ -526,6 +528,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_GOTO:
             append_goto_ast(ast);
             break;
+
+        case AST_MEMBER_REF: {
+            ast->stsrc = analyze_ast_detail(env, ast->stsrc);
+            StructMember *sm =
+                lookup_member(ast->stsrc->type->members, ast->member);
+            if (sm == NULL) error("no such member", __FILE__, __LINE__);
+            ast->type = sm->type;
+        } break;
     }
 
     return ast;

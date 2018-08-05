@@ -1144,6 +1144,38 @@ int test284()
     return sizeof(struct hoge);
 }
 
+int test285()
+{
+    struct hoge {
+        int a;
+    };
+    struct hoge a;
+    a.a = 1;
+    return a.a;
+}
+
+int test286()
+{
+    struct hoge {
+        int a;
+        char b[18];
+    };
+    struct hoge a;
+    a.a = 1;
+    a.b[10] = 2;
+    return a.b[10];
+}
+
+int test287()
+{
+    struct hoge {
+        int *p;
+    } a;
+    int i = 34;
+    a.p = &i;
+    return *a.p;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1425,4 +1457,7 @@ int main()
     expect_int(282, test282(), 4);
     expect_int(283, test283(), 8);
     expect_int(284, test284(), 32);
+    expect_int(285, test285(), 1);
+    expect_int(286, test286(), 2);
+    expect_int(287, test287(), 34);
 }

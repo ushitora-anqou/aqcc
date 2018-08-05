@@ -523,6 +523,15 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "jmp %s", ast->label_name);
             break;
 
+        case AST_MEMBER_REF:
+            generate_code_detail(env, ast->stsrc);
+            appcode(env->codes, "pop #rax");
+            appcode(
+                env->codes, "add $%d, #rax",
+                lookup_member(ast->stsrc->type->members, ast->member)->offset);
+            appcode(env->codes, "push #rax");
+            break;
+
         case AST_COMPOUND: {
             int i;
 

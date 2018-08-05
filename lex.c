@@ -294,6 +294,9 @@ Token *read_next_token()
             case ',':
                 return new_token(tCOMMA);
 
+            case '.':
+                return new_token(tDOT);
+
             case '{':
                 return new_token(tLBRACE);
 

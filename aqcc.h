@@ -71,6 +71,7 @@ enum {
     tRSHIFTEQ,
     tSEMICOLON,
     tCOMMA,
+    tDOT,
     tLBRACE,
     tRBRACE,
     kRETURN,
@@ -238,6 +239,7 @@ enum {
     AST_SIZEOF,
     AST_GOTO,
     AST_LVALUE2RVALUE,
+    AST_MEMBER_REF,
 };
 
 struct AST {
@@ -299,6 +301,11 @@ struct AST {
             Vector *cases;
             char *default_label;
         };
+
+        struct {
+            AST *stsrc;
+            char *member;
+        };
     };
 };
 
@@ -321,6 +328,7 @@ int alignment_of(Type *type);
 int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
+StructMember *lookup_member(Vector *members, char *member);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);
