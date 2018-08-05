@@ -1113,6 +1113,37 @@ end_loop:
     return i;
 }
 
+struct hoge {
+    int piyo;
+};
+
+int test281() { return sizeof(struct hoge); }
+
+int test282()
+{
+    struct hoge a;
+    return sizeof(a);
+}
+
+int test283()
+{
+    struct hoge {
+        int a;
+        char b;
+    } a;
+
+    return sizeof(a);
+}
+
+int test284()
+{
+    struct hoge {
+        char buf[25];
+        int d;
+    };
+    return sizeof(struct hoge);
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1390,4 +1421,8 @@ int main()
     expect_int(278, test278(), 6);
     expect_int(279, test279(), 0);
     expect_int(280, test280(), 5);
+    expect_int(281, test281(), 4);
+    expect_int(282, test282(), 4);
+    expect_int(283, test283(), 8);
+    expect_int(284, test284(), 32);
 }

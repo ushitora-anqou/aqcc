@@ -141,6 +141,46 @@ int is_lvalue(AST *ast)
     return 0;
 }
 
+// not recursive.
+Type *analyze_type(Env *env, Type *type)
+{
+    if (type->kind != TY_STRUCT) return type;
+
+    if (type->decls == NULL) {
+        Type *ntype = lookup_type(env, type->stname);
+        return ntype ? ntype : type;
+    }
+
+    type->members = new_vector();
+
+    // make struct members. calc alignment.
+    int max_alignment = 0;
+    int size = vector_size(type->decls);
+    for (int i = 0; i < size; i++) {
+        AST *decl = (AST *)vector_get(type->decls, i);
+        if (decl->kind != AST_STRUCT_VAR_DECL)
+            error("struct should have only var decls", __FILE__, __LINE__);
+        StructMember *member = safe_malloc(sizeof(StructMember));
+        member->type = decl->type;
+        member->name = decl->varname;
+        max_alignment = max(max_alignment, alignment_of(member->type));
+        vector_push_back(type->members, member);
+    }
+
+    // calc offset
+    int offset = 0;
+    for (int i = 0; i < size; i++) {
+        StructMember *member = (StructMember *)vector_get(type->members, i);
+        member->offset = offset;
+        offset += roundup(member->type->nbytes, max_alignment);
+    }
+    type->nbytes = offset;
+
+    if (type->stname) add_type(env, type);
+
+    return type;
+}
+
 // Returns an analyzed AST pointer that may be the same one of `ast` or not.
 // Caller should replace `ast` with the returned AST pointer.
 AST *analyze_ast_detail(Env *env, AST *ast)
@@ -260,12 +300,16 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_LVAR_DECL:
+            ast->type = analyze_type(env, ast->type);
+            if (ast->varname == NULL) return new_ast(AST_NOP);
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             add_var(env, ast);
             break;
 
         case AST_GVAR_DECL:
+            ast->type = analyze_type(env, ast->type);
+            if (ast->varname == NULL) return new_ast(AST_NOP);
             add_var(env, ast);
             add_gvar(new_gvar_from_decl(ast, 0));
             break;
@@ -445,7 +489,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_SIZEOF: {
-            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            if (ast->lhs->kind == AST_NOP)
+                ast->lhs->type = analyze_type(env, ast->lhs->type);
+            else
+                ast->lhs = analyze_ast_detail(env, ast->lhs);
 
             int nbytes = ast->lhs->type->nbytes;
             ast = new_ast(AST_INT);

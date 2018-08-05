@@ -81,8 +81,6 @@ char byte2suffix(int byte)
     }
 }
 
-int max(int a, int b) { return a > b ? a : b; }
-
 char *format(char *src, ...)
 {
     va_list args;
@@ -184,3 +182,24 @@ char *make_label_string()
     static int count;
     return format(".L%d", count++);
 }
+
+int alignment_of(Type *type)
+{
+    switch (type->kind) {
+        case TY_INT:
+            return 4;
+        case TY_CHAR:
+            return 1;
+        case TY_PTR:
+            return 8;
+        case TY_ARY:
+            return alignment_of(type->ary_of);
+    }
+    assert(0);
+}
+
+int min(int a, int b) { return a < b ? a : b; }
+
+int max(int a, int b) { return a < b ? b : a; }
+
+int roundup(int n, int b) { return (int)(ceil(n / (double)b)) * b; }

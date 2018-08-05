@@ -4,6 +4,7 @@ AST *parse_expr(TokenSeq *tokseq);
 AST *parse_assignment_expr(TokenSeq *tokseq);
 AST *parse_stmt(TokenSeq *tokseq);
 Type *parse_type_name(TokenSeq *tokseq);
+AST *parse_var_declaration(int kind, TokenSeq *tokseq);
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
@@ -72,7 +73,7 @@ int match_type_specifier(TokenSeq *seq)
     int kind;
 
     kind = peek_token(seq)->kind;
-    return kind == kINT || kind == kCHAR;
+    return kind == kINT || kind == kCHAR || kind == kSTRUCT;
 }
 
 TokenSeqSaved *new_token_seq_saved(TokenSeq *tokseq)
@@ -216,7 +217,7 @@ AST *parse_unary_expr(TokenSeq *tokseq)
             ast = new_ast(AST_SIZEOF);
 
             pop_token(tokseq);
-            expect_token(tokseq, tLPAREN);
+            expect_token(tokseq, tLPAREN);  // TODO: parse no lparen sizeof
             if (match_type_specifier(tokseq)) {
                 ast->lhs = new_ast(AST_NOP);
                 ast->lhs->type = parse_type_name(tokseq);
@@ -577,16 +578,46 @@ AST *parse_iteration_stmt(TokenSeq *tokseq)
     return ast;
 }
 
+Type *parse_struct_specifier(TokenSeq *tokseq)
+{
+    expect_token(tokseq, kSTRUCT);
+
+    char *name = NULL;
+    if (match_token(tokseq, tIDENT)) name = pop_token(tokseq)->sval;
+
+    if (!match_token(tokseq, tLBRACE)) {
+        if (name == NULL)
+            error("struct specifier should have a tIDENT or declaration list",
+                  __FILE__, __LINE__);
+        return new_struct_type(name, NULL);
+    }
+    pop_token(tokseq);
+
+    Vector *decls = new_vector();
+    while (!match_token(tokseq, tRBRACE)) {
+        vector_push_back(decls,
+                         parse_var_declaration(AST_STRUCT_VAR_DECL, tokseq));
+        expect_token(tokseq, tSEMICOLON);
+    }
+    pop_token(tokseq);
+
+    return new_struct_type(name, decls);
+}
+
 Type *parse_type_specifier(TokenSeq *tokseq)
 {
     Token *token;
 
-    token = pop_token(tokseq);
+    token = peek_token(tokseq);
     switch (token->kind) {
         case kINT:
+            pop_token(tokseq);
             return type_int();
         case kCHAR:
+            pop_token(tokseq);
             return type_char();
+        case kSTRUCT:
+            return parse_struct_specifier(tokseq);
     }
     error_unexpected_token_str("type specifier", token);
 }
@@ -607,16 +638,12 @@ Type *parse_type_name(TokenSeq *tokseq)
 
 AST *parse_var_declaration(int kind, TokenSeq *tokseq)
 {
-    AST *ast;
+    Type *type = parse_type_name(tokseq);
+    char *varname = NULL;
+    if (match_token(tokseq, tIDENT)) varname = pop_token(tokseq)->sval;
+    AST *ast = new_var_decl_ast(kind, type, varname);
 
-    {
-        Type *type;
-        char *varname;
-
-        type = parse_type_name(tokseq);
-        varname = expect_token(tokseq, tIDENT)->sval;
-        ast = new_var_decl_ast(kind, type, varname);
-    }
+    if (varname == NULL) return ast;
 
     while (match_token(tokseq, tLBRACKET)) {  // array
         Token *num;
@@ -626,6 +653,13 @@ AST *parse_var_declaration(int kind, TokenSeq *tokseq)
         expect_token(tokseq, tRBRACKET);
         ast->type = new_array_type(ast->type, num->ival);
     }
+
+    return ast;
+}
+
+AST *parse_var_init_declaration(int kind, TokenSeq *tokseq)
+{
+    AST *ast = parse_var_declaration(kind, tokseq);
 
     if (match_token(tokseq, tEQ)) {  // initializer
         pop_token(tokseq);
@@ -646,7 +680,7 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
     while (!match_token(tokseq, tRBRACE)) {
         if (match_type_specifier(tokseq))
             vector_push_back(stmts,
-                             parse_var_declaration(AST_LVAR_DECL, tokseq));
+                             parse_var_init_declaration(AST_LVAR_DECL, tokseq));
         else
             vector_push_back(stmts, parse_stmt(tokseq));
     }
@@ -787,12 +821,12 @@ AST *parse_external_declaration(TokenSeq *tokseq)
         // warn("returning type is deduced to int", __FILE__, __LINE__);
         ret_type = type_int();
 
-    fname = expect_token(tokseq, tIDENT)->sval;
-
-    if (!match_token(tokseq, tLPAREN)) {  // global variable
+    if (!match_token2(tokseq, tIDENT, tLPAREN)) {  // global variable
         RESTORE_TOKSEQ;
-        return parse_var_declaration(AST_GVAR_DECL, tokseq);
+        return parse_var_init_declaration(AST_GVAR_DECL, tokseq);
     }
+
+    fname = expect_token(tokseq, tIDENT)->sval;
 
     expect_token(tokseq, tLPAREN);
     params = parse_parameter_list(tokseq);

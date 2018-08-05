@@ -48,3 +48,12 @@ Type *new_array_type(Type *src, int len)
     this->len = len;
     return this;
 }
+
+Type *new_struct_type(char *stname, Vector *decls)
+{
+    Type *this = new_type(TY_STRUCT, -1);
+    this->stname = stname;
+    this->members = NULL;
+    this->decls = decls;
+    return this;
+}

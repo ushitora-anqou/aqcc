@@ -8,6 +8,7 @@ Env *new_env(Env *parent)
     this->parent = parent;
     this->symbols = new_map();
     this->scoped_vars = parent == NULL ? new_vector() : parent->scoped_vars;
+    this->types = new_map();
     return this;
 }
 
@@ -23,9 +24,7 @@ AST *add_symbol(Env *env, const char *name, AST *ast)
 
 AST *lookup_symbol(Env *env, const char *name)
 {
-    KeyValue *kv;
-
-    kv = map_lookup(env->symbols, name);
+    KeyValue *kv = map_lookup(env->symbols, name);
     if (kv == NULL) {
         if (env->parent == NULL) return NULL;
         return lookup_symbol(env->parent, name);
@@ -81,4 +80,24 @@ AST *lookup_func(Env *env, const char *name)
     if (ast && ast->kind != AST_FUNCDEF && ast->kind != AST_FUNC_DECL)
         error("found but not func", __FILE__, __LINE__);
     return ast;
+}
+
+Type *add_type(Env *env, Type *type)
+{
+    assert(type->kind == TY_STRUCT);
+
+    KeyValue *kv = map_lookup(env->types, type->stname);
+    if (kv != NULL) error("same type already exists.", __FILE__, __LINE__);
+    map_insert(env->types, type->stname, type);
+    return type;
+}
+
+Type *lookup_type(Env *env, const char *name)
+{
+    KeyValue *kv = map_lookup(env->types, name);
+    if (kv == NULL) {
+        if (env->parent == NULL) return NULL;
+        return lookup_type(env->parent, name);
+    }
+    return (Type *)kv_value(kv);
 }

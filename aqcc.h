@@ -93,6 +93,7 @@ enum {
     kCASE,
     kDEFAULT,
     kGOTO,
+    kSTRUCT,
 };
 
 typedef struct {
@@ -117,6 +118,68 @@ typedef struct {
 typedef struct {
     size_t idx;
 } TokenSeqSaved;
+
+typedef struct Env Env;
+struct Env {
+    Env *parent;
+    Map *symbols;
+    Map *types;
+    Vector *scoped_vars;
+};
+
+typedef struct AST AST;
+
+enum {
+    TY_INT,
+    TY_CHAR,
+    TY_PTR,
+    TY_ARY,
+    TY_STRUCT,
+};
+
+typedef struct Type Type;
+struct Type {
+    int kind, nbytes;
+
+    union {
+        Type *ptr_of;
+
+        struct {
+            Type *ary_of;
+            int len;
+        };
+
+        // struct
+        struct {
+            char *stname;
+            Vector *members;  // for analyzer, generator
+            Vector *decls;    // for parser
+        };
+    };
+};
+
+typedef struct GVar GVar;
+struct GVar {
+    char *name;
+    Type *type;
+
+    int ival;
+
+    struct {
+        char *sval;
+    };
+};
+
+typedef struct {
+    int cond;
+    char *label_name;
+} SwitchCase;
+
+typedef struct {
+    Type *type;
+    char *name;
+    int offset;
+} StructMember;
 
 enum {
     AST_ADD,
@@ -149,6 +212,7 @@ enum {
     AST_GVAR_DECL,
     AST_LVAR_DECL_INIT,
     AST_GVAR_DECL_INIT,
+    AST_STRUCT_VAR_DECL,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_FUNC_DECL,
@@ -175,51 +239,6 @@ enum {
     AST_GOTO,
 };
 
-typedef struct Env Env;
-struct Env {
-    Env *parent;
-    Map *symbols;
-    Vector *scoped_vars;
-};
-
-enum {
-    TY_INT,
-    TY_CHAR,
-    TY_PTR,
-    TY_ARY,
-};
-typedef struct Type Type;
-struct Type {
-    int kind, nbytes;
-
-    union {
-        Type *ptr_of;
-
-        struct {
-            Type *ary_of;
-            int len;
-        };
-    };
-};
-
-typedef struct GVar GVar;
-struct GVar {
-    char *name;
-    Type *type;
-
-    int ival;
-
-    struct {
-        char *sval;
-    };
-};
-
-typedef struct {
-    int cond;
-    char *label_name;
-} SwitchCase;
-
-typedef struct AST AST;
 struct AST {
     int kind;
     Type *type;
@@ -297,6 +316,10 @@ char *format(char *src, ...);
 int unescape_char(int src);
 char *escape_string(char *str, int size);
 char *make_label_string();
+int alignment_of(Type *type);
+int min(int a, int b);
+int max(int a, int b);
+int roundup(int n, int b);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);
@@ -315,12 +338,15 @@ Type *type_char();
 Type *new_pointer_type(Type *src);
 Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
+Type *new_struct_type(char *stname, Vector *members);
 
 // env.c
 AST *add_var(Env *env, AST *ast);
 AST *lookup_var(Env *env, const char *name);
 AST *add_func(Env *env, const char *name, AST *ast);
 AST *lookup_func(Env *env, const char *name);
+Type *add_type(Env *env, Type *type);
+Type *lookup_type(Env *env, const char *name);
 
 // ast.c
 int match_type(AST *ast, int kind);

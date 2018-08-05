@@ -1,7 +1,5 @@
 #include "aqcc.h"
 
-int min(int a, int b) { return a < b ? a : b; }
-
 #define SAVE_BREAK_CXT char *break_cxt__org_break_label = env->break_label;
 #define RESTORE_BREAK_CXT env->break_label = break_cxt__org_break_label;
 #define SAVE_CONTINUE_CXT \
@@ -459,8 +457,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "%s:", ast->fname);
             appcode(env->codes, "push #rbp");
             appcode(env->codes, "mov #rsp, #rbp");
-            appcode(env->codes, "sub $%d, #rsp",
-                    (int)(ceil(-stack_idx / 16.)) * 16);
+            appcode(env->codes, "sub $%d, #rsp", roundup(-stack_idx, 16));
 
             // assign param to localvar
             for (i = 0; i < vector_size(ast->params); i++) {
