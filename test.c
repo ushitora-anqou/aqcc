@@ -1209,6 +1209,136 @@ int test290()
     return b->j[5][1];
 }
 
+int test291()
+{
+    struct hoge {
+        int a;
+        struct piyo {
+            int b;
+        };
+    };
+    struct hoge h;
+    return sizeof(h);
+}
+
+int test292()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+        };
+    };
+    struct hoge h;
+    return sizeof(h);
+}
+
+int test293()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+        } c;
+    };
+    struct hoge h;
+    return sizeof(h);
+}
+
+int test294()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+            struct {
+                int c;
+                char d;
+            } e;
+        } f;
+    };
+    struct hoge h;
+    return sizeof(h);
+}
+
+int test295()
+{
+    struct hoge {
+        int a;
+        struct piyo {
+            int b;
+        } c;
+    };
+    struct hoge h;
+    h.c.b = 4;
+    return h.c.b;
+}
+
+int test296()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+        };
+    };
+    struct hoge h;
+    h.b = 2;
+    h.a = 1;
+    return h.b;
+}
+
+int test297()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+        } c;
+    };
+    struct hoge h;
+    h.c.b = 7;
+    return h.c.b;
+}
+
+int test298()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+            struct {
+                int c;
+                char d;
+            } e;
+        } f;
+    };
+    struct hoge h;
+    h.f.b = 4;
+    h.f.e.d = 5;
+    h.a = h.f.b + h.f.e.d;
+    return h.a;
+}
+
+int test299()
+{
+    struct hoge {
+        int a;
+        struct {
+            int b;
+            struct {
+                int c;
+                char d;
+            };
+        };
+    };
+    struct hoge h;
+    h.b = 4;
+    h.d = 5;
+    h.a = h.b + h.d;
+    return h.a;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1496,4 +1626,13 @@ int main()
     expect_int(288, test288(), 1);
     expect_int(289, test289(), 1);
     expect_int(290, test290(), 20);
+    expect_int(291, test291(), 4);
+    expect_int(292, test292(), 8);
+    expect_int(293, test293(), 8);
+    expect_int(294, test294(), 16);
+    expect_int(295, test295(), 4);
+    expect_int(296, test296(), 2);
+    expect_int(297, test297(), 7);
+    expect_int(298, test298(), 9);
+    expect_int(299, test299(), 9);
 }

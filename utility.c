@@ -194,6 +194,15 @@ int alignment_of(Type *type)
             return 8;
         case TY_ARY:
             return alignment_of(type->ary_of);
+        case TY_STRUCT: {
+            int alignment = 0;
+            for (int i = 0; i < vector_size(type->members); i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(type->members, i);
+                alignment = max(alignment, alignment_of(member->type));
+            }
+            return alignment;
+        }
     }
     assert(0);
 }

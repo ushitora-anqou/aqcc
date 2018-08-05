@@ -161,27 +161,42 @@ Type *analyze_type(Env *env, Type *type)
 
     type->members = new_vector();
 
-    // make struct members. calc alignment.
-    int max_alignment = 0;
+    // make struct members.
     int size = vector_size(type->decls);
     for (int i = 0; i < size; i++) {
         // TODO: duplicate name
         AST *decl = (AST *)vector_get(type->decls, i);
         if (decl->kind != AST_STRUCT_VAR_DECL)
             error("struct should have only var decls", __FILE__, __LINE__);
-        StructMember *member = safe_malloc(sizeof(StructMember));
-        member->type = decl->type;
-        member->name = decl->varname;
-        max_alignment = max(max_alignment, alignment_of(member->type));
-        vector_push_back(type->members, member);
+        decl->type = analyze_type(env, decl->type);
+        if (decl->varname == NULL &&
+            (decl->type->kind != TY_STRUCT || decl->type->stname != NULL))
+            continue;
+
+        if (decl->type->kind == TY_STRUCT && decl->varname == NULL) {
+            // nested anonymous struct with no varname.
+            // its members can be accessed like parent struct's members.
+            for (int i = 0; i < vector_size(decl->type->members); i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(decl->type->members, i);
+                vector_push_back(type->members, member);
+            }
+        }
+        else {
+            StructMember *member = safe_malloc(sizeof(StructMember));
+            member->type = decl->type;
+            member->name = decl->varname;
+            vector_push_back(type->members, member);
+        }
     }
 
     // calc offset
-    int offset = 0;
+    size = vector_size(type->members);
+    int offset = 0, alignment = alignment_of(type);
     for (int i = 0; i < size; i++) {
         StructMember *member = (StructMember *)vector_get(type->members, i);
         member->offset = offset;
-        offset += roundup(member->type->nbytes, max_alignment);
+        offset += roundup(member->type->nbytes, alignment);
     }
     type->nbytes = offset;
 
