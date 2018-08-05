@@ -422,13 +422,13 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_LVAR:
             generate_mov_from_memory(env, ast->type->nbytes,
-                                     format("%d(#rbp)", ast->stack_idx), 0);
+                                     format("%d(%%rbp)", ast->stack_idx), 0);
             appcode(env->codes, "push #rax");
             break;
 
         case AST_GVAR:
             generate_mov_from_memory(env, ast->type->nbytes,
-                                     format("%s(#rip)", ast->varname), 0);
+                                     format("%s(%%rip)", ast->varname), 0);
             appcode(env->codes, "push #rax");
             break;
 
