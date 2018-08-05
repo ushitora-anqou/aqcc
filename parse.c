@@ -512,6 +512,13 @@ AST *parse_jump_stmt(TokenSeq *tokseq)
             ast = new_ast(AST_CONTINUE);
             break;
 
+        case kGOTO:
+            token = expect_token(tokseq, tIDENT);
+            expect_token(tokseq, tSEMICOLON);
+            ast = new_ast(AST_GOTO);
+            ast->label_name = token->sval;
+            break;
+
         default:
             error_unexpected_token_str("jump statement", token);
     }
@@ -709,7 +716,10 @@ AST *parse_labeled_stmt(TokenSeq *tokseq)
         return new_unary_ast(AST_DEFAULT, stmt);
     }
 
-    error_unexpected_token_str("labeled statement", pop_token(tokseq));
+    char *label_name = expect_token(tokseq, tIDENT)->sval;
+    expect_token(tokseq, tCOLON);
+    AST *stmt = parse_stmt(tokseq);
+    return new_label_ast(label_name, stmt);
 }
 
 AST *parse_stmt(TokenSeq *tokseq)
@@ -720,6 +730,7 @@ AST *parse_stmt(TokenSeq *tokseq)
         case kBREAK:
         case kCONTINUE:
         case kRETURN:
+        case kGOTO:
             return parse_jump_stmt(tokseq);
 
         case tLBRACE:
@@ -737,6 +748,8 @@ AST *parse_stmt(TokenSeq *tokseq)
         case kDEFAULT:
             return parse_labeled_stmt(tokseq);
     }
+
+    if (match_token2(tokseq, tIDENT, tCOLON)) return parse_labeled_stmt(tokseq);
 
     return parse_expression_stmt(tokseq);
 }

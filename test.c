@@ -1080,6 +1080,39 @@ int test277()
     }
 }
 
+int test278()
+{
+    int i = 0;
+a:
+    if (i > 5) return i;
+    i++;
+    goto a;
+}
+
+int test279()
+{
+    int j = 0;
+test279:
+    1;
+    int i = 0;
+    if (j > 5) return i;
+    j++;
+    i++;
+    goto test279;
+}
+
+int test280()
+{
+    int i;
+    for (i = 0; i < 10; i++) {
+        switch (i)
+        case 5:
+            goto end_loop;
+    }
+end_loop:
+    return i;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1354,4 +1387,7 @@ int main()
     expect_int(275, test275(), 4);
     expect_int(276, test276(), 4);
     expect_int(277, test277(), 4);
+    expect_int(278, test278(), 6);
+    expect_int(279, test279(), 0);
+    expect_int(280, test280(), 5);
 }

@@ -388,6 +388,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             for (int i = 0; i < vector_size(ast->cases); i++) {
                 SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
                 appcode(env->codes, "cmp $%d, #eax", cas->cond);
+                // case has been already labeled when analyzing.
                 appcode(env->codes, "je %s", cas->label_name);
             }
             char *exit_label = make_label_string();
@@ -547,6 +548,10 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             if (env->continue_label < 0)
                 error("invalid continue.", __FILE__, __LINE__);
             appcode(env->codes, "jmp %s", env->continue_label);
+            break;
+
+        case AST_GOTO:
+            appcode(env->codes, "jmp %s", ast->label_name);
             break;
 
         case AST_COMPOUND: {

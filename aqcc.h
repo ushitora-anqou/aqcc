@@ -92,6 +92,7 @@ enum {
     kSWITCH,
     kCASE,
     kDEFAULT,
+    kGOTO,
 };
 
 typedef struct {
@@ -171,6 +172,7 @@ enum {
     AST_ARY2PTR,
     AST_CHAR2INT,
     AST_SIZEOF,
+    AST_GOTO,
 };
 
 typedef struct Env Env;

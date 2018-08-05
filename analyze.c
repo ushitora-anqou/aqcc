@@ -84,6 +84,41 @@ AST *add_switch_default(AST *default_ast)
     return label;
 }
 
+Vector *goto_asts;
+Map *label_asts;
+
+void init_goto_info()
+{
+    goto_asts = new_vector();
+    label_asts = new_map();
+}
+
+AST *append_goto_ast(AST *ast)
+{
+    assert(ast->kind == AST_GOTO);
+    vector_push_back(goto_asts, ast);
+    return ast;
+}
+
+AST *append_label_ast(char *label_org_name, AST *ast)
+{
+    assert(ast->kind == AST_LABEL);
+    map_insert(label_asts, label_org_name, ast);
+    return ast;
+}
+
+void replace_goto_label()
+{
+    for (int i = 0; i < vector_size(goto_asts); i++) {
+        AST *ast = (AST *)vector_get(goto_asts, i);
+        KeyValue *kv = map_lookup(label_asts, ast->label_name);
+        if (kv == NULL)
+            error(format("not found such label: '%s'", kv_key(kv)), __FILE__,
+                  __LINE__);
+        ast->label_name = ((AST *)kv_value(kv))->label_name;
+    }
+}
+
 void swap(AST **lhs, AST **rhs)
 {
     AST *tmp;
@@ -305,7 +340,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 add_var(ast->env, (AST *)vector_get(ast->params, i));
 
             // analyze body
+            init_goto_info();
             ast->body = analyze_ast_detail(ast->env, ast->body);
+            replace_goto_label();
         } break;
 
         case AST_EXPR_STMT:
@@ -332,20 +369,22 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_LABEL:
             ast->label_stmt = analyze_ast_detail(env, ast->label_stmt);
+            append_label_ast(ast->label_name, ast);
+            ast->label_name = make_label_string();
             break;
 
         case AST_CASE:
-            // ast->rhs will be analyzed as AST_LABEL.
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->rhs = analyze_ast_detail(env, ast->rhs);
             if (ast->lhs->kind != AST_INT)
                 error("case should take a constant expression.", __FILE__,
                       __LINE__);
-            ast = analyze_ast_detail(env, add_switch_case(ast));
+            ast = add_switch_case(ast);
             break;
 
         case AST_DEFAULT:
-            // ast->lhs will be analyzed as AST_LABEL.
-            ast = analyze_ast_detail(env, add_switch_default(ast));
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast = add_switch_default(ast);
             break;
 
         case AST_SWITCH: {
@@ -413,6 +452,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->ival = nbytes;
             ast->type = type_int();  // TODO: size_t
         } break;
+
+        case AST_GOTO:
+            append_goto_ast(ast);
+            break;
     }
 
     return ast;
