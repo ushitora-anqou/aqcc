@@ -326,7 +326,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             suf = byte2suffix(ast->lhs->type->nbytes);
 
             generate_code_detail_lvalue(env, ast->lhs);
-            appcode(env->codes, "pop %rax");
+            appcode(env->codes, "pop #rax");
             appcode(env->codes, "push (#rax)");
 
             if (match_type(ast->lhs, TY_PTR))
@@ -343,7 +343,7 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             suf = byte2suffix(ast->lhs->type->nbytes);
 
             generate_code_detail_lvalue(env, ast->lhs);
-            appcode(env->codes, "pop %rax");
+            appcode(env->codes, "pop #rax");
 
             if (match_type(ast->lhs, TY_PTR))
                 appcode(env->codes, "add%c $%d, (#rax)", suf,
@@ -360,9 +360,9 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
         case AST_INDIR: {
             generate_code_detail(env, ast->lhs);
-            appcode(env->codes, "pop %rax");
+            appcode(env->codes, "pop #rax");
             generate_mov_from_memory(env, ast->type->nbytes, "(%rax)", 1);
-            appcode(env->codes, "push %rdi");
+            appcode(env->codes, "push #rdi");
         } break;
 
         case AST_IF:
