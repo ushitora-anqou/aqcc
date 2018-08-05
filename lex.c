@@ -99,6 +99,9 @@ Token *read_next_ident_token()
     if (strcmp(str, "int") == 0) return new_token(kINT);
     if (strcmp(str, "char") == 0) return new_token(kCHAR);
     if (strcmp(str, "sizeof") == 0) return new_token(kSIZEOF);
+    if (strcmp(str, "switch") == 0) return new_token(kSWITCH);
+    if (strcmp(str, "default") == 0) return new_token(kDEFAULT);
+    if (strcmp(str, "case") == 0) return new_token(kCASE);
 
     Token *token = new_token(tIDENT);
     token->sval = str;

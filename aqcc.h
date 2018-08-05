@@ -89,6 +89,9 @@ enum {
     kINT,
     kCHAR,
     kSIZEOF,
+    kSWITCH,
+    kCASE,
+    kDEFAULT,
 };
 
 typedef struct {
@@ -153,6 +156,10 @@ enum {
     AST_EXPR_STMT,
     AST_COMPOUND,
     AST_IF,
+    AST_SWITCH,
+    AST_LABEL,
+    AST_CASE,
+    AST_DEFAULT,
     AST_WHILE,
     AST_BREAK,
     AST_CONTINUE,
@@ -205,6 +212,11 @@ struct GVar {
     };
 };
 
+typedef struct {
+    int cond;
+    char *label_name;
+} SwitchCase;
+
 typedef struct AST AST;
 struct AST {
     int kind;
@@ -253,6 +265,17 @@ struct AST {
         // AST_ARY2PTR
         struct {
             AST *ary;
+        };
+
+        struct {
+            char *label_name;
+            AST *label_stmt;
+        };
+
+        struct {
+            AST *target, *switch_body;
+            Vector *cases;
+            char *default_label;
         };
     };
 };
@@ -313,6 +336,7 @@ AST *new_var_decl_init_ast(AST *var_decl, AST *initer);
 AST *new_unary_ast(int kind, AST *that);
 AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
                   Type *ret_type);
+AST *new_label_ast(char *name, AST *stmt);
 
 // analyze.c
 void analyze_ast(Vector *asts);

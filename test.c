@@ -1020,6 +1020,66 @@ int test271()
 }
 int test272() { return add_three(divdiv(100, 5), 2); }
 
+int test273()
+{
+    int a = 4;
+    int ret = 2;
+    switch (a) {
+        case 1:
+            ret = 1;
+            break;
+        case 4:
+            ret = 4;
+            break;
+    }
+    return ret;
+}
+
+int test274()
+{
+    int a = 4;
+    switch (a) {
+        case 1:
+            return 1;
+        case 4:
+            return 4;
+    }
+}
+
+int test275()
+{
+    int a = 4;
+    switch (a) {
+        case 1:
+            return 1;
+        default:
+            return 4;
+    }
+}
+
+int test276()
+{
+    int a = 1;
+    switch (a) {
+        int i = 0;
+        case 1:
+            i = 4;
+        default:
+            return i;
+    }
+}
+
+int test277()
+{
+    int a = 4;
+    switch (a) {
+        case 1:
+            return a;
+        case sizeof(int):
+            return 4;
+    }
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1289,4 +1349,9 @@ int main()
     expect_int(270, test270(), 1);
     expect_int(271, test271(), 1);
     expect_int(272, test272(), 25);
+    expect_int(273, test273(), 4);
+    expect_int(274, test274(), 4);
+    expect_int(275, test275(), 4);
+    expect_int(276, test276(), 4);
+    expect_int(277, test277(), 4);
 }

@@ -653,23 +653,63 @@ AST *parse_compound_stmt(TokenSeq *tokseq)
 
 AST *parse_selection_stmt(TokenSeq *tokseq)
 {
-    AST *ast, *cond, *then, *els = NULL;
-
-    expect_token(tokseq, kIF);
-    expect_token(tokseq, tLPAREN);
-    cond = parse_expr(tokseq);
-    expect_token(tokseq, tRPAREN);
-    then = parse_stmt(tokseq);
-    if (match_token(tokseq, kELSE)) {
+    if (match_token(tokseq, kIF)) {
         pop_token(tokseq);
-        els = parse_stmt(tokseq);
+        expect_token(tokseq, tLPAREN);
+        AST *cond = parse_expr(tokseq);
+        expect_token(tokseq, tRPAREN);
+        AST *then = parse_stmt(tokseq);
+        AST *els = NULL;
+        if (match_token(tokseq, kELSE)) {
+            pop_token(tokseq);
+            els = parse_stmt(tokseq);
+        }
+
+        AST *ast = new_ast(AST_IF);
+        ast->cond = cond;
+        ast->then = then;
+        ast->els = els;
+        return ast;
+    }
+    else if (match_token(tokseq, kSWITCH)) {
+        pop_token(tokseq);
+        expect_token(tokseq, tLPAREN);
+        AST *cond = parse_expr(tokseq);
+        expect_token(tokseq, tRPAREN);
+        AST *body = parse_stmt(tokseq);
+
+        AST *ast = new_ast(AST_SWITCH);
+        ast->target = cond;
+        ast->switch_body = body;
+        return ast;
     }
 
-    ast = new_ast(AST_IF);
-    ast->cond = cond;
-    ast->then = then;
-    ast->els = els;
-    return ast;
+    error_unexpected_token_str("selection statement", pop_token(tokseq));
+}
+
+AST *parse_constant_expr(TokenSeq *tokseq)
+{
+    return parse_conditional_expr(tokseq);
+}
+
+AST *parse_labeled_stmt(TokenSeq *tokseq)
+{
+    if (match_token(tokseq, kCASE)) {
+        pop_token(tokseq);
+        AST *cnst = parse_constant_expr(tokseq);
+        expect_token(tokseq, tCOLON);
+        AST *stmt = parse_stmt(tokseq);
+
+        return new_binop_ast(AST_CASE, cnst, stmt);
+    }
+    else if (match_token(tokseq, kDEFAULT)) {
+        pop_token(tokseq);
+        expect_token(tokseq, tCOLON);
+        AST *stmt = parse_stmt(tokseq);
+        return new_unary_ast(AST_DEFAULT, stmt);
+    }
+
+    error_unexpected_token_str("labeled statement", pop_token(tokseq));
 }
 
 AST *parse_stmt(TokenSeq *tokseq)
@@ -686,11 +726,16 @@ AST *parse_stmt(TokenSeq *tokseq)
             return parse_compound_stmt(tokseq);
 
         case kIF:
+        case kSWITCH:
             return parse_selection_stmt(tokseq);
 
         case kWHILE:
         case kFOR:
             return parse_iteration_stmt(tokseq);
+
+        case kCASE:
+        case kDEFAULT:
+            return parse_labeled_stmt(tokseq);
     }
 
     return parse_expression_stmt(tokseq);

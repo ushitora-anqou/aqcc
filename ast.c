@@ -137,3 +137,11 @@ AST *new_var_decl_init_ast(AST *var_decl, AST *initer)
         new_binop_ast(AST_ASSIGN, new_var_ast(var_decl->varname), initer);
     return ast;
 }
+
+AST *new_label_ast(char *name, AST *stmt)
+{
+    AST *label = new_ast(AST_LABEL);
+    label->label_name = name;
+    label->label_stmt = stmt;
+    return label;
+}

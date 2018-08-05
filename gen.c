@@ -372,6 +372,33 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, ".L%d:", exit_label);
         } break;
 
+        case AST_SWITCH: {
+            generate_code_detail(env, ast->target);
+            appcode(env->codes, "pop #rax");
+
+            for (int i = 0; i < vector_size(ast->cases); i++) {
+                SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
+                appcode(env->codes, "cmp $%d, #eax", cas->cond);
+                appcode(env->codes, "je %s", cas->label_name);
+            }
+            int exit_label = env->nlabel++;
+            if (ast->default_label)
+                appcode(env->codes, "jmp %s", ast->default_label);
+            else
+                appcode(env->codes, "jmp .L%d", exit_label);
+
+            int org_loop_break_label = env->loop_break_label;
+            env->loop_break_label = exit_label;
+            generate_code_detail(env, ast->switch_body);
+            appcode(env->codes, ".L%d:", exit_label);
+            env->loop_break_label = org_loop_break_label;
+        } break;
+
+        case AST_LABEL:
+            appcode(env->codes, "%s:", ast->label_name);
+            generate_code_detail(env, ast->label_stmt);
+            break;
+
         case AST_ASSIGN:
             generate_code_detail(env, ast->rhs);
             generate_code_detail_lvalue(env, ast->lhs);

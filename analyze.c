@@ -36,6 +36,57 @@ GVar *new_gvar_from_string_literal(char *sval, int ssize)
     return this;
 }
 
+int switch_case_label = 0;
+Vector *switch_cases = NULL;
+char *default_label = NULL;
+
+#define SAVE_SWITCH_CXT                                   \
+    Vector *switch_cxt__prev_swtich_cases = switch_cases; \
+    char *switch_cxt__default_label = default_label;      \
+    switch_cases = new_vector();
+
+#define RESTORE_SWITCH_CXT                        \
+    switch_cases = switch_cxt__prev_swtich_cases; \
+    default_label = switch_cxt__default_label;
+
+Vector *get_switch_cases() { return switch_cases; }
+
+char *get_default_label() { return default_label; }
+
+Vector *reset_switch_cases(Vector *cases)
+{
+    Vector *prev = switch_cases;
+    if (cases)
+        switch_cases = cases;
+    else
+        switch_cases = new_vector();
+    return prev;
+}
+
+AST *add_switch_case(AST *case_ast)
+{
+    // TODO: check duplicate cases
+    AST *label =
+        new_label_ast(format(".LS%d", switch_case_label++), case_ast->rhs);
+
+    SwitchCase *cas = (SwitchCase *)safe_malloc(sizeof(SwitchCase));
+    cas->cond = case_ast->lhs->ival;
+    cas->label_name = label->label_name;
+    vector_push_back(switch_cases, cas);
+
+    return label;
+}
+
+AST *add_switch_default(AST *default_ast)
+{
+    if (default_label)
+        error("duplicate default label for switch", __FILE__, __LINE__);
+    AST *label =
+        new_label_ast(format(".LS%d", switch_case_label++), default_ast->lhs);
+    default_label = label->label_name;
+    return label;
+}
+
 void swap(AST **lhs, AST **rhs)
 {
     AST *tmp;
@@ -281,6 +332,33 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->then = analyze_ast_detail(env, ast->then);
             ast->els = analyze_ast_detail(env, ast->els);
             break;
+
+        case AST_LABEL:
+            ast->label_stmt = analyze_ast_detail(env, ast->label_stmt);
+            break;
+
+        case AST_CASE:
+            // ast->rhs will be analyzed as AST_LABEL.
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            if (ast->lhs->kind != AST_INT)
+                error("case should take a constant expression.", __FILE__,
+                      __LINE__);
+            ast = analyze_ast_detail(env, add_switch_case(ast));
+            break;
+
+        case AST_DEFAULT:
+            // ast->lhs will be analyzed as AST_LABEL.
+            ast = analyze_ast_detail(env, add_switch_default(ast));
+            break;
+
+        case AST_SWITCH: {
+            SAVE_SWITCH_CXT;
+            ast->target = analyze_ast_detail(env, ast->target);
+            ast->switch_body = analyze_ast_detail(env, ast->switch_body);
+            ast->cases = get_switch_cases();
+            ast->default_label = get_default_label();
+            RESTORE_SWITCH_CXT;
+        } break;
 
         case AST_WHILE: {
             AST *cond = analyze_ast_detail(env, ast->cond),
