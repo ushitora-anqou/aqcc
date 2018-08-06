@@ -12,10 +12,12 @@
 // vector.c
 typedef struct Vector Vector;
 Vector *new_vector();
+Vector *new_vector_from_scalar(void *scalar);
 void vector_push_back(Vector *this, void *item);
 void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
 void *vector_set(Vector *this, size_t i, void *item);
+void vector_push_back_vector(Vector *this, Vector *src);
 
 // map.c
 typedef struct KeyValue KeyValue;
@@ -281,8 +283,7 @@ struct AST {
             char *fname;
             Vector *args;    // actual arguments
             Vector *params;  // formal parameters
-            Type *ret_type;
-            AST *body;  // If NULL then only declaration exists.
+            AST *body;       // If NULL then only declaration exists.
             Env *env;
         };
 
@@ -350,6 +351,7 @@ Type *new_pointer_type(Type *src);
 Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
 Type *new_struct_type(char *stname, Vector *members);
+Type *type_unknown();
 
 // env.c
 AST *add_var(Env *env, AST *ast);

@@ -4,7 +4,11 @@ AST *parse_expr();
 AST *parse_assignment_expr();
 AST *parse_stmt();
 Type *parse_type_name();
-AST *parse_var_declaration(int kind);
+int match_type_specifier();
+Type *parse_type_specifier();
+AST *parse_declarator(Type *type);
+Type *parse_declaration_specifiers();
+AST *parse_compound_stmt();
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
@@ -76,12 +80,6 @@ int match_token2(int kind0, int kind1)
     tokenseq->idx--;
     if (token->kind != kind1) return 0;
     return 1;
-}
-
-int match_type_specifier()
-{
-    int kind = peek_token()->kind;
-    return kind == kINT || kind == kCHAR || kind == kSTRUCT;
 }
 
 TokenSeqSaved *new_token_seq_saved()
@@ -601,49 +599,6 @@ AST *parse_iteration_stmt()
     return ast;
 }
 
-Type *parse_struct_specifier()
-{
-    expect_token(kSTRUCT);
-
-    char *name = NULL;
-    if (match_token(tIDENT)) name = pop_token()->sval;
-
-    if (!match_token(tLBRACE)) {
-        if (name == NULL)
-            error("struct specifier should have a tIDENT or declaration list",
-                  __FILE__, __LINE__);
-        return new_struct_type(name, NULL);
-    }
-    pop_token();
-
-    Vector *decls = new_vector();
-    while (!match_token(tRBRACE)) {
-        vector_push_back(decls, parse_var_declaration(AST_STRUCT_VAR_DECL));
-        expect_token(tSEMICOLON);
-    }
-    pop_token();
-
-    return new_struct_type(name, decls);
-}
-
-Type *parse_type_specifier()
-{
-    Token *token;
-
-    token = peek_token();
-    switch (token->kind) {
-        case kINT:
-            pop_token();
-            return type_int();
-        case kCHAR:
-            pop_token();
-            return type_char();
-        case kSTRUCT:
-            return parse_struct_specifier();
-    }
-    error_unexpected_token_str("type specifier", token);
-}
-
 Type *parse_type_name()
 {
     Type *type;
@@ -658,39 +613,219 @@ Type *parse_type_name()
     return type;
 }
 
-AST *parse_var_declaration(int kind)
+Vector *parse_parameter_type_list()
 {
-    Type *type = parse_type_name();
-    char *varname = NULL;
-    if (match_token(tIDENT)) varname = pop_token()->sval;
-    AST *ast = new_var_decl_ast(kind, type, varname);
+    Vector *params = new_vector();
 
-    if (varname == NULL) return ast;
+    // TODO: K&R style
+    if (match_token(tRPAREN)) return params;
 
-    while (match_token(tLBRACKET)) {  // array
-        Token *num;
-
-        pop_token();
-        num = expect_token(tINT);  // TODO: parse assignment-expr
-        expect_token(tRBRACKET);
-        ast->type = new_array_type(ast->type, num->ival);
+    while (1) {
+        Type *type = parse_declaration_specifiers();
+        AST *ast = parse_declarator(type);
+        vector_push_back(
+            params, new_var_decl_ast(AST_LVAR_DECL, ast->type, ast->varname));
+        if (match_token(tRPAREN)) break;
+        expect_token(tCOMMA);
     }
 
+    return params;
+}
+
+AST *parse_direct_declarator(Type *type)
+{
+    char *ident = expect_token(tIDENT)->sval;
+
+    if (pop_token_if(tLPAREN)) {  // function declarator
+        // TODO: K&R style
+        Vector *params = parse_parameter_type_list();
+        expect_token(tRPAREN);
+        return new_func_ast(AST_FUNC_DECL, ident, NULL, params, type);
+    }
+
+    while (pop_token_if(tLBRACKET)) {
+        // TODO: parse assignment-expr
+        int num = expect_token(tINT)->ival;
+        type = new_array_type(type, num);
+        expect_token(tRBRACKET);
+    }
+
+    AST *ast = new_ast(AST_NOP);
+    ast->type = type;
+    ast->varname = ident;
     return ast;
 }
 
-AST *parse_var_init_declaration(int kind)
+int match_declarator()
 {
-    AST *ast = parse_var_declaration(kind);
-
-    if (match_token(tEQ)) {  // initializer
-        pop_token();
-        ast = new_var_decl_init_ast(ast, parse_assignment_expr());
+    switch (peek_token()->kind) {
+        case tSTAR:
+        case tIDENT:
+            return 1;
     }
+    return 0;
+}
+
+AST *parse_declarator(Type *type)
+{
+    while (pop_token_if(tSTAR))  //
+        type = new_pointer_type(type);
+    return parse_direct_declarator(type);
+}
+
+Vector *parse_struct_declarator_list(Type *type)
+{
+    Vector *declors = new_vector();
+    vector_push_back(declors, parse_declarator(type));
+    while (pop_token_if(tCOMMA))
+        vector_push_back(declors, parse_declarator(type));
+    return declors;
+}
+
+Vector *parse_struct_declaration()
+{
+    Type *type = parse_type_specifier();
+
+    Vector *declors = NULL;
+    if (match_declarator()) declors = parse_struct_declarator_list(type);
+    expect_token(tSEMICOLON);
+
+    if (declors == NULL)
+        return new_vector_from_scalar(
+            new_var_decl_ast(AST_STRUCT_VAR_DECL, type, NULL));
+
+    Vector *decls = new_vector();
+    for (int i = 0; i < vector_size(declors); i++) {
+        AST *declor = (AST *)vector_get(declors, i);
+        vector_push_back(decls,
+                         new_var_decl_ast(AST_STRUCT_VAR_DECL, declor->type,
+                                          declor->varname));
+    }
+
+    return decls;
+}
+
+Vector *parse_struct_declaration_list()
+{
+    Vector *decls = new_vector();
+    vector_push_back_vector(decls, parse_struct_declaration());
+    while (match_type_specifier())
+        vector_push_back_vector(decls, parse_struct_declaration());
+    return decls;
+}
+
+Type *parse_struct_or_union_specifier()
+{
+    Token *struct_or_union = pop_token();
+    if (struct_or_union->kind != kSTRUCT)  // TODO: kUNION
+        error_unexpected_token_str("struct or union", struct_or_union);
+
+    char *name = NULL;
+    if (match_token(tIDENT)) name = pop_token()->sval;
+
+    if (!match_token(tLBRACE)) {
+        if (name == NULL) error_unexpected_token_kind(tIDENT, pop_token());
+        return new_struct_type(name, NULL);
+    }
+    pop_token();
+
+    Type *type = new_struct_type(name, parse_struct_declaration_list());
+    expect_token(tRBRACE);
+    return type;
+}
+
+int match_type_specifier()
+{
+    int kind = peek_token()->kind;
+    return kind == kINT || kind == kCHAR || kind == kSTRUCT;
+}
+
+Type *parse_type_specifier()
+{
+    if (pop_token_if(kINT)) return type_int();
+    if (pop_token_if(kCHAR)) return type_char();
+    return parse_struct_or_union_specifier();
+}
+
+AST *parse_initializer() { return parse_assignment_expr(); }
+
+AST *parse_init_declarator(int decl_ast_kind, Type *type)
+{
+    AST *ast = parse_declarator(type);
+    if (ast->kind == AST_NOP)  // variable decl
+        ast->kind = decl_ast_kind;
+    if (pop_token_if(tEQ))
+        ast = new_var_decl_init_ast(ast, parse_initializer());
+    return ast;
+}
+
+Vector *parse_init_declarator_list(int decl_ast_kind, Type *base_type)
+{
+    Vector *decls = new_vector();
+    vector_push_back(decls, parse_init_declarator(decl_ast_kind, base_type));
+    while (pop_token_if(tCOMMA))
+        vector_push_back(decls,
+                         parse_init_declarator(decl_ast_kind, base_type));
+    return decls;
+}
+
+int match_declaration_specifiers() { return match_type_specifier(); }
+
+Type *parse_declaration_specifiers()
+{
+    // TODO: recursive
+    return parse_type_specifier();
+}
+
+int match_declaration() { return match_type_specifier(); }
+
+Vector *parse_declaration(int decl_ast_kind)
+{
+    Type *base_type = parse_declaration_specifiers();
+
+    Vector *decls = NULL;
+    if (match_declarator())
+        decls = parse_init_declarator_list(decl_ast_kind, base_type);
+    else
+        decls = new_vector_from_scalar(
+            new_var_decl_ast(decl_ast_kind, base_type, NULL));
 
     expect_token(tSEMICOLON);
 
+    return decls;
+}
+
+int match_function_definition()
+{
+    SAVE_TOKENSEQ;
+    int ret = 0;
+
+    if (match_declaration_specifiers()) parse_declaration_specifiers();
+    if (!match_declarator()) goto end;
+    parse_declarator(type_int());
+    if (match_token(tLBRACE)) ret = 1;
+
+end:
+    RESTORE_TOKENSEQ;
+    return ret;
+}
+
+AST *parse_function_definition()
+{
+    Type *type = type_int();
+    if (match_declaration_specifiers()) parse_declaration_specifiers();
+    AST *ast = parse_declarator(type);
+    // TODO: K&R style params
+    ast->body = parse_compound_stmt();
+    ast->kind = AST_FUNCDEF;
     return ast;
+}
+
+Vector *parse_external_declaration()
+{
+    if (match_function_definition())
+        return new_vector_from_scalar(parse_function_definition());
+    return parse_declaration(AST_GVAR_DECL);
 }
 
 AST *parse_compound_stmt()
@@ -701,7 +836,7 @@ AST *parse_compound_stmt()
     expect_token(tLBRACE);
     while (!match_token(tRBRACE)) {
         if (match_type_specifier())
-            vector_push_back(stmts, parse_var_init_declaration(AST_LVAR_DECL));
+            vector_push_back_vector(stmts, parse_declaration(AST_LVAR_DECL));
         else
             vector_push_back(stmts, parse_stmt());
     }
@@ -806,63 +941,6 @@ AST *parse_stmt()
     return parse_expression_stmt();
 }
 
-Vector *parse_parameter_list()
-{
-    Vector *params = new_vector();
-
-    if (match_token(tRPAREN)) return params;
-
-    while (1) {
-        Type *type = parse_type_name();
-        char *name = expect_token(tIDENT)->sval;
-
-        vector_push_back(params, new_var_decl_ast(AST_LVAR_DECL, type, name));
-        if (match_token(tRPAREN)) break;
-        expect_token(tCOMMA);
-    }
-
-    return params;
-}
-
-AST *parse_external_declaration()
-{
-    char *fname;
-    Vector *params;
-    AST *func;
-    Type *ret_type;
-
-    SAVE_TOKENSEQ;
-
-    ret_type = NULL;
-    if (match_type_specifier()) ret_type = parse_type_name();
-    if (ret_type == NULL)
-        // warn("returning type is deduced to int", __FILE__, __LINE__);
-        ret_type = type_int();
-
-    if (!match_token2(tIDENT, tLPAREN)) {  // global variable
-        RESTORE_TOKENSEQ;
-        return parse_var_init_declaration(AST_GVAR_DECL);
-    }
-
-    fname = expect_token(tIDENT)->sval;
-
-    expect_token(tLPAREN);
-    params = parse_parameter_list();
-    expect_token(tRPAREN);
-
-    // if semicolon follows the function parameter list,
-    // it's a function declaration.
-    if (match_token(tSEMICOLON)) {
-        pop_token();
-        return new_func_ast(AST_FUNC_DECL, fname, NULL, params, ret_type);
-    }
-
-    func = new_func_ast(AST_FUNCDEF, fname, NULL, params, ret_type);
-    func->body = parse_compound_stmt();
-
-    return func;
-}
-
 Vector *parse_prog(Vector *tokens)
 {
     Vector *asts;
@@ -870,12 +948,8 @@ Vector *parse_prog(Vector *tokens)
     asts = new_vector();
     init_tokenseq(tokens);
 
-    while (peek_token()->kind != tEOF) {
-        AST *ast;
-
-        ast = parse_external_declaration();
-        vector_push_back(asts, ast);
-    }
+    while (peek_token()->kind != tEOF)
+        vector_push_back_vector(asts, parse_external_declaration());
 
     return asts;
 }

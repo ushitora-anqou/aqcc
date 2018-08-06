@@ -1339,6 +1339,52 @@ int test299()
     return h.a;
 }
 
+int test300() { return test007() == test009() ? 100 : 20; }
+
+int test301()
+{
+    int a, b;
+    a = 1;
+    b = 2;
+    return a & b;
+}
+
+int test302()
+{
+    int a = 1, b = 2;
+    return a & b;
+}
+
+int test303()
+{
+    int a = 1, b = 2, *c = &a, *d = &b;
+    return *c & *d;
+}
+
+int test304()
+{
+    int *a[2], b, c;
+    a[0] = &b;
+    a[1] = &c;
+    *a[0] = 1;
+    *a[1] = 2;
+    return *a[0] & *a[1];
+}
+
+int test305()
+{
+    struct hoge {
+        int a;
+        char b;
+    };
+    struct hoge *c[2], d, e;
+    c[0] = &d;
+    c[1] = &e;
+    c[0]->a = 2;
+    c[1]->a = 2;
+    return c[0]->a & c[1]->a;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1635,4 +1681,10 @@ int main()
     expect_int(297, test297(), 7);
     expect_int(298, test298(), 9);
     expect_int(299, test299(), 9);
+    expect_int(300, test300(), 100);
+    expect_int(301, test301(), 0);
+    expect_int(302, test302(), 0);
+    expect_int(303, test303(), 0);
+    expect_int(304, test304(), 0);
+    expect_int(305, test305(), 2);
 }

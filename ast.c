@@ -35,7 +35,7 @@ AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
     ast->fname = fname;
     ast->args = args;
     ast->params = params;
-    ast->ret_type = ret_type;
+    ast->type = ret_type;
     ast->body = NULL;
     ast->env = NULL;
     return ast;

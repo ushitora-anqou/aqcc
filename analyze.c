@@ -341,12 +341,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (ast->varname == NULL) return new_ast(AST_NOP);
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
+            assert(ast->type->nbytes > 0);
             add_var(env, ast);
             break;
 
         case AST_GVAR_DECL:
             ast->type = analyze_type(env, ast->type);
             if (ast->varname == NULL) return new_ast(AST_NOP);
+            assert(ast->type->nbytes > 0);
             add_var(env, ast);
             add_gvar(new_gvar_from_decl(ast, 0));
             break;
@@ -374,7 +376,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
             funcdef = lookup_func(env, ast->fname);
             if (funcdef) {  // found: already declared
-                ast->type = funcdef->ret_type;
+                ast->type = funcdef->type;
             }
             else {
                 warn("function call type is deduced to int", __FILE__,

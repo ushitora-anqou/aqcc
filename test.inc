@@ -25,6 +25,12 @@ void test_vector(int n)
 
     // out-of-range access should return NULL.
     assert(vector_get(vec, vector_size(vec)) == NULL);
+
+    Vector *vec2 = new_vector_from_scalar(new_int(100));
+    assert(*(int*)vector_get(vec2, 0) == 100);
+
+    vector_push_back_vector(vec, vec2);
+    assert(*(int*)vector_get(vec, vector_size(vec) - 1) == 100);
 }
 
 void test_map()
