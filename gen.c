@@ -220,17 +220,6 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
-        case AST_NEQ:
-            generate_code_detail(env, ast->lhs);
-            generate_code_detail(env, ast->rhs);
-            appcode(env->codes, "pop #rdi");
-            appcode(env->codes, "pop #rax");
-            appcode(env->codes, "cmp #edi, #eax");
-            appcode(env->codes, "setne #al");
-            appcode(env->codes, "movzb #al, #eax");
-            appcode(env->codes, "push #rax");
-            break;
-
         case AST_AND:
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);

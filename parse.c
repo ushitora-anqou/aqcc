@@ -107,9 +107,7 @@ AST *parse_primary_expr()
     Token *token = pop_token();
     switch (token->kind) {
         case tINT:
-            ast = new_ast(AST_INT);
-            ast->ival = token->ival;
-            break;
+            return new_int_ast(token->ival);
 
         case tLPAREN:
             ast = parse_expr();
@@ -239,6 +237,10 @@ AST *parse_unary_expr()
         case tSTAR:
             pop_token();
             return new_unary_ast(AST_INDIR, parse_unary_expr());
+
+        case tEXCL:
+            pop_token();
+            return new_unary_ast(AST_NOT, parse_unary_expr());
 
         case kSIZEOF: {
             AST *ast;

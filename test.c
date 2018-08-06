@@ -1403,6 +1403,30 @@ int test307()
     return test307rethoge(&h)->piyo;
 }
 
+int test308()
+{
+    int a = 1, b = 4;
+    return !(a < b);
+}
+
+int test309()
+{
+    int a = 4;
+    return !a;
+}
+
+int test310()
+{
+    int a = 0;
+    return !!a;
+}
+
+int test311()
+{
+    int a = 3;
+    return !!a;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1707,4 +1731,8 @@ int main()
     expect_int(305, test305(), 2);
     expect_int(306, test306(), 42);
     expect_int(307, test307(), 43);
+    expect_int(308, test308(), 0);
+    expect_int(309, test309(), 0);
+    expect_int(310, test310(), 0);
+    expect_int(311, test311(), 1);
 }

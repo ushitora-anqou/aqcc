@@ -265,7 +265,6 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LT:
         case AST_LTE:
         case AST_EQ:
-        case AST_NEQ:
         case AST_AND:
         case AST_XOR:
         case AST_OR:
@@ -279,6 +278,12 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs))));
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
             // TODO: ptr == ptr is okay, but ptr * ptr is not.
+            break;
+
+        case AST_NEQ:
+            ast = new_unary_ast(AST_NOT,
+                                new_binop_ast(AST_EQ, ast->lhs, ast->rhs));
+            ast = analyze_ast_detail(env, ast);
             break;
 
         case AST_GTE:
@@ -299,9 +304,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->lhs))));
             ast->type = ast->lhs->type;
             if (ast->type->kind != TY_INT && ast->type->kind != TY_CHAR)
-                error("expect int or char type for unary minus", __FILE__,
-                      __LINE__);
+                error("expect int or char type for unary minus or not",
+                      __FILE__, __LINE__);
             break;
+
+        case AST_NOT:
+            ast = new_binop_ast(AST_EQ, new_int_ast(0), ast->lhs);
+            ast = analyze_ast_detail(env, ast);
+            return ast;
 
         case AST_COND:
             ast->cond = char2int(
@@ -537,10 +547,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             else
                 ast->lhs = analyze_ast_detail(env, ast->lhs);
 
-            int nbytes = ast->lhs->type->nbytes;
-            ast = new_ast(AST_INT);
-            ast->ival = nbytes;
-            ast->type = type_int();  // TODO: size_t
+            return new_int_ast(ast->lhs->type->nbytes);  // TODO: size_t
         } break;
 
         case AST_GOTO:

@@ -56,6 +56,7 @@ enum {
     tNEQ,
     tAND,
     tHAT,
+    tEXCL,
     tBAR,
     tANDAND,
     tBARBAR,
@@ -194,6 +195,7 @@ enum {
     AST_INT,
     AST_STRING_LITERAL,
     AST_UNARY_MINUS,
+    AST_NOT,
     AST_LSHIFT,
     AST_RSHIFT,
     AST_LT,
@@ -379,6 +381,7 @@ AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
                   Type *ret_type);
 AST *new_label_ast(char *name, AST *stmt);
 AST *new_lvalue2rvalue_ast(AST *lvalue);
+AST *new_int_ast(int ival);
 
 // analyze.c
 void analyze_ast(Vector *asts);

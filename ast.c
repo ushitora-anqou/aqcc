@@ -153,3 +153,11 @@ AST *new_lvalue2rvalue_ast(AST *lvalue)
     this->type = lvalue->type;
     return this;
 }
+
+AST *new_int_ast(int ival)
+{
+    AST *this = new_ast(AST_INT);
+    this->ival = ival;
+    this->type = type_int();
+    return this;
+}

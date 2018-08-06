@@ -266,8 +266,9 @@ Token *read_next_token()
 
             case '!':
                 ch = getch();
-                if (ch != '=') break;
-                return new_token(tNEQ);
+                if (ch == '=') return new_token(tNEQ);
+                ungetch();
+                return new_token(tEXCL);
 
             case '&':
                 ch = getch();
@@ -317,7 +318,8 @@ Token *read_next_token()
                 return new_token(tRBRACKET);
         }
 
-        error("unexpected token", __FILE__, __LINE__);
+        error(format("%d:%d:unexpected character", source.line, source.column),
+              __FILE__, __LINE__);
     }
 
     return new_token(tEOF);
