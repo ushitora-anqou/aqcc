@@ -1434,6 +1434,20 @@ int test312()
     return 0;
 }
 
+int test313()
+{
+    int a = 0, *b = &a;
+    while (*b) return 1;
+    return 0;
+}
+
+int test314()
+{
+    int a = 0, *b = &a;
+    for (; *b;) return 1;
+    return 0;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1743,4 +1757,6 @@ int main()
     expect_int(310, test310(), 0);
     expect_int(311, test311(), 1);
     expect_int(312, test312(), 0);
+    expect_int(313, test313(), 0);
+    expect_int(314, test314(), 0);
 }
