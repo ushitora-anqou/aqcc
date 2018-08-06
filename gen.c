@@ -33,7 +33,7 @@ Vector *swap_codes(CodeEnv *env, Vector *new_codes)
 
 void appcode(Vector *codes, const char *src, ...)
 {
-    char buf[256], buf2[256];  // TODO: enoguth length?
+    char buf[256], buf2[256];  // TODO: enough length?
     int i, bufidx;
     va_list args;
 
