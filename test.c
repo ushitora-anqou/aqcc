@@ -1427,6 +1427,13 @@ int test311()
     return !!a;
 }
 
+int test312()
+{
+    int a = 0, *b = &a;
+    if (*b) return 1;
+    return 0;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1735,4 +1742,5 @@ int main()
     expect_int(309, test309(), 0);
     expect_int(310, test310(), 0);
     expect_int(311, test311(), 1);
+    expect_int(312, test312(), 0);
 }

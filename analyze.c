@@ -457,7 +457,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_IF:
-            ast->cond = analyze_ast_detail(env, ast->cond);
+            ast->cond = char2int(
+                lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->cond))));
             ast->then = analyze_ast_detail(env, ast->then);
             ast->els = analyze_ast_detail(env, ast->els);
             break;
