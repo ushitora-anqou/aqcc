@@ -15,6 +15,10 @@ char b;
 int *p;
 char *q;
 
+struct hoge {
+    int piyo;
+};
+
 int printf(char *str, int a, int b, int c);
 
 int expect_int(int no, int got, int expect)
@@ -1113,10 +1117,6 @@ end_loop:
     return i;
 }
 
-struct hoge {
-    int piyo;
-};
-
 int test281() { return sizeof(struct hoge); }
 
 int test282()
@@ -1383,6 +1383,15 @@ int test305()
     c[0]->a = 2;
     c[1]->a = 2;
     return c[0]->a & c[1]->a;
+}
+
+int *test306retptr(int *p) { return p; }
+
+int test306()
+{
+    int a[3];
+    a[2] = 42;
+    return test306retptr(a)[2];
 }
 
 int main()
@@ -1687,4 +1696,5 @@ int main()
     expect_int(303, test303(), 0);
     expect_int(304, test304(), 0);
     expect_int(305, test305(), 2);
+    expect_int(306, test306(), 42);
 }

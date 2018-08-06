@@ -149,11 +149,10 @@ Vector *parse_argument_expr_list()
 
 AST *parse_postfix_expr()
 {
-    // TODO: should be recursive
+    AST *ast;
 
     if (match_token2(tIDENT, tLPAREN)) {  // function call
         Token *ident;
-        AST *ast;
 
         ident = pop_token();
         pop_token();
@@ -161,18 +160,23 @@ AST *parse_postfix_expr()
         ast = new_func_ast(AST_FUNCCALL, ident->sval,
                            parse_argument_expr_list(), NULL, NULL);
         expect_token(tRPAREN);
-        return ast;
     }
-
-    AST *ast;
-
-    if (match_token(tIDENT))  // variable
+    else if (match_token(tIDENT))  // variable
         ast = new_var_ast(pop_token()->sval);
     else  // primary expr
         ast = parse_primary_expr();
 
     while (1) {
         switch (peek_token()->kind) {
+                /*
+                case tLPAREN:   // call function pointer. not implemented.
+                    pop_token();
+                    ast = new_func_ast(AST_FUNCCALL, NULL,
+                                       parse_argument_expr_list(), NULL, NULL);
+                    expect_token(tRPAREN);
+                    break;
+                    */
+
             case tINC: {
                 pop_token();
                 ast = new_unary_ast(AST_POSTINC, ast);
