@@ -817,7 +817,7 @@ end:
 AST *parse_function_definition()
 {
     Type *type = type_int();
-    if (match_declaration_specifiers()) parse_declaration_specifiers();
+    if (match_declaration_specifiers()) type = parse_declaration_specifiers();
     AST *ast = parse_declarator(type);
     // TODO: K&R style params
     ast->body = parse_compound_stmt();

@@ -1394,6 +1394,15 @@ int test306()
     return test306retptr(a)[2];
 }
 
+struct hoge *test307rethoge(struct hoge *p) { return p; }
+
+int test307()
+{
+    struct hoge h;
+    h.piyo = 43;
+    return test307rethoge(&h)->piyo;
+}
+
 int main()
 {
     expect_int(1, test001(), 2);
@@ -1697,4 +1706,5 @@ int main()
     expect_int(304, test304(), 0);
     expect_int(305, test305(), 2);
     expect_int(306, test306(), 42);
+    expect_int(307, test307(), 43);
 }
