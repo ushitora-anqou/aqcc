@@ -482,7 +482,8 @@ void generate_code_detail(CodeEnv *env, AST *ast)
 
             if (ast->initer != NULL) {
                 generate_code_detail(env, ast->initer);
-                appcode(env->codes, "pop #rax");
+                if (ast->type != NULL)  // if expr
+                    appcode(env->codes, "pop #rax");
             }
             appcode(env->codes, "%s:", start_label);
             if (ast->midcond != NULL) {
@@ -561,6 +562,11 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             generate_code_detail(env, ast->lhs);
             generate_code_detail(env, ast->rhs);
             appcode(env->codes, "pop #rax");
+            break;
+
+        case AST_DECL_LIST:
+            for (int i = 0; i < vector_size(ast->decls); i++)
+                generate_code_detail(env, (AST *)vector_get(ast->decls, i));
             break;
 
         case AST_GVAR_DECL:

@@ -9,6 +9,8 @@ Type *parse_type_specifier();
 AST *parse_declarator(Type *type);
 Type *parse_declaration_specifiers();
 AST *parse_compound_stmt();
+int match_declaration();
+AST *parse_declaration(int decl_ast_kind);
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
@@ -584,11 +586,18 @@ AST *parse_iteration_stmt()
             AST *initer, *cond, *iterer, *body;
 
             expect_token(tLPAREN);
-            if (match_token(tSEMICOLON))
+
+            if (pop_token_if(tSEMICOLON)) {
                 initer = NULL;
-            else
+            }
+            else if (match_declaration()) {
+                initer = parse_declaration(AST_LVAR_DECL);
+            }
+            else {
                 initer = parse_expr();
-            expect_token(tSEMICOLON);
+                expect_token(tSEMICOLON);
+            }
+
             if (match_token(tSEMICOLON))
                 cond = NULL;
             else
@@ -599,6 +608,7 @@ AST *parse_iteration_stmt()
             else
                 iterer = parse_expr();
             expect_token(tRPAREN);
+
             body = parse_stmt();
 
             ast = new_ast(AST_FOR);
@@ -775,14 +785,16 @@ AST *parse_init_declarator(int decl_ast_kind, Type *type)
     return ast;
 }
 
-Vector *parse_init_declarator_list(int decl_ast_kind, Type *base_type)
+AST *parse_init_declarator_list(int decl_ast_kind, Type *base_type)
 {
     Vector *decls = new_vector();
     vector_push_back(decls, parse_init_declarator(decl_ast_kind, base_type));
     while (pop_token_if(tCOMMA))
         vector_push_back(decls,
                          parse_init_declarator(decl_ast_kind, base_type));
-    return decls;
+    AST *ast = new_ast(AST_DECL_LIST);
+    ast->decls = decls;
+    return ast;
 }
 
 int match_declaration_specifiers() { return match_type_specifier(); }
@@ -795,20 +807,19 @@ Type *parse_declaration_specifiers()
 
 int match_declaration() { return match_type_specifier(); }
 
-Vector *parse_declaration(int decl_ast_kind)
+AST *parse_declaration(int decl_ast_kind)
 {
     Type *base_type = parse_declaration_specifiers();
 
-    Vector *decls = NULL;
+    AST *ast;
     if (match_declarator())
-        decls = parse_init_declarator_list(decl_ast_kind, base_type);
+        ast = parse_init_declarator_list(decl_ast_kind, base_type);
     else
-        decls = new_vector_from_scalar(
-            new_var_decl_ast(decl_ast_kind, base_type, NULL));
+        ast = new_var_decl_ast(decl_ast_kind, base_type, NULL);
 
     expect_token(tSEMICOLON);
 
-    return decls;
+    return ast;
 }
 
 int match_function_definition()
@@ -837,10 +848,9 @@ AST *parse_function_definition()
     return ast;
 }
 
-Vector *parse_external_declaration()
+AST *parse_external_declaration()
 {
-    if (match_function_definition())
-        return new_vector_from_scalar(parse_function_definition());
+    if (match_function_definition()) return parse_function_definition();
     return parse_declaration(AST_GVAR_DECL);
 }
 
@@ -851,10 +861,12 @@ AST *parse_compound_stmt()
 
     expect_token(tLBRACE);
     while (!match_token(tRBRACE)) {
+        AST *ast;
         if (match_type_specifier())
-            vector_push_back_vector(stmts, parse_declaration(AST_LVAR_DECL));
+            ast = parse_declaration(AST_LVAR_DECL);
         else
-            vector_push_back(stmts, parse_stmt());
+            ast = parse_stmt();
+        vector_push_back(stmts, ast);
     }
     expect_token(tRBRACE);
 
@@ -965,7 +977,7 @@ Vector *parse_prog(Vector *tokens)
     init_tokenseq(tokens);
 
     while (peek_token()->kind != tEOF)
-        vector_push_back_vector(asts, parse_external_declaration());
+        vector_push_back(asts, parse_external_declaration());
 
     return asts;
 }

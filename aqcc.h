@@ -247,6 +247,7 @@ enum {
     AST_MEMBER_REF,
     AST_MEMBER_REF_PTR,
     AST_EXPR_LIST,
+    AST_DECL_LIST,
 };
 
 struct AST {
@@ -290,8 +291,6 @@ struct AST {
             Env *env;
         };
 
-        Vector *stmts;
-
         // AST_ARY2PTR
         struct {
             AST *ary;
@@ -313,7 +312,9 @@ struct AST {
             char *member;
         };
 
+        Vector *stmts;
         Vector *exprs;
+        Vector *decls;
     };
 };
 

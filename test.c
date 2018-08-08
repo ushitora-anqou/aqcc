@@ -24,7 +24,8 @@ int printf(char *str, int a, int b, int c);
 #define EXPECT_INT(got, expect)                                          \
     {                                                                    \
         int expect_int = (expect), got_int = (got);                      \
-        if (got_int != expect_int)                                       \
+        int wrong_int = expect_int + 1;                                  \
+        if (got_int != expect_int || wrong_int == got_int)               \
             printf("[ERROR] %d:%s: expect %d, got %d\n", __LINE__, #got, \
                    expect_int, got_int);                                 \
     }
@@ -1390,6 +1391,28 @@ int test316()
     EXPECT_INT(j, 5);
 }
 
+int test317()
+{
+    int sum = 0;
+    for (int i = 0; i < 5; i++) sum++;
+    for (int i = 0; i < 5; i++) sum++;
+    EXPECT_INT(sum, 10);
+}
+
+int test318()
+{
+    int sum = 0;
+    for (int i = 0, j = 0; i < 5 && j < 6; i++, j++) sum++;
+    for (int i = 0, j = 0; i < 6 || j < 3; i++, j++) sum++;
+    EXPECT_INT(sum, 11);
+}
+
+int test319()
+{
+    int a = 3, b = a + 1;
+    EXPECT_INT(b - a, 1);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1702,4 +1725,7 @@ int main()
     test314();
     test315();
     test316();
+    test317();
+    test318();
+    test319();
 }

@@ -383,6 +383,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
             break;
 
+        case AST_DECL_LIST:
+            for (int i = 0; i < vector_size(ast->decls); i++) {
+                AST *decl = (AST *)vector_get(ast->decls, i);
+                decl = analyze_ast_detail(env, decl);
+                vector_set(ast->decls, i, decl);
+            }
+            break;
+
         case AST_FUNCCALL: {
             AST *funcdef;
             int i;
@@ -504,12 +512,13 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast = analyze_ast_detail(env, ast);
         } break;
 
-        case AST_FOR:
-            ast->initer = convert_expr(analyze_ast_detail(env, ast->initer));
-            ast->midcond = convert_expr(analyze_ast_detail(env, ast->midcond));
-            ast->iterer = convert_expr(analyze_ast_detail(env, ast->iterer));
-            ast->for_body = analyze_ast_detail(env, ast->for_body);
-            break;
+        case AST_FOR: {
+            Env *nenv = new_env(env);
+            ast->initer = convert_expr(analyze_ast_detail(nenv, ast->initer));
+            ast->midcond = convert_expr(analyze_ast_detail(nenv, ast->midcond));
+            ast->iterer = convert_expr(analyze_ast_detail(nenv, ast->iterer));
+            ast->for_body = analyze_ast_detail(nenv, ast->for_body);
+        } break;
 
         case AST_PREINC:
         case AST_POSTINC:
