@@ -121,11 +121,6 @@ char *escape_string(char *str, int size)
     for (int i = 0; i < size; i++) {
         char ch = str[i];
 
-        if (isprint(ch)) {
-            string_builder_append(sb, ch);
-            continue;
-        }
-
         switch (ch) {
             case '\n':
                 string_builder_append(sb, '\\');
@@ -167,9 +162,13 @@ char *escape_string(char *str, int size)
                 string_builder_append(sb, 'f');
                 break;
 
-            case '\"':
+            case '"':
                 string_builder_append(sb, '\\');
                 string_builder_append(sb, '"');
+                break;
+
+            default:
+                string_builder_append(sb, ch);
                 break;
         }
     }
