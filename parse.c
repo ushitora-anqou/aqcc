@@ -506,7 +506,17 @@ AST *parse_assignment_expr()
     return new_binop_ast(AST_ASSIGN, last, rast);
 }
 
-AST *parse_expr() { return parse_assignment_expr(); }
+AST *parse_expr()
+{
+    Vector *exprs = new_vector();
+    vector_push_back(exprs, parse_assignment_expr());
+    while (pop_token_if(tCOMMA))
+        vector_push_back(exprs, parse_assignment_expr());
+
+    AST *ast = new_ast(AST_EXPR_LIST);
+    ast->exprs = exprs;
+    return ast;
+}
 
 AST *parse_expression_stmt()
 {

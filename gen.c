@@ -381,6 +381,14 @@ void generate_code_detail(CodeEnv *env, AST *ast)
             appcode(env->codes, "push #rax");
             break;
 
+        case AST_EXPR_LIST:
+            for (int i = 0; i < vector_size(ast->exprs); i++) {
+                generate_code_detail(env, (AST *)vector_get(ast->exprs, i));
+                appcode(env->codes, "pop #rax");
+            }
+            appcode(env->codes, "push #rax");
+            break;
+
         case AST_LVAR:
             appcode(env->codes, "lea %d(#rbp), #rax", ast->stack_idx);
             appcode(env->codes, "push #rax");

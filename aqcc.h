@@ -246,6 +246,7 @@ enum {
     AST_LVALUE2RVALUE,
     AST_MEMBER_REF,
     AST_MEMBER_REF_PTR,
+    AST_EXPR_LIST,
 };
 
 struct AST {
@@ -311,6 +312,8 @@ struct AST {
             AST *stsrc;
             char *member;
         };
+
+        Vector *exprs;
     };
 };
 

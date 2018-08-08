@@ -330,6 +330,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = ast->lhs->type;
             break;
 
+        case AST_EXPR_LIST:
+            for (int i = 0; i < vector_size(ast->exprs); i++) {
+                AST *expr = (AST *)vector_get(ast->exprs, i);
+                expr = convert_expr(analyze_ast_detail(env, expr));
+                ast->type = expr->type;
+                vector_set(ast->exprs, i, expr);
+            }
+            break;
+
         case AST_VAR: {
             char *varname = ast->varname;
 

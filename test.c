@@ -21,12 +21,12 @@ struct hoge {
 
 int printf(char *str, int a, int b, int c);
 
-#define EXPECT_INT(got, expect)                                         \
-    {                                                                   \
-        int expect_int = (expect), got_int = (got);                     \
-        if (got_int != expect_int)                                      \
-            printf("[ERROR] %s: expect %d, got %d\n", #got, expect_int, \
-                   got_int);                                            \
+#define EXPECT_INT(got, expect)                                          \
+    {                                                                    \
+        int expect_int = (expect), got_int = (got);                      \
+        if (got_int != expect_int)                                       \
+            printf("[ERROR] %d:%s: expect %d, got %d\n", __LINE__, #got, \
+                   expect_int, got_int);                                 \
     }
 
 int test097()
@@ -1375,6 +1375,21 @@ int test314detail()
 
 int test314() { EXPECT_INT(test314detail(), 0); }
 
+int test315()
+{
+    int i, j;
+    EXPECT_INT((i = 4, j = 5), 5);
+}
+
+int test316()
+{
+    int i, j;
+    for (i = 0, j = 0; i < 5 && j < 5; i++, j++)
+        ;
+    EXPECT_INT(i, 5);
+    EXPECT_INT(j, 5);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1685,4 +1700,6 @@ int main()
     test312();
     test313();
     test314();
+    test315();
+    test316();
 }
