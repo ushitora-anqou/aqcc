@@ -18,6 +18,7 @@ void *vector_get(Vector *this, size_t i);
 size_t vector_size(Vector *this);
 void *vector_set(Vector *this, size_t i, void *item);
 void vector_push_back_vector(Vector *this, Vector *src);
+Vector *clone_vector(Vector *src);
 
 // map.c
 typedef struct KeyValue KeyValue;
@@ -348,7 +349,7 @@ Vector *parse_prog(Vector *tokens);
 
 // gen.c
 Vector *generate_code(Vector *asts);
-void dump_codes(Vector *codes, FILE *fh);
+void dump_code(Vector *codes, FILE *fh);
 
 // type.c
 Type *type_int();

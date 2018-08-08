@@ -55,3 +55,10 @@ void vector_push_back_vector(Vector *this, Vector *src)
     for (size_t i = 0; i < vector_size(src); i++)
         vector_push_back(this, vector_get(src, i));
 }
+
+Vector *clone_vector(Vector *src)
+{
+    Vector *vec = new_vector();
+    vector_push_back_vector(vec, src);
+    return vec;
+}

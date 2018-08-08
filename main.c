@@ -4,19 +4,17 @@
 
 int main(int argc, char **argv)
 {
-    Vector *tokens, *asts, *codes;
-
     if (argc == 2) {
         execute_test();
         return 0;
     }
 
-    tokens = read_all_tokens(stdin);
-    asts = parse_prog(tokens);
+    Vector *tokens = read_all_tokens(stdin);
+    Vector *asts = parse_prog(tokens);
     analyze_ast(asts);
-    codes = generate_code(asts);
+    Vector *code = generate_code(asts);
 
-    dump_codes(codes, stdout);
+    dump_code(code, stdout);
 
     return 0;
 }

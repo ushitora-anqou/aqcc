@@ -31,6 +31,9 @@ void test_vector(int n)
 
     vector_push_back_vector(vec, vec2);
     assert(*(int*)vector_get(vec, vector_size(vec) - 1) == 100);
+
+    Vector *vec3 = clone_vector(vec2);
+    assert(*(int*)vector_get(vec3, 0) == 100);
 }
 
 void test_map()
