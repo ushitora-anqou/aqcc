@@ -1532,6 +1532,93 @@ int test329()
     EXPECT_INT(st.a, 4);
 }
 
+int test330()
+{
+    typedef struct {
+        int a;
+        char b, c;
+        int d;
+    } test330st1;
+    EXPECT_INT(sizeof(test330st1), 12);
+
+    typedef struct {
+        int a;
+        char b[2];
+        int d;
+    } test330st2;
+    EXPECT_INT(sizeof(test330st2), 12);
+
+    typedef struct {
+        int a, b;
+        char c, d, e;
+        int f;
+    } test330st3;
+    EXPECT_INT(sizeof(test330st3), 16);
+
+    typedef struct {
+        int a;
+        char b, c;
+        int d;
+        struct {
+            int a;
+            char b[2];
+            int d;
+        } test330st4;
+    } test330st5;
+    EXPECT_INT(sizeof(test330st5), 24);
+
+    typedef struct {
+        int a;
+        char b, c;
+        int d;
+        struct {
+            int a;
+            char b[2];
+            int d;
+            struct {
+                int a, b;
+                char c, d, e;
+                int f;
+            } test330st6;
+        } test330st7;
+    } test330st8;
+    EXPECT_INT(sizeof(test330st8), 40);
+
+    typedef struct {
+        int a;
+        char b, c;
+        int d;
+        struct {
+            int a2;
+            char b2[2];
+            int d2;
+            struct {
+                int a1, b1;
+                char c1, d1, e;
+                int f;
+            };
+        };
+    } test330st9;
+    EXPECT_INT(sizeof(test330st9), 40);
+
+    typedef struct {
+        int a;
+        char b, c;
+        int d;
+        struct {
+            int a;
+            char b[2];
+            int d;
+            struct {
+                int a, b;
+                char c, d, e;
+                int f;
+            } test330st10[3];
+        } test330st11[5];
+    } test330st12;
+    EXPECT_INT(sizeof(test330st12), 312);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1856,4 +1943,6 @@ int main()
     test326();
     test327();
     test328();
+    test329();
+    test330();
 }

@@ -241,14 +241,15 @@ Type *analyze_type(Env *env, Type *type)
 
             // calc offset
             size = vector_size(type->members);
-            int offset = 0, alignment = alignment_of(type);
+            int offset = 0;
             for (int i = 0; i < size; i++) {
                 StructMember *member =
                     (StructMember *)vector_get(type->members, i);
+                offset = roundup(offset, alignment_of(member->type));
                 member->offset = offset;
-                offset += roundup(member->type->nbytes, alignment);
+                offset += member->type->nbytes;
             }
-            type->nbytes = offset;
+            type->nbytes = roundup(offset, alignment_of(type));
 
             if (type->stname) add_struct_type(env, type);
         } break;
