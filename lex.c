@@ -392,6 +392,8 @@ const char *token_kind2str(int kind)
             return "tAND";
         case tHAT:
             return "tHAT";
+        case tEXCL:
+            return "tEXCL";
         case tBAR:
             return "tBAR";
         case tANDAND:
@@ -426,6 +428,10 @@ const char *token_kind2str(int kind)
             return "tSEMICOLON";
         case tCOMMA:
             return "tCOMMA";
+        case tDOT:
+            return "tDOT";
+        case tARROW:
+            return "tARROW";
         case tLBRACE:
             return "tLBRACE";
         case tRBRACE:
@@ -442,6 +448,8 @@ const char *token_kind2str(int kind)
             return "tRBRACKET";
         case tINC:
             return "tINC";
+        case tDEC:
+            return "tDEC";
         case tEOF:
             return "tEOF";
         case kIF:
@@ -462,6 +470,14 @@ const char *token_kind2str(int kind)
             return "kCHAR";
         case kSIZEOF:
             return "kSIZEOF";
+        case kSWITCH:
+            return "kSWITCH";
+        case kCASE:
+            return "kCASE";
+        case kDEFAULT:
+            return "kDEFAULT";
+        case kGOTO:
+            return "kGOTO";
         case kSTRUCT:
             return "kSTRUCT";
         case kTYPEDEF:
