@@ -202,10 +202,15 @@ AST *parse_postfix_expr()
                     break;
                     */
 
-            case tINC: {
+            case tINC:
                 pop_token();
                 ast = new_unary_ast(AST_POSTINC, ast);
-            } break;
+                break;
+
+            case tDEC:
+                pop_token();
+                ast = new_unary_ast(AST_POSTDEC, ast);
+                break;
 
             case tLBRACKET:
                 pop_token();
@@ -256,6 +261,10 @@ AST *parse_unary_expr()
         case tINC:
             pop_token();
             return new_unary_ast(AST_PREINC, parse_unary_expr());
+
+        case tDEC:
+            pop_token();
+            return new_unary_ast(AST_PREDEC, parse_unary_expr());
 
         case tAND:
             pop_token();

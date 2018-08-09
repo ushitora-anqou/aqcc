@@ -279,9 +279,7 @@ void generate_code_detail(AST *ast)
         } break;
 
         case AST_POSTINC: {
-            char suf;
-
-            suf = byte2suffix(ast->lhs->type->nbytes);
+            char suf = byte2suffix(ast->lhs->type->nbytes);
 
             generate_code_detail(ast->lhs);
             appcode("pop #rax");
@@ -296,9 +294,7 @@ void generate_code_detail(AST *ast)
         } break;
 
         case AST_PREINC: {
-            char suf;
-
-            suf = byte2suffix(ast->lhs->type->nbytes);
+            char suf = byte2suffix(ast->lhs->type->nbytes);
 
             generate_code_detail(ast->lhs);
             appcode("pop #rax");
@@ -308,6 +304,36 @@ void generate_code_detail(AST *ast)
                         ast->lhs->type->ptr_of->nbytes);
             else
                 appcode("inc%c (#rax)", suf);
+
+            appcode("push (#rax)");
+        } break;
+
+        case AST_POSTDEC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            generate_code_detail(ast->lhs);
+            appcode("pop #rax");
+            appcode("push (#rax)");
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("sub%c $%d, (#rax)", suf,
+                        ast->lhs->type->ptr_of->nbytes);
+            else
+                appcode("dec%c (#rax)", suf);
+
+        } break;
+
+        case AST_PREDEC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            generate_code_detail(ast->lhs);
+            appcode("pop #rax");
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("sub%c $%d, (#rax)", suf,
+                        ast->lhs->type->ptr_of->nbytes);
+            else
+                appcode("dec%c (#rax)", suf);
 
             appcode("push (#rax)");
         } break;

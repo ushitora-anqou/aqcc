@@ -593,9 +593,11 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_PREINC:
         case AST_POSTINC:
+        case AST_PREDEC:
+        case AST_POSTDEC:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             if (!is_lvalue(ast->lhs))
-                error("should specify lvalue for pre increment", __FILE__,
+                error("should specify lvalue for increment/decrement", __FILE__,
                       __LINE__);
             ast->type = ast->lhs->type;
             break;

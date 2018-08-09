@@ -198,6 +198,7 @@ Token *read_next_token()
                 ch = getch();
                 if (ch == '=') return new_token(tMINUSEQ);
                 if (ch == '>') return new_token(tARROW);
+                if (ch == '-') return new_token(tDEC);
                 ungetch();
                 return new_token(tMINUS);
 

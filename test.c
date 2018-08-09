@@ -1507,6 +1507,22 @@ int test326()
     (1, *b).a;
 }
 
+int test327()
+{
+    int a = 1;
+    a--;
+    --a;
+    EXPECT_INT(a, -1);
+}
+
+int test328()
+{
+    int a = 1, b = a--, c = --a;
+    EXPECT_INT(a, -1);
+    EXPECT_INT(b, 1);
+    EXPECT_INT(c, -1);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1829,4 +1845,6 @@ int main()
     test324();
     test325();
     test326();
+    test327();
+    test328();
 }
