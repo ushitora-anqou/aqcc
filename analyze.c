@@ -137,13 +137,17 @@ int is_lvalue(AST *ast)
         case AST_INDIR:
         case AST_MEMBER_REF:
             return 1;
-        case AST_EXPR_LIST:
-            assert(vector_size(ast->exprs) >= 1);
-            return is_lvalue(
-                (AST *)vector_get(ast->exprs, vector_size(ast->exprs) - 1));
     }
 
     return 0;
+}
+
+int is_last_expr_in_list_lvalue(AST *ast)
+{
+    if (ast->kind != AST_EXPR_LIST) return 0;
+    assert(vector_size(ast->exprs) >= 1);
+    AST *last_expr = (AST *)vector_get(ast->exprs, vector_size(ast->exprs) - 1);
+    return is_lvalue(last_expr) || is_last_expr_in_list_lvalue(last_expr);
 }
 
 AST *lvalue2rvalue(AST *lvalue)
@@ -642,7 +646,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_MEMBER_REF: {
             ast->stsrc = analyze_ast_detail(env, ast->stsrc);
-            if (!is_lvalue(ast->stsrc))
+            if (!is_lvalue(ast->stsrc) &&
+                !is_last_expr_in_list_lvalue(ast->stsrc))
                 error("lhs of dot should be lvalue", __FILE__, __LINE__);
             ast->stsrc->type = analyze_type(env, ast->stsrc->type);
             if (ast->stsrc->type->kind != TY_STRUCT)

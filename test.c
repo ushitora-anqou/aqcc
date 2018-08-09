@@ -1523,6 +1523,15 @@ int test328()
     EXPECT_INT(c, -1);
 }
 
+int test329()
+{
+    struct {
+        int a;
+    } st;
+    (1, (1, st)).a = 4;
+    EXPECT_INT(st.a, 4);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
