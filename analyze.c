@@ -510,8 +510,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->env->scoped_vars = new_vector();
             // add param into functions's scope
             // in reversed order for easy code generation.
-            for (i = vector_size(ast->params) - 1; i >= 0; i--)
-                add_var(ast->env, (AST *)vector_get(ast->params, i));
+            if (ast->params)
+                for (i = vector_size(ast->params) - 1; i >= 0; i--)
+                    add_var(ast->env, (AST *)vector_get(ast->params, i));
 
             // analyze body
             init_goto_info();

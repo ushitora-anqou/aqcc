@@ -103,6 +103,7 @@ enum {
     kSTRUCT,
     kTYPEDEF,
     kDO,
+    kVOID,
 };
 
 typedef struct {
@@ -145,6 +146,7 @@ enum {
     TY_ARY,
     TY_STRUCT,
     TY_TYPEDEF,
+    TY_VOID,
 };
 
 typedef struct Type Type;

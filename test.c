@@ -30,40 +30,40 @@ int printf(char *str, int a, int b, int c);
                    expect_int, got_int);                                 \
     }
 
-int test097()
+int test097(void)
 {
     int x;
     EXPECT_INT(x = 1, 1);
 }
-int test098()
+int test098(void)
 {
     int xy;
     EXPECT_INT(xy = 100 + 100, 200);
 }
-int test099()
+int test099(void)
 {
     int a_b;
     EXPECT_INT(a_b = -(33 * (1 + 2)) / 3 + 34, 1);
 }
-int test100()
+int test100(void)
 {
     int _;
     EXPECT_INT(_ = (2 - 1) << 1, 2);
 }
-int test101()
+int test101(void)
 {
     int x = 1;
     int y;
     EXPECT_INT(y = 2, 2);
 }
-int test102()
+int test102(void)
 {
     int x = 1;
     int y = 2;
     int z;
     EXPECT_INT(z = x + y, 3);
 }
-int test103()
+int test103(void)
 {
     int a0 = 1;
     int a1 = 1;
@@ -71,7 +71,7 @@ int test103()
     int a3;
     EXPECT_INT(a3 = a1 + a2, 3);
 }
-int test104()
+int test104(void)
 {
     int x;
     int y;
@@ -79,31 +79,31 @@ int test104()
     x = y = 1;
     EXPECT_INT(z = x = x + y, 2);
 }
-int test105() { EXPECT_INT(ret0(), 0); }
-int test106() { EXPECT_INT((ret0() + ret1()) * 2, 2); }
-int test107() { EXPECT_INT((ret0() * ret1()) + 2, 2); }
-int test108() { EXPECT_INT(add1(1), 2); }
-int test109() { EXPECT_INT(add_two(1, 2), 3); }
-int test110() { EXPECT_INT(add_all(1, 2, 4, 8, 16, 32, 64, 128), 1); }
-test111() { EXPECT_INT(iret0(), 0); }
-test112() { EXPECT_INT(iret0() + iret1(), 1); }
+int test105(void) { EXPECT_INT(ret0(), 0); }
+int test106(void) { EXPECT_INT((ret0() + ret1()) * 2, 2); }
+int test107(void) { EXPECT_INT((ret0() * ret1()) + 2, 2); }
+int test108(void) { EXPECT_INT(add1(1), 2); }
+int test109(void) { EXPECT_INT(add_two(1, 2), 3); }
+int test110(void) { EXPECT_INT(add_all(1, 2, 4, 8, 16, 32, 64, 128), 1); }
+test111(void) { EXPECT_INT(iret0(), 0); }
+test112(void) { EXPECT_INT(iret0() + iret1(), 1); }
 int test113noreturn() {}
-int test113() { EXPECT_INT(test113noreturn(), 0); }
-test115() { EXPECT_INT(iadd(1, 2), 3); }
-test116() { EXPECT_INT(iadd(1, 2) * iadd(2, 3), 15); }
-test117() { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 8), 8); }
-int test118() { EXPECT_INT(0 == 0 ? 0 : 1, 0); }
+int test113(void) { EXPECT_INT(test113noreturn(), 0); }
+test115(void) { EXPECT_INT(iadd(1, 2), 3); }
+test116(void) { EXPECT_INT(iadd(1, 2) * iadd(2, 3), 15); }
+test117(void) { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 8), 8); }
+int test118(void) { EXPECT_INT(0 == 0 ? 0 : 1, 0); }
 int test119fib(int n)
 {
     return n == 0 ? 0 : n == 1 ? 1 : test119fib(n - 1) + test119fib(n - 2);
 }
-int test119() { EXPECT_INT(test119fib(5), 5); }
+int test119(void) { EXPECT_INT(test119fib(5), 5); }
 int test120detail()
 {
     if (0 == 1) return 0;
     return 1;
 }
-int test120() { EXPECT_INT(test120detail(), 1); }
+int test120(void) { EXPECT_INT(test120detail(), 1); }
 int test121detail()
 {
     if (0 == 1)
@@ -111,7 +111,7 @@ int test121detail()
     else
         return 1;
 }
-int test121() { EXPECT_INT(test121detail(), 1); }
+int test121(void) { EXPECT_INT(test121detail(), 1); }
 int test122detail()
 {
     if (0 == 1) {
@@ -121,26 +121,26 @@ int test122detail()
         return 1;
     }
 }
-int test122() { EXPECT_INT(test122detail(), 1); }
+int test122(void) { EXPECT_INT(test122detail(), 1); }
 int test123fib(int n)
 {
     if (n <= 1) return n;
     return test123fib(n - 1) + test123fib(n - 2);
 }
-int test123() { EXPECT_INT(test123fib(0), 0); }
+int test123(void) { EXPECT_INT(test123fib(0), 0); }
 int test124fib(int n)
 {
     if (n <= 1) return n;
     return test124fib(n - 1) + test124fib(n - 2);
 }
-int test124() { EXPECT_INT(test124fib(1), 1); }
+int test124(void) { EXPECT_INT(test124fib(1), 1); }
 int test125fib(int n)
 {
     if (n <= 1) return n;
     return test125fib(n - 1) + test125fib(n - 2);
 }
-int test125() { EXPECT_INT(test125fib(5), 5); }
-int test126()
+int test125(void) { EXPECT_INT(test125fib(5), 5); }
+int test126(void)
 {
     int a = 0;
     if (a == 0) {
@@ -157,7 +157,7 @@ int test126()
 }
 int test128foo() { return 2; }
 int test128bar() { return 7; }
-int test128()
+int test128(void)
 {
     int a = 3;
     int b = 5;
@@ -179,14 +179,14 @@ int test129detail()
     else if (a == 2)
         return 1;
 }
-int test129() { EXPECT_INT(test129detail(), 1); }
-int test130()
+int test129(void) { EXPECT_INT(test129detail(), 1); }
+int test130(void)
 {
     int a = 0;
     while (a != 10) a = a + 1;
     EXPECT_INT(a, 10);
 }
-int test131()
+int test131(void)
 {
     int a = 0;
     while (a != 10) {
@@ -196,7 +196,7 @@ int test131()
     }
     EXPECT_INT(a, 10);
 }
-int test132()
+int test132(void)
 {
     int a = 0;
     while (a != 10) {
@@ -205,7 +205,7 @@ int test132()
     }
     EXPECT_INT(a, 5);
 }
-int test133()
+int test133(void)
 {
     int a = 0;
     while (a < 5) {
@@ -215,7 +215,7 @@ int test133()
     }
     EXPECT_INT(a, 5);
 }
-int test134()
+int test134(void)
 {
     int a = 0;
     int i;
@@ -224,7 +224,7 @@ int test134()
     }
     EXPECT_INT(a, 55);
 }
-int test135()
+int test135(void)
 {
     int a = 0;
     for (;;) {
@@ -233,7 +233,7 @@ int test135()
     }
     EXPECT_INT(a, 10);
 }
-int test136()
+int test136(void)
 {
     int a = 0;
     for (;; a = a + 1)
@@ -243,13 +243,13 @@ int test136()
             break;
     EXPECT_INT(a, 10);
 }
-int test137()
+int test137(void)
 {
     int a = 0;
     a++;
     EXPECT_INT(a, 1);
 }
-int test138()
+int test138(void)
 {
     int a = 0;
     int i;
@@ -258,21 +258,21 @@ int test138()
     }
     EXPECT_INT(a, 55);
 }
-int test139()
+int test139(void)
 {
     int a = 0;
     int b;
     b = (a++) + 1;
     EXPECT_INT(b, 1);
 }
-int test140()
+int test140(void)
 {
     int a = 0;
     int b;
     b = (++a) + 1;
     EXPECT_INT(b, 2);
 }
-int test141()
+int test141(void)
 {
     int a = 0;
     int i;
@@ -281,7 +281,7 @@ int test141()
     }
     EXPECT_INT(a, 55);
 }
-int test142()
+int test142(void)
 {
     int a = 0;
     if (a == 0) {
@@ -290,7 +290,7 @@ int test142()
     }
     EXPECT_INT(a, 0);
 }
-int test143()
+int test143(void)
 {
     int a = 0;
     int i;
@@ -300,7 +300,7 @@ int test143()
     }
     EXPECT_INT(a, 0);
 }
-int test144()
+int test144(void)
 {
     int a = 0;
     int i;
@@ -312,14 +312,14 @@ int test144()
     }
     EXPECT_INT(a, 100);
 }
-test146()
+test146(void)
 {
     int x = 3;
     int *y;
     y = &x;
     EXPECT_INT(*y, 3);
 }
-test147()
+test147(void)
 {
     int x = 3;
     int *y;
@@ -327,7 +327,7 @@ test147()
     *y = 10;
     EXPECT_INT(x, 10);
 }
-test148()
+test148(void)
 {
     int **y;
     int z;
@@ -341,39 +341,39 @@ int *test149detail(int *p)
     *p = 1;
     return p;
 }
-int test149()
+int test149(void)
 {
     int x;
     int *y = test149detail(&x);
     EXPECT_INT(*y, 1);
 }
-int test150()
+int test150(void)
 {
     int *p;
     alloc4(&p);
     int *q = p + 2;
     EXPECT_INT(*q, 12);
 }
-int test151()
+int test151(void)
 {
     int *p;
     alloc4(&p);
     int *q = p + 3;
     EXPECT_INT(*q, 13);
 }
-int test152()
+int test152(void)
 {
     int *p;
     EXPECT_INT(*((1 + 1) + alloc4(&p)), 12);
 }
-int test153()
+int test153(void)
 {
     int *p;
     alloc4(&p);
     int *q = p + 2;
     EXPECT_INT(q - p, 2);
 }
-int test154()
+int test154(void)
 {
     int *p;
     alloc4(&p);
@@ -381,40 +381,40 @@ int test154()
     q = q - 1;
     EXPECT_INT(q - p, 1);
 }
-int test155()
+int test155(void)
 {
     int *p;
     alloc4(&p);
     int *q = p + 2;
     EXPECT_INT(((q + 1) - p) == (q - p) + 1, 1);
 }
-int test156()
+int test156(void)
 {
     int *p;
     alloc4(&p);
     int *q = p + 2;
     EXPECT_INT((q - p) + 1 == -(p - (q + 1)), 1);
 }
-int test157()
+int test157(void)
 {
     int *p;
     alloc4(&p);
     p++;
     EXPECT_INT(*p, 11);
 }
-int test158()
+int test158(void)
 {
     int *p;
     alloc4(&p);
     ++p;
     EXPECT_INT(*p, 11);
 }
-int test160()
+int test160(void)
 {
     int n = 0;
     EXPECT_INT(*&n, 0);
 }
-int test161()
+int test161(void)
 {
     int n = 0;
     int i;
@@ -423,26 +423,26 @@ int test161()
         for (j = 0; j < 10; j++) n++;
     EXPECT_INT(n, 100);
 }
-int test162()
+int test162(void)
 {
     int ary[10];
     *(ary + 5) = 4;
     EXPECT_INT(*(ary + 5), 4);
 }
-int test163()
+int test163(void)
 {
     int ary[10][10];
     *(*(ary + 4) + 5) = 9;
     EXPECT_INT(*(*(ary + 4) + 5), 9);
 }
-int test164()
+int test164(void)
 {
     int ary[10];
     int i;
     for (i = 0; i < 10; i++) *(i + ary) = i;
     EXPECT_INT(*(ary + 5), 5);
 }
-int test165()
+int test165(void)
 {
     int ary[10][10];
     int i;
@@ -451,26 +451,26 @@ int test165()
         for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j;
     EXPECT_INT(*(*(ary + 6) + 4), 2);
 }
-int test166()
+int test166(void)
 {
     int ary[10];
     ary[5] = 10;
     EXPECT_INT(ary[5], 10);
 }
-int test167()
+int test167(void)
 {
     int ary[10][10];
     ary[4][5] = 9;
     EXPECT_INT(ary[4][5], 9);
 }
-int test168()
+int test168(void)
 {
     int ary[10];
     int i;
     for (i = 0; i < 10; i++) ary[i] = i;
     EXPECT_INT(ary[5], 5);
 }
-int test169()
+int test169(void)
 {
     int ary[10][10];
     int i;
@@ -479,7 +479,7 @@ int test169()
         for (j = 0; j < 10; j++) ary[i][j] = i - j;
     EXPECT_INT(ary[6][4], 2);
 }
-int test170()
+int test170(void)
 {
     int ary[10];
     3 [ary] = 4;
@@ -494,130 +494,130 @@ int test171fib(int n)
     p1 = test171fib(n - 2);
     return p0 + p1;
 }
-int test171() { EXPECT_INT(test171fib(5), 5); }
-int test172()
+int test171(void) { EXPECT_INT(test171fib(5), 5); }
+int test172(void)
 {
     int a = 2;
     a += 5;
     EXPECT_INT(a, 7);
 }
-int test173()
+int test173(void)
 {
     int a = 8;
     a -= 5;
     EXPECT_INT(a, 3);
 }
-int test174()
+int test174(void)
 {
     int a = 2;
     a *= 5;
     EXPECT_INT(a, 10);
 }
-int test175()
+int test175(void)
 {
     int a = 10;
     a /= 5;
     EXPECT_INT(a, 2);
 }
-int test176()
+int test176(void)
 {
     int a = 12;
     a &= 5;
     EXPECT_INT(a, 4);
 }
-int test177()
+int test177(void)
 {
     int a = 12;
     a %= 5;
     EXPECT_INT(a, 2);
 }
-int test178()
+int test178(void)
 {
     int a = 2;
     a |= 5;
     EXPECT_INT(a, 7);
 }
-int test179()
+int test179(void)
 {
     int a = 2;
     a ^= 5;
     EXPECT_INT(a, 7);
 }
-int test180()
+int test180(void)
 {
     int a = 2;
     a <<= 2;
     EXPECT_INT(a, 8);
 }
-int test181()
+int test181(void)
 {
     int a = 4;
     a >>= 2;
     EXPECT_INT(a, 1);
 }
-int test182() { EXPECT_INT(a, 0); }
-int test183()
+int test182(void) { EXPECT_INT(a, 0); }
+int test183(void)
 {
     a = 4;
     EXPECT_INT(a, 4);
 }
-int test185()
+int test185(void)
 {
     p = &a;
     *p = 3;
     EXPECT_INT(a, 3);
 }
 int test186a[20];
-int test186()
+int test186(void)
 {
     test186a[5] = 5;
     EXPECT_INT(test186a[5], 5);
 }
 int test187a[20][10];
-int test187()
+int test187(void)
 {
     test187a[3][5] = 10;
     EXPECT_INT(test187a[3][5], 10);
 }
-int test188()
+int test188(void)
 {
     char c = 1;
     EXPECT_INT(c, 1);
 }
-int test189()
+int test189(void)
 {
     char x;
     EXPECT_INT(x = 1, 1);
 }
-int test190()
+int test190(void)
 {
     char xy;
     EXPECT_INT(xy = 100 + 100, 200);
 }
-int test191()
+int test191(void)
 {
     char a_b;
     EXPECT_INT(a_b = -(33 * (1 + 2)) / 3 + 34, 1);
 }
-int test192()
+int test192(void)
 {
     char _;
     EXPECT_INT(_ = (2 - 1) << 1, 2);
 }
-int test193()
+int test193(void)
 {
     char x = 1;
     char y;
     EXPECT_INT(y = 2, 2);
 }
-int test194()
+int test194(void)
 {
     char x = 1;
     char y = 2;
     char z;
     EXPECT_INT(z = x + y, 3);
 }
-int test195()
+int test195(void)
 {
     char a0;
     char a1;
@@ -628,7 +628,7 @@ int test195()
     a2 = a0 + a1;
     EXPECT_INT(a3 = a1 + a2, 3);
 }
-int test196()
+int test196(void)
 {
     char x;
     char y;
@@ -636,90 +636,90 @@ int test196()
     x = y = 1;
     EXPECT_INT(z = x = x + y, 2);
 }
-test197() { EXPECT_INT(iadd(1, 2), 3); }
-test198() { EXPECT_INT(iadd(1, 2) * iadd(2, 3), 15); }
-test199() { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 8), 8); }
-test200() { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 255), 255); }
-int test201()
+test197(void) { EXPECT_INT(iadd(1, 2), 3); }
+test198(void) { EXPECT_INT(iadd(1, 2) * iadd(2, 3), 15); }
+test199(void) { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 8), 8); }
+test200(void) { EXPECT_INT(eighth(1, 2, 3, 4, 5, 6, 7, 255), 255); }
+int test201(void)
 {
     char a = 2;
     a += 5;
     EXPECT_INT(a, 7);
 }
-int test202()
+int test202(void)
 {
     char a = 8;
     a -= 5;
     EXPECT_INT(a, 3);
 }
-int test203()
+int test203(void)
 {
     char a = 2;
     a *= 5;
     EXPECT_INT(a, 10);
 }
-int test204()
+int test204(void)
 {
     char a = 10;
     a /= 5;
     EXPECT_INT(a, 2);
 }
-int test205()
+int test205(void)
 {
     char a = 12;
     a &= 5;
     EXPECT_INT(a, 4);
 }
-int test206()
+int test206(void)
 {
     char a = 12;
     a %= 5;
     EXPECT_INT(a, 2);
 }
-int test207()
+int test207(void)
 {
     char a = 2;
     a |= 5;
     EXPECT_INT(a, 7);
 }
-int test208()
+int test208(void)
 {
     char a = 2;
     a ^= 5;
     EXPECT_INT(a, 7);
 }
-int test209()
+int test209(void)
 {
     char a = 2;
     a <<= 2;
     EXPECT_INT(a, 8);
 }
-int test210()
+int test210(void)
 {
     char a = 4;
     a >>= 2;
     EXPECT_INT(a, 1);
 }
-int test211()
+int test211(void)
 {
     char ary[10];
     *(ary + 5) = 4;
     EXPECT_INT(*(ary + 5), 4);
 }
-int test212()
+int test212(void)
 {
     char ary[10][10];
     *(*(ary + 4) + 5) = 9;
     EXPECT_INT(*(*(ary + 4) + 5), 9);
 }
-int test213()
+int test213(void)
 {
     char ary[10];
     int i;
     for (i = 0; i < 10; i++) *(i + ary) = i;
     EXPECT_INT(*(ary + 5), 5);
 }
-int test214()
+int test214(void)
 {
     char ary[10][10];
     int i;
@@ -728,26 +728,26 @@ int test214()
         for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j;
     EXPECT_INT(*(*(ary + 6) + 4), 2);
 }
-int test215()
+int test215(void)
 {
     char ary[10];
     ary[5] = 10;
     EXPECT_INT(ary[5], 10);
 }
-int test216()
+int test216(void)
 {
     char ary[10][10];
     ary[4][5] = 9;
     EXPECT_INT(ary[4][5], 9);
 }
-int test217()
+int test217(void)
 {
     char ary[10];
     int i;
     for (i = 0; i < 10; i++) ary[i] = i;
     EXPECT_INT(ary[5], 5);
 }
-int test218()
+int test218(void)
 {
     char ary[10][10];
     int i;
@@ -756,114 +756,114 @@ int test218()
         for (j = 0; j < 10; j++) ary[i][j] = i - j;
     EXPECT_INT(ary[6][4], 2);
 }
-int test219()
+int test219(void)
 {
     char ary[10];
     3 [ary] = 4;
     EXPECT_INT(3 [ary], 4);
 }
-int test220() { EXPECT_INT(b, 0); }
-int test221()
+int test220(void) { EXPECT_INT(b, 0); }
+int test221(void)
 {
     b = 4;
     EXPECT_INT(b, 4);
 }
-int test223()
+int test223(void)
 {
     p = &b;
     *p = 3;
     EXPECT_INT(b, 3);
 }
 char test224a[20];
-int test224()
+int test224(void)
 {
     test224a[5] = 5;
     EXPECT_INT(test224a[5], 5);
 }
 char test225a[20][10];
-int test225()
+int test225(void)
 {
     test225a[3][5] = 10;
     EXPECT_INT(test225a[3][5], 10);
 }
-int test226() { EXPECT_INT(sizeof(int), 4); }
-int test227() { EXPECT_INT(sizeof(char), 1); }
-int test228() { EXPECT_INT(sizeof(int *), 8); }
-int test229() { EXPECT_INT(sizeof(char *), 8); }
-int test230() { EXPECT_INT(sizeof(int ***), 8); }
-int test231() { EXPECT_INT(sizeof(char **), 8); }
-int test232()
+int test226(void) { EXPECT_INT(sizeof(int), 4); }
+int test227(void) { EXPECT_INT(sizeof(char), 1); }
+int test228(void) { EXPECT_INT(sizeof(int *), 8); }
+int test229(void) { EXPECT_INT(sizeof(char *), 8); }
+int test230(void) { EXPECT_INT(sizeof(int ***), 8); }
+int test231(void) { EXPECT_INT(sizeof(char **), 8); }
+int test232(void)
 {
     int a;
     EXPECT_INT(sizeof(a), 4);
 }
-int test233()
+int test233(void)
 {
     char a;
     EXPECT_INT(sizeof(a), 1);
 }
-int test234()
+int test234(void)
 {
     int *a;
     EXPECT_INT(sizeof(a), 8);
 }
-int test235()
+int test235(void)
 {
     char *a;
     EXPECT_INT(sizeof(a), 8);
 }
-int test236()
+int test236(void)
 {
     int a[20];
     EXPECT_INT(sizeof(a), 80);
 }
-int test237()
+int test237(void)
 {
     int a[5][6];
     EXPECT_INT(sizeof(a), 120);
 }
-int test238()
+int test238(void)
 {
     int a[5][3][2];
     EXPECT_INT(sizeof(a), 120);
 }
-int test239()
+int test239(void)
 {
     char a[20];
     EXPECT_INT(sizeof(a), 20);
 }
-int test240()
+int test240(void)
 {
     char a[5][6];
     EXPECT_INT(sizeof(a), 30);
 }
-int test241()
+int test241(void)
 {
     char a[5][6][4];
     EXPECT_INT(sizeof(a), 120);
 }
-int test242()
+int test242(void)
 {
     char a[2][4][3][5];
     EXPECT_INT(sizeof(a), 120);
 }
-int test243() { EXPECT_INT(sizeof(a), 4); }
-int test244() { EXPECT_INT(sizeof(b), 1); }
-int test245() { EXPECT_INT(sizeof(p), 8); }
-int test246() { EXPECT_INT(sizeof(q), 8); }
+int test243(void) { EXPECT_INT(sizeof(a), 4); }
+int test244(void) { EXPECT_INT(sizeof(b), 1); }
+int test245(void) { EXPECT_INT(sizeof(p), 8); }
+int test246(void) { EXPECT_INT(sizeof(q), 8); }
 int test247a[20];
-int test247() { EXPECT_INT(sizeof(test247a), 80); }
+int test247(void) { EXPECT_INT(sizeof(test247a), 80); }
 int test248a[5][6];
-int test248() { EXPECT_INT(sizeof(test248a), 120); }
+int test248(void) { EXPECT_INT(sizeof(test248a), 120); }
 int test249a[5][3][2];
-int test249() { EXPECT_INT(sizeof(test249a), 120); }
+int test249(void) { EXPECT_INT(sizeof(test249a), 120); }
 char test250a[20];
-int test250() { EXPECT_INT(sizeof(test250a), 20); }
+int test250(void) { EXPECT_INT(sizeof(test250a), 20); }
 char test251a[5][6];
-int test251() { EXPECT_INT(sizeof(test251a), 30); }
+int test251(void) { EXPECT_INT(sizeof(test251a), 30); }
 char test252a[5][6][4];
-int test252() { EXPECT_INT(sizeof(test252a), 120); }
-int test253()
+int test252(void) { EXPECT_INT(sizeof(test252a), 120); }
+int test253(void)
 {
     char *str;
     str = "abc";
@@ -875,22 +875,22 @@ char *test254detail()
     str = "abc";
     return str;
 }
-int test254()
+int test254(void)
 {
     char *str;
     str = test254detail();
     EXPECT_INT(str[1], 98);
 }
 int test255a = 4;
-int test255() { EXPECT_INT(test255a, 4); }
+int test255(void) { EXPECT_INT(test255a, 4); }
 char test256a = 4;
-int test256() { EXPECT_INT(test256a, 4); }
+int test256(void) { EXPECT_INT(test256a, 4); }
 int *test257a = 0;
-int test257() { EXPECT_INT(test257a, 0); }
+int test257(void) { EXPECT_INT(test257a, 0); }
 char *test258a = 0;
-int test258() { EXPECT_INT(test258a, 0); }
-int test259() { EXPECT_INT(sizeof("foo"), 4); }
-int test260()
+int test258(void) { EXPECT_INT(test258a, 0); }
+int test259(void) { EXPECT_INT(sizeof("foo"), 4); }
+int test260(void)
 {
     int a[4];
     a[0] = 1;
@@ -899,42 +899,42 @@ int test260()
     EXPECT_INT(a[0] ? a[1] : a[2], 3);
 }
 int test261detail(int *ary) { ary[0] = 5; }
-int test261()
+int test261(void)
 {
     int ary[2];
     ary[0] = 0;
     test261detail(ary);
     EXPECT_INT(ary[0], 5);
 }
-int test262()
+int test262(void)
 {
     int n = 0;
     EXPECT_INT(*&*&n, 0);
 }
-int test263()
+int test263(void)
 {
     char *str = "abc\0abc";
     EXPECT_INT(str[3], 0);
 }
-int test264() { EXPECT_INT(sizeof("\t"), 2); }
-int test265() { EXPECT_INT('A', 65); }
-int test266() { EXPECT_INT('a', 97); }
-int test267() { EXPECT_INT('\t', 9); }
-int test268() { EXPECT_INT('\0', 0); }
-int test269() { EXPECT_INT('\n', 10); }
-int test270()
+int test264(void) { EXPECT_INT(sizeof("\t"), 2); }
+int test265(void) { EXPECT_INT('A', 65); }
+int test266(void) { EXPECT_INT('a', 97); }
+int test267(void) { EXPECT_INT('\t', 9); }
+int test268(void) { EXPECT_INT('\0', 0); }
+int test269(void) { EXPECT_INT('\n', 10); }
+int test270(void)
 {
     /*** comment *****/
     EXPECT_INT(1, 1);
 }
-int test271()
+int test271(void)
 {
     // comment
     EXPECT_INT(1, 1);
 }
-int test272() { EXPECT_INT(add_three(divdiv(100, 5), 2), 25); }
+int test272(void) { EXPECT_INT(add_three(divdiv(100, 5), 2), 25); }
 
-int test273()
+int test273(void)
 {
     int a = 4;
     int ret = 2;
@@ -960,7 +960,7 @@ int test274detail()
     }
 }
 
-int test274() { EXPECT_INT(test274detail(), 4); }
+int test274(void) { EXPECT_INT(test274detail(), 4); }
 
 int test275detail()
 {
@@ -973,7 +973,7 @@ int test275detail()
     }
 }
 
-int test275() { EXPECT_INT(test275detail(), 4); }
+int test275(void) { EXPECT_INT(test275detail(), 4); }
 
 int test276detail()
 {
@@ -987,7 +987,7 @@ int test276detail()
     }
 }
 
-int test276() { EXPECT_INT(test276detail(), 4); }
+int test276(void) { EXPECT_INT(test276detail(), 4); }
 
 int test277detail()
 {
@@ -1000,7 +1000,7 @@ int test277detail()
     }
 }
 
-int test277() { EXPECT_INT(test277detail(), 4); }
+int test277(void) { EXPECT_INT(test277detail(), 4); }
 
 int test278detail()
 {
@@ -1011,7 +1011,7 @@ a:
     goto a;
 }
 
-int test278() { EXPECT_INT(test278detail(), 6); }
+int test278(void) { EXPECT_INT(test278detail(), 6); }
 
 int test279detail()
 {
@@ -1025,7 +1025,7 @@ test279:
     goto test279;
 }
 
-int test279() { EXPECT_INT(test279detail(), 0); }
+int test279(void) { EXPECT_INT(test279detail(), 0); }
 
 int test280detail()
 {
@@ -1039,17 +1039,17 @@ end_loop:
     return i;
 }
 
-int test280() { EXPECT_INT(test280detail(), 5); }
+int test280(void) { EXPECT_INT(test280detail(), 5); }
 
-int test281() { EXPECT_INT(sizeof(struct hoge), 4); }
+int test281(void) { EXPECT_INT(sizeof(struct hoge), 4); }
 
-int test282()
+int test282(void)
 {
     struct hoge a;
     EXPECT_INT(sizeof(a), 4);
 }
 
-int test283()
+int test283(void)
 {
     struct hoge {
         int a;
@@ -1059,7 +1059,7 @@ int test283()
     EXPECT_INT(sizeof(a), 8);
 }
 
-int test284()
+int test284(void)
 {
     struct hoge {
         char buf[25];
@@ -1068,7 +1068,7 @@ int test284()
     EXPECT_INT(sizeof(struct hoge), 32);
 }
 
-int test285()
+int test285(void)
 {
     struct hoge {
         int a;
@@ -1078,7 +1078,7 @@ int test285()
     EXPECT_INT(a.a, 1);
 }
 
-int test286()
+int test286(void)
 {
     struct hoge {
         int a;
@@ -1090,7 +1090,7 @@ int test286()
     EXPECT_INT(a.b[10], 2);
 }
 
-int test287()
+int test287(void)
 {
     struct hoge {
         int *p;
@@ -1100,7 +1100,7 @@ int test287()
     EXPECT_INT(*a.p, 34);
 }
 
-int test288()
+int test288(void)
 {
     struct hoge {
         int i;
@@ -1110,7 +1110,7 @@ int test288()
     EXPECT_INT((*b).i, 1);
 }
 
-int test289()
+int test289(void)
 {
     struct hoge {
         int i;
@@ -1120,7 +1120,7 @@ int test289()
     EXPECT_INT(b->i, 1);
 }
 
-int test290()
+int test290(void)
 {
     struct hoge {
         int i;
@@ -1133,7 +1133,7 @@ int test290()
     EXPECT_INT(b->j[5][1], 20);
 }
 
-int test291()
+int test291(void)
 {
     struct hoge {
         int a;
@@ -1145,7 +1145,7 @@ int test291()
     EXPECT_INT(sizeof(h), 4);
 }
 
-int test292()
+int test292(void)
 {
     struct hoge {
         int a;
@@ -1157,7 +1157,7 @@ int test292()
     EXPECT_INT(sizeof(h), 8);
 }
 
-int test293()
+int test293(void)
 {
     struct hoge {
         int a;
@@ -1169,7 +1169,7 @@ int test293()
     EXPECT_INT(sizeof(h), 8);
 }
 
-int test294()
+int test294(void)
 {
     struct hoge {
         int a;
@@ -1185,7 +1185,7 @@ int test294()
     EXPECT_INT(sizeof(h), 16);
 }
 
-int test295()
+int test295(void)
 {
     struct hoge {
         int a;
@@ -1198,7 +1198,7 @@ int test295()
     EXPECT_INT(h.c.b, 4);
 }
 
-int test296()
+int test296(void)
 {
     struct hoge {
         int a;
@@ -1212,7 +1212,7 @@ int test296()
     EXPECT_INT(h.b, 2);
 }
 
-int test297()
+int test297(void)
 {
     struct hoge {
         int a;
@@ -1225,7 +1225,7 @@ int test297()
     EXPECT_INT(h.c.b, 7);
 }
 
-int test298()
+int test298(void)
 {
     struct hoge {
         int a;
@@ -1244,7 +1244,7 @@ int test298()
     EXPECT_INT(h.a, 9);
 }
 
-int test299()
+int test299(void)
 {
     struct hoge {
         int a;
@@ -1263,7 +1263,7 @@ int test299()
     EXPECT_INT(h.a, 9);
 }
 
-int test301()
+int test301(void)
 {
     int a, b;
     a = 1;
@@ -1271,19 +1271,19 @@ int test301()
     EXPECT_INT(a & b, 0);
 }
 
-int test302()
+int test302(void)
 {
     int a = 1, b = 2;
     EXPECT_INT(a & b, 0);
 }
 
-int test303()
+int test303(void)
 {
     int a = 1, b = 2, *c = &a, *d = &b;
     EXPECT_INT(*c & *d, 0);
 }
 
-int test304()
+int test304(void)
 {
     int *a[2], b, c;
     a[0] = &b;
@@ -1293,7 +1293,7 @@ int test304()
     EXPECT_INT(*a[0] & *a[1], 0);
 }
 
-int test305()
+int test305(void)
 {
     struct hoge {
         int a;
@@ -1309,7 +1309,7 @@ int test305()
 
 int *test306retptr(int *p) { return p; }
 
-int test306()
+int test306(void)
 {
     int a[3];
     a[2] = 42;
@@ -1318,32 +1318,32 @@ int test306()
 
 struct hoge *test307rethoge(struct hoge *p) { return p; }
 
-int test307()
+int test307(void)
 {
     struct hoge h;
     h.piyo = 43;
     EXPECT_INT(test307rethoge(&h)->piyo, 43);
 }
 
-int test308()
+int test308(void)
 {
     int a = 1, b = 4;
     EXPECT_INT(!(a < b), 0);
 }
 
-int test309()
+int test309(void)
 {
     int a = 4;
     EXPECT_INT(!a, 0);
 }
 
-int test310()
+int test310(void)
 {
     int a = 0;
     EXPECT_INT(!!a, 0);
 }
 
-int test311()
+int test311(void)
 {
     int a = 3;
     EXPECT_INT(!!a, 1);
@@ -1356,7 +1356,7 @@ int test312detail()
     return 0;
 }
 
-int test312() { EXPECT_INT(test312detail(), 0); }
+int test312(void) { EXPECT_INT(test312detail(), 0); }
 
 int test313detail()
 {
@@ -1365,7 +1365,7 @@ int test313detail()
     return 0;
 }
 
-int test313() { EXPECT_INT(test313detail(), 0); }
+int test313(void) { EXPECT_INT(test313detail(), 0); }
 
 int test314detail()
 {
@@ -1374,15 +1374,15 @@ int test314detail()
     return 0;
 }
 
-int test314() { EXPECT_INT(test314detail(), 0); }
+int test314(void) { EXPECT_INT(test314detail(), 0); }
 
-int test315()
+int test315(void)
 {
     int i, j;
     EXPECT_INT((i = 4, j = 5), 5);
 }
 
-int test316()
+int test316(void)
 {
     int i, j;
     for (i = 0, j = 0; i < 5 && j < 5; i++, j++)
@@ -1391,7 +1391,7 @@ int test316()
     EXPECT_INT(j, 5);
 }
 
-int test317()
+int test317(void)
 {
     int sum = 0;
     for (int i = 0; i < 5; i++) sum++;
@@ -1399,7 +1399,7 @@ int test317()
     EXPECT_INT(sum, 10);
 }
 
-int test318()
+int test318(void)
 {
     int sum = 0;
     for (int i = 0, j = 0; i < 5 && j < 6; i++, j++) sum++;
@@ -1407,7 +1407,7 @@ int test318()
     EXPECT_INT(sum, 11);
 }
 
-int test319()
+int test319(void)
 {
     int a = 3, b = a + 1;
     EXPECT_INT(b - a, 1);
@@ -1419,14 +1419,14 @@ struct test320struct {
     int a;
 };
 
-int test320()
+int test320(void)
 {
     struct test320struct st;
     test320detail(&st)->a = 1;
     EXPECT_INT(st.a, 1);
 }
 
-int test321()
+int test321(void)
 {
     typedef int Ret;
     Ret ret;
@@ -1447,7 +1447,7 @@ int test321()
     EXPECT_INT(ret, 2);
 }
 
-int test322()
+int test322(void)
 {
     typedef struct hoge {
         int piyo;
@@ -1462,7 +1462,7 @@ int test322()
     EXPECT_INT(h.bar, 5);
 }
 
-int test323()
+int test323(void)
 {
     struct test323struct {
         int piyo, foo, bar;
@@ -1475,14 +1475,14 @@ int test323()
     EXPECT_INT(h[3].bar, 5);
 }
 
-int test324()
+int test324(void)
 {
     typedef char *String;
     String str = "abc";
     EXPECT_INT(str[1], 'b');
 }
 
-int test325()
+int test325(void)
 {
     typedef struct {
         int piyo;
@@ -1497,7 +1497,7 @@ int test325()
     EXPECT_INT(h.bar, 5);
 }
 
-int test326()
+int test326(void)
 {
     struct A {
         int a;
@@ -1507,7 +1507,7 @@ int test326()
     (1, *b).a;
 }
 
-int test327()
+int test327(void)
 {
     int a = 1;
     a--;
@@ -1515,7 +1515,7 @@ int test327()
     EXPECT_INT(a, -1);
 }
 
-int test328()
+int test328(void)
 {
     int a = 1, b = a--, c = --a;
     EXPECT_INT(a, -1);
@@ -1523,7 +1523,7 @@ int test328()
     EXPECT_INT(c, -1);
 }
 
-int test329()
+int test329(void)
 {
     struct {
         int a;
@@ -1532,7 +1532,7 @@ int test329()
     EXPECT_INT(st.a, 4);
 }
 
-int test330()
+int test330(void)
 {
     typedef struct {
         int a;
@@ -1619,7 +1619,7 @@ int test330()
     EXPECT_INT(sizeof(test330st12), 312);
 }
 
-int test331()
+int test331(void)
 {
     int i = 0;
     do {
@@ -1663,7 +1663,7 @@ int test331()
     EXPECT_INT(i, 2);
 }
 
-int test332()
+int test332(void)
 {
     int a = 257;
     char b = a;

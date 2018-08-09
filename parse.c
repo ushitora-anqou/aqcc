@@ -719,10 +719,15 @@ Type *parse_type_name(void)
 
 Vector *parse_parameter_type_list()
 {
+    // TODO: K&R style
+    if (match_token(tRPAREN)) return NULL;  // no suggestions about arguments
+
     Vector *params = new_vector();
 
-    // TODO: K&R style
-    if (match_token(tRPAREN)) return params;
+    if (match_token2(kVOID, tRPAREN)) {  // no arguments
+        pop_token();
+        return params;
+    }
 
     while (1) {
         Type *type = parse_declaration_specifiers();

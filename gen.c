@@ -462,11 +462,9 @@ void generate_code_detail(AST *ast)
             break;
 
         case AST_FUNCDEF: {
-            int i, stack_idx;
-
             // allocate stack
-            stack_idx = 0;
-            for (i = max(0, vector_size(ast->params) - 6);
+            int stack_idx = 0;
+            for (int i = ast->params ? max(0, vector_size(ast->params) - 6) : 0;
                  i < vector_size(ast->env->scoped_vars); i++) {
                 AST *var = (AST *)(vector_get(ast->env->scoped_vars, i));
 
@@ -481,15 +479,18 @@ void generate_code_detail(AST *ast)
             appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
 
             // assign param to localvar
-            for (i = 0; i < vector_size(ast->params); i++) {
-                AST *var = lookup_var(
-                    ast->env, ((AST *)vector_get(ast->params, i))->varname);
-                if (i < 6)
-                    appcode("mov %s, %d(#rbp)",
-                            reg_name(var->type->nbytes, i + 1), var->stack_idx);
-                else
-                    // should avoid return pointer and saved %rbp
-                    var->stack_idx = 16 + (i - 6) * 8;
+            if (ast->params) {
+                for (int i = 0; i < vector_size(ast->params); i++) {
+                    AST *var = lookup_var(
+                        ast->env, ((AST *)vector_get(ast->params, i))->varname);
+                    if (i < 6)
+                        appcode("mov %s, %d(#rbp)",
+                                reg_name(var->type->nbytes, i + 1),
+                                var->stack_idx);
+                    else
+                        // should avoid return pointer and saved %rbp
+                        var->stack_idx = 16 + (i - 6) * 8;
+                }
             }
 
             // generate body
