@@ -43,6 +43,25 @@ char byte2suffix(int byte)
     }
 }
 
+int lookup_member_offset(Vector *members, char *member)
+{
+    // O(n)
+    int size = vector_size(members);
+    for (int i = 0; i < size; i++) {
+        StructMember *sm = (StructMember *)vector_get(members, i);
+        if (sm->type->kind == TY_STRUCT && sm->name == NULL) {
+            // nested anonymous struct with no varname.
+            // its members can be accessed like parent struct's members.
+            int offset = lookup_member_offset(sm->type->members, member);
+            if (offset >= 0) return sm->offset + offset;
+        }
+        else if (strcmp(sm->name, member) == 0) {
+            return sm->offset;
+        }
+    }
+    return -1;
+}
+
 typedef struct {
     char *continue_label, *break_label;
     Vector *code;
@@ -590,14 +609,17 @@ void generate_code_detail(AST *ast)
             appcode("jmp %s", ast->label_name);
             break;
 
-        case AST_MEMBER_REF:
+        case AST_MEMBER_REF: {
+            int offset =
+                lookup_member_offset(ast->stsrc->type->members, ast->member);
+            // the member existence is confirmed when analysis.
+            assert(offset >= 0);
+
             generate_code_detail(ast->stsrc);
             appcode("pop #rax");
-            appcode(
-                "add $%d, #rax",
-                lookup_member(ast->stsrc->type->members, ast->member)->offset);
+            appcode("add $%d, #rax", offset);
             appcode("push #rax");
-            break;
+        } break;
 
         case AST_COMPOUND: {
             int i;

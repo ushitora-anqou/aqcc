@@ -349,7 +349,6 @@ int alignment_of(Type *type);
 int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
-StructMember *lookup_member(Vector *members, char *member);
 
 // lex.c
 Vector *read_all_tokens(FILE *fh);

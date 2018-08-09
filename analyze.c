@@ -186,6 +186,25 @@ int is_complete_type(Type *type)
     assert(0);
 }
 
+Type *lookup_member_type(Vector *members, char *member)
+{
+    // O(n)
+    int size = vector_size(members);
+    for (int i = 0; i < size; i++) {
+        StructMember *sm = (StructMember *)vector_get(members, i);
+        if (sm->type->kind == TY_STRUCT && sm->name == NULL) {
+            // nested anonymous struct with no varname.
+            // its members can be accessed like parent struct's members.
+            Type *type = lookup_member_type(sm->type->members, member);
+            if (type) return type;
+        }
+        else if (strcmp(sm->name, member) == 0) {
+            return sm->type;
+        }
+    }
+    return NULL;
+}
+
 Type *analyze_type(Env *env, Type *type)
 {
     assert(type != NULL);
@@ -234,21 +253,10 @@ Type *analyze_type(Env *env, Type *type)
                                               decl->type->stname != NULL))
                     continue;
 
-                if (decl->type->kind == TY_STRUCT && decl->varname == NULL) {
-                    // nested anonymous struct with no varname.
-                    // its members can be accessed like parent struct's members.
-                    for (int i = 0; i < vector_size(decl->type->members); i++) {
-                        StructMember *member =
-                            (StructMember *)vector_get(decl->type->members, i);
-                        vector_push_back(type->members, member);
-                    }
-                }
-                else {
-                    StructMember *member = safe_malloc(sizeof(StructMember));
-                    member->type = decl->type;
-                    member->name = decl->varname;
-                    vector_push_back(type->members, member);
-                }
+                StructMember *member = safe_malloc(sizeof(StructMember));
+                member->type = decl->type;
+                member->name = decl->varname;
+                vector_push_back(type->members, member);
             }
 
             // calc offset
@@ -663,10 +671,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 error("only struct can have members");
             if (!is_complete_type(ast->stsrc->type))
                 error("can't access imcomplete typed struct members");
-            StructMember *sm =
-                lookup_member(ast->stsrc->type->members, ast->member);
-            if (sm == NULL) error("no such member");
-            ast->type = sm->type;
+            Type *type =
+                lookup_member_type(ast->stsrc->type->members, ast->member);
+            if (type == NULL) error("no such member");
+            ast->type = type;
         } break;
 
         case AST_MEMBER_REF_PTR:
