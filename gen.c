@@ -72,6 +72,9 @@ void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
         case 8:
             appcode("mov %s, %s", src, reg_name(nbytes, dst_reg));
             break;
+
+        default:
+            assert(0);
     }
 }
 

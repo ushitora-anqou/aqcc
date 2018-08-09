@@ -104,6 +104,7 @@ Token *read_next_ident_token()
     if (strcmp(str, "case") == 0) return new_token(kCASE);
     if (strcmp(str, "goto") == 0) return new_token(kGOTO);
     if (strcmp(str, "struct") == 0) return new_token(kSTRUCT);
+    if (strcmp(str, "typedef") == 0) return new_token(kTYPEDEF);
 
     Token *token = new_token(tIDENT);
     token->sval = str;
@@ -456,6 +457,8 @@ const char *token_kind2str(int kind)
             return "kSIZEOF";
         case kSTRUCT:
             return "kSTRUCT";
+        case kTYPEDEF:
+            return "kTYPEDEF";
         default:
             return "***unknown token***";
     }

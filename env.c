@@ -82,13 +82,11 @@ AST *lookup_func(Env *env, const char *name)
     return ast;
 }
 
-Type *add_type(Env *env, Type *type)
+Type *add_type(Env *env, Type *type, char *name)
 {
-    assert(type->kind == TY_STRUCT);
-
-    KeyValue *kv = map_lookup(env->types, type->stname);
+    KeyValue *kv = map_lookup(env->types, name);
     if (kv != NULL) error("same type already exists.", __FILE__, __LINE__);
-    map_insert(env->types, type->stname, type);
+    map_insert(env->types, name, type);
     return type;
 }
 
@@ -100,4 +98,17 @@ Type *lookup_type(Env *env, const char *name)
         return lookup_type(env->parent, name);
     }
     return (Type *)kv_value(kv);
+}
+
+Type *add_struct_type(Env *env, Type *type)
+{
+    assert(type->kind == TY_STRUCT);
+    return add_type(env, type, format("struct %s", type->stname));
+}
+
+Type *lookup_struct_type(Env *env, const char *name)
+{
+    Type *type = lookup_type(env, format("struct %s", name));
+    assert(type == NULL || type->kind == TY_STRUCT);
+    return type;
 }

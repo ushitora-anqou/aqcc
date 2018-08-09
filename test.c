@@ -1426,6 +1426,77 @@ int test320()
     EXPECT_INT(st.a, 1);
 }
 
+int test321()
+{
+    typedef int Ret;
+    Ret ret;
+
+    {
+        typedef int Number;
+        Number i = 0, j = 1;
+        i += j;
+        ret = i;
+    }
+    {
+        typedef char Number;
+        Number i = 3, j = 4;
+        i -= j;
+        ret -= i;
+    }
+
+    EXPECT_INT(ret, 2);
+}
+
+int test322()
+{
+    typedef struct hoge {
+        int piyo;
+        char foo;
+        int bar;
+    } hoge;
+
+    hoge h;
+    h.piyo = 3;
+    h.foo = 4;
+    h.bar = 5;
+    EXPECT_INT(h.bar, 5);
+}
+
+int test323()
+{
+    struct test323struct {
+        int piyo, foo, bar;
+    };
+    typedef struct test323struct hoge[5];
+    hoge h;
+    h[3].piyo = 3;
+    h[3].foo = 4;
+    h[3].bar = 5;
+    EXPECT_INT(h[3].bar, 5);
+}
+
+int test324()
+{
+    typedef char *String;
+    String str = "abc";
+    EXPECT_INT(str[1], 'b');
+}
+
+int test325()
+{
+    typedef struct {
+        int piyo;
+        char foo;
+        int bar;
+    } hoge;
+
+    hoge h;
+    h.piyo = 3;
+    h.foo = 4;
+    h.bar = 5;
+    EXPECT_INT(h.bar, 5);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1742,4 +1813,9 @@ int main()
     test318();
     test319();
     test320();
+    test321();
+    test322();
+    test323();
+    test324();
+    test325();
 }

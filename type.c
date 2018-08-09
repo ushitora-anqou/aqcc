@@ -57,3 +57,10 @@ Type *new_struct_type(char *stname, Vector *decls)
     this->decls = decls;
     return this;
 }
+
+Type *new_typedef_type(char *typedef_name)
+{
+    Type *this = new_type(TY_TYPEDEF, -1);
+    this->typedef_name = typedef_name;
+    return this;
+}

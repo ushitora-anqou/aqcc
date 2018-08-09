@@ -103,6 +103,31 @@ void restore_token_seq_saved(TokenSeqSaved *saved)
     TokenSeqSaved *token_seq_saved__dummy = new_token_seq_saved();
 #define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
+// typedef data for parser.
+// analyzer won't use this data.
+Map *typedef_table;
+
+void init_typedef_table(void) { typedef_table = new_map(); }
+
+void add_typedef_name(char *name)
+{
+    map_insert(typedef_table, name, (void *)1);
+}
+
+int match_typedef_name(void)
+{
+    if (!match_token(tIDENT)) return 0;
+    return map_lookup(typedef_table, peek_token()->sval) != NULL;
+}
+
+Type *parse_typedef_name(void)
+{
+    if (!match_typedef_name())
+        error_unexpected_token_str("typedef name", peek_token());
+
+    return new_typedef_type(expect_token(tIDENT)->sval);
+}
+
 AST *parse_primary_expr()
 {
     AST *ast;
@@ -510,12 +535,15 @@ AST *parse_assignment_expr()
 
 AST *parse_expr()
 {
+    AST *ast = parse_assignment_expr();
+    if (!match_token(tCOMMA)) return ast;
+
     Vector *exprs = new_vector();
-    vector_push_back(exprs, parse_assignment_expr());
+    vector_push_back(exprs, ast);
     while (pop_token_if(tCOMMA))
         vector_push_back(exprs, parse_assignment_expr());
 
-    AST *ast = new_ast(AST_EXPR_LIST);
+    ast = new_ast(AST_EXPR_LIST);
     ast->exprs = exprs;
     return ast;
 }
@@ -740,6 +768,8 @@ Vector *parse_struct_declaration_list()
     return decls;
 }
 
+int match_struct_or_union_specifier() { return peek_token()->kind == kSTRUCT; }
+
 Type *parse_struct_or_union_specifier()
 {
     Token *struct_or_union = pop_token();
@@ -762,15 +792,23 @@ Type *parse_struct_or_union_specifier()
 
 int match_type_specifier()
 {
-    int kind = peek_token()->kind;
-    return kind == kINT || kind == kCHAR || kind == kSTRUCT;
+    Token *token = peek_token();
+    int kind = token->kind;
+    if (kind == kINT || kind == kCHAR || kind == kTYPEDEF) return 1;
+    if (match_struct_or_union_specifier()) return 1;
+    if (match_typedef_name()) return 1;
+    return 0;
 }
 
 Type *parse_type_specifier()
 {
     if (pop_token_if(kINT)) return type_int();
     if (pop_token_if(kCHAR)) return type_char();
-    return parse_struct_or_union_specifier();
+    if (match_struct_or_union_specifier())
+        return parse_struct_or_union_specifier();
+    if (match_typedef_name()) return parse_typedef_name();
+
+    error_unexpected_token_str("type specifier", peek_token());
 }
 
 AST *parse_initializer() { return parse_assignment_expr(); }
@@ -805,10 +843,37 @@ Type *parse_declaration_specifiers()
     return parse_type_specifier();
 }
 
-int match_declaration() { return match_type_specifier(); }
+int match_declaration() { return match_declaration_specifiers(); }
+
+AST *parse_typedef()
+{
+    expect_token(kTYPEDEF);
+    Type *type = type_int();
+    if (match_declaration_specifiers())
+        type = parse_declaration_specifiers();  // TODO: recursive
+
+    AST *ast;
+    if (match_declarator()) {
+        ast = parse_init_declarator_list(AST_TYPEDEF_VAR_DECL, type);
+        assert(ast->kind == AST_DECL_LIST);
+        for (int i = 0; i < vector_size(ast->decls); i++) {
+            AST *decl = (AST *)vector_get(ast->decls, i);
+            assert(decl->kind == AST_TYPEDEF_VAR_DECL);
+            add_typedef_name(decl->varname);
+        }
+    }
+    else {
+        ast = new_ast(AST_NOP);
+    }
+
+    expect_token(tSEMICOLON);
+    return ast;
+}
 
 AST *parse_declaration(int decl_ast_kind)
 {
+    if (match_token(kTYPEDEF)) return parse_typedef();
+
     Type *base_type = parse_declaration_specifiers();
 
     AST *ast;
@@ -975,6 +1040,7 @@ Vector *parse_prog(Vector *tokens)
 
     asts = new_vector();
     init_tokenseq(tokens);
+    init_typedef_table();
 
     while (peek_token()->kind != tEOF)
         vector_push_back(asts, parse_external_declaration());

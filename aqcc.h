@@ -100,6 +100,7 @@ enum {
     kDEFAULT,
     kGOTO,
     kSTRUCT,
+    kTYPEDEF,
 };
 
 typedef struct {
@@ -141,6 +142,7 @@ enum {
     TY_PTR,
     TY_ARY,
     TY_STRUCT,
+    TY_TYPEDEF,
 };
 
 typedef struct Type Type;
@@ -161,6 +163,8 @@ struct Type {
             Vector *members;  // for analyzer, generator
             Vector *decls;    // for parser
         };
+
+        char *typedef_name;
     };
 };
 
@@ -249,6 +253,7 @@ enum {
     AST_MEMBER_REF_PTR,
     AST_EXPR_LIST,
     AST_DECL_LIST,
+    AST_TYPEDEF_VAR_DECL,
 };
 
 struct AST {
@@ -359,14 +364,17 @@ Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
 Type *new_struct_type(char *stname, Vector *members);
 Type *type_unknown();
+Type *new_typedef_type(char *typedef_name);
 
 // env.c
 AST *add_var(Env *env, AST *ast);
 AST *lookup_var(Env *env, const char *name);
 AST *add_func(Env *env, const char *name, AST *ast);
 AST *lookup_func(Env *env, const char *name);
-Type *add_type(Env *env, Type *type);
+Type *add_type(Env *env, Type *type, char *name);
 Type *lookup_type(Env *env, const char *name);
+Type *add_struct_type(Env *env, Type *type);
+Type *lookup_struct_type(Env *env, const char *name);
 
 // ast.c
 int match_type(AST *ast, int kind);

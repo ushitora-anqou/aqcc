@@ -148,58 +148,108 @@ AST *lvalue2rvalue(AST *lvalue)
     return lvalue;
 }
 
+int is_complete_type(Type *type)
+{
+    switch (type->kind) {
+        case TY_INT:
+        case TY_CHAR:
+        case TY_PTR:
+            return 1;
+
+        case TY_ARY:
+            return is_complete_type(type->ary_of);
+
+        case TY_TYPEDEF:
+            return 0;
+
+        case TY_STRUCT:
+            return type->members != NULL;
+    }
+
+    assert(0);
+}
+
 Type *analyze_type(Env *env, Type *type)
 {
-    if (type->kind != TY_STRUCT) return type;
-    if (type->members != NULL) return type;
+    assert(type != NULL);
 
-    if (type->decls == NULL) {
-        Type *ntype = lookup_type(env, type->stname);
-        return ntype ? ntype : type;
-    }
+    switch (type->kind) {
+        case TY_INT:
+        case TY_CHAR:
+            break;
 
-    type->members = new_vector();
+        case TY_PTR:
+            type = new_pointer_type(analyze_type(env, type->ptr_of));
+            break;
 
-    // make struct members.
-    int size = vector_size(type->decls);
-    for (int i = 0; i < size; i++) {
-        // TODO: duplicate name
-        AST *decl = (AST *)vector_get(type->decls, i);
-        if (decl->kind != AST_STRUCT_VAR_DECL)
-            error("struct should have only var decls", __FILE__, __LINE__);
-        decl->type = analyze_type(env, decl->type);
-        if (decl->varname == NULL &&
-            (decl->type->kind != TY_STRUCT || decl->type->stname != NULL))
-            continue;
+        case TY_TYPEDEF:
+            // typedef replacement
+            type = lookup_type(env, type->typedef_name);
+            break;
 
-        if (decl->type->kind == TY_STRUCT && decl->varname == NULL) {
-            // nested anonymous struct with no varname.
-            // its members can be accessed like parent struct's members.
-            for (int i = 0; i < vector_size(decl->type->members); i++) {
-                StructMember *member =
-                    (StructMember *)vector_get(decl->type->members, i);
-                vector_push_back(type->members, member);
+        case TY_ARY:
+            type->ary_of = analyze_type(env, type->ary_of);
+            if (!is_complete_type(type->ary_of))
+                error("array consists of only complete typed elements",
+                      __FILE__, __LINE__);
+            type = new_array_type(type->ary_of, type->len);
+            break;
+
+        case TY_STRUCT: {
+            if (type->members != NULL) break;
+
+            if (type->decls == NULL) {
+                Type *ntype = lookup_struct_type(env, type->stname);
+                type = ntype ? ntype : type;
+                break;
             }
-        }
-        else {
-            StructMember *member = safe_malloc(sizeof(StructMember));
-            member->type = decl->type;
-            member->name = decl->varname;
-            vector_push_back(type->members, member);
-        }
-    }
 
-    // calc offset
-    size = vector_size(type->members);
-    int offset = 0, alignment = alignment_of(type);
-    for (int i = 0; i < size; i++) {
-        StructMember *member = (StructMember *)vector_get(type->members, i);
-        member->offset = offset;
-        offset += roundup(member->type->nbytes, alignment);
-    }
-    type->nbytes = offset;
+            type->members = new_vector();
 
-    if (type->stname) add_type(env, type);
+            // make struct members.
+            int size = vector_size(type->decls);
+            for (int i = 0; i < size; i++) {
+                // TODO: duplicate name
+                AST *decl = (AST *)vector_get(type->decls, i);
+                if (decl->kind != AST_STRUCT_VAR_DECL)
+                    error("struct should have only var decls", __FILE__,
+                          __LINE__);
+                decl->type = analyze_type(env, decl->type);
+                if (decl->varname == NULL && (decl->type->kind != TY_STRUCT ||
+                                              decl->type->stname != NULL))
+                    continue;
+
+                if (decl->type->kind == TY_STRUCT && decl->varname == NULL) {
+                    // nested anonymous struct with no varname.
+                    // its members can be accessed like parent struct's members.
+                    for (int i = 0; i < vector_size(decl->type->members); i++) {
+                        StructMember *member =
+                            (StructMember *)vector_get(decl->type->members, i);
+                        vector_push_back(type->members, member);
+                    }
+                }
+                else {
+                    StructMember *member = safe_malloc(sizeof(StructMember));
+                    member->type = decl->type;
+                    member->name = decl->varname;
+                    vector_push_back(type->members, member);
+                }
+            }
+
+            // calc offset
+            size = vector_size(type->members);
+            int offset = 0, alignment = alignment_of(type);
+            for (int i = 0; i < size; i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(type->members, i);
+                member->offset = offset;
+                offset += roundup(member->type->nbytes, alignment);
+            }
+            type->nbytes = offset;
+
+            if (type->stname) add_struct_type(env, type);
+        } break;
+    }
 
     return type;
 }
@@ -350,7 +400,13 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_LVAR_DECL:
             ast->type = analyze_type(env, ast->type);
-            if (ast->varname == NULL) return new_ast(AST_NOP);
+            if (ast->varname == NULL) {
+                ast = new_ast(AST_NOP);
+                break;
+            }
+            if (!is_complete_type(ast->type))
+                error("incomplete typed variable can't be declared.", __FILE__,
+                      __LINE__);
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             assert(ast->type->nbytes > 0);
@@ -359,10 +415,22 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_GVAR_DECL:
             ast->type = analyze_type(env, ast->type);
-            if (ast->varname == NULL) return new_ast(AST_NOP);
+            if (ast->varname == NULL) {
+                ast = new_ast(AST_NOP);
+                break;
+            }
+            if (!is_complete_type(ast->type))
+                error("incomplete typed variable can't be declared.", __FILE__,
+                      __LINE__);
             assert(ast->type->nbytes > 0);
             add_var(env, ast);
             add_gvar(new_gvar_from_decl(ast, 0));
+            break;
+
+        case AST_TYPEDEF_VAR_DECL:
+            ast->type = analyze_type(env, ast->type);
+            add_type(env, ast->type, ast->varname);
+            ast = new_ast(AST_NOP);
             break;
 
         case AST_LVAR_DECL_INIT:
@@ -542,7 +610,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (!match_type(ast->lhs, TY_PTR))
                 error("pointer should come after indirection op", __FILE__,
                       __LINE__);
-            ast->type = ast->lhs->type->ptr_of;
+            ast->type = analyze_type(env, ast->lhs->type->ptr_of);
+            if (!is_complete_type(ast->type))
+                error("indirection op needs complete type", __FILE__, __LINE__);
             break;
 
         case AST_ARY2PTR:
@@ -566,8 +636,12 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_MEMBER_REF: {
             ast->stsrc = analyze_ast_detail(env, ast->stsrc);
+            if (!is_lvalue(ast->stsrc))
+                error("lhs of dot should be lvalue", __FILE__, __LINE__);
             ast->stsrc->type = analyze_type(env, ast->stsrc->type);
-            if (ast->stsrc->type->members == NULL)
+            if (ast->stsrc->type->kind != TY_STRUCT)
+                error("only struct can have members", __FILE__, __LINE__);
+            if (!is_complete_type(ast->stsrc->type))
                 error("can't access imcomplete typed struct members", __FILE__,
                       __LINE__);
             StructMember *sm =
