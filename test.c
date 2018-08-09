@@ -14,6 +14,7 @@ int a;
 char b;
 int *p;
 char *q;
+typedef int Number;
 
 struct hoge {
     int piyo;

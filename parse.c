@@ -705,9 +705,7 @@ int match_type_name(void) { return match_type_specifier(); }
 
 Type *parse_type_name(void)
 {
-    Type *type;
-
-    type = parse_type_specifier();
+    Type *type = parse_type_specifier();
 
     while (match_token(tSTAR)) {
         pop_token();
@@ -949,7 +947,8 @@ int match_function_definition()
     SAVE_TOKENSEQ;
     int ret = 0;
 
-    if (match_declaration_specifiers()) parse_declaration_specifiers();
+    if (match_declaration_specifiers() && !match_token(kTYPEDEF))
+        parse_declaration_specifiers();
     if (!match_declarator()) goto end;
     parse_declarator(type_int());
     if (match_token(tLBRACE)) ret = 1;
