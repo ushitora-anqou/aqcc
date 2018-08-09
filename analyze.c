@@ -153,6 +153,17 @@ AST *lvalue2rvalue(AST *lvalue)
     return lvalue;
 }
 
+int is_scalar_type(Type *type)
+{
+    switch (type->kind) {
+        case TY_INT:
+        case TY_CHAR:
+        case TY_PTR:
+            return 1;
+    }
+    return 0;
+}
+
 int is_complete_type(Type *type)
 {
     switch (type->kind) {
@@ -649,6 +660,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->kind = AST_MEMBER_REF;
             ast->stsrc = new_unary_ast(AST_INDIR, ast->stsrc);
             ast = analyze_ast_detail(env, ast);
+            break;
+
+        case AST_CAST:
+            if (!is_scalar_type(ast->type))
+                error("only scalar type can be cast");
+            // TODO: always convert_expr; is that safe?
+            ast->lhs = convert_expr(analyze_ast_detail(env, ast->lhs));
+            ast->lhs->type = ast->type;
+            ast = ast->lhs;
             break;
     }
 

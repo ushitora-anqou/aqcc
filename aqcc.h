@@ -259,6 +259,7 @@ enum {
     AST_EXPR_LIST,
     AST_DECL_LIST,
     AST_TYPEDEF_VAR_DECL,
+    AST_CAST,
 };
 
 struct AST {

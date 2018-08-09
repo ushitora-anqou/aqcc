@@ -3,7 +3,8 @@
 AST *parse_expr();
 AST *parse_assignment_expr();
 AST *parse_stmt();
-Type *parse_type_name();
+Type *parse_type_name(void);
+int match_type_name(void);
 int match_type_specifier();
 Type *parse_type_specifier();
 AST *parse_declarator(Type *type);
@@ -11,6 +12,7 @@ Type *parse_declaration_specifiers();
 AST *parse_compound_stmt();
 int match_declaration();
 AST *parse_declaration(int decl_ast_kind);
+AST *parse_cast_expr(void);
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
@@ -249,11 +251,11 @@ AST *parse_unary_expr()
     switch (token->kind) {
         case tPLUS:
             pop_token();
-            return parse_postfix_expr();
+            return parse_cast_expr();
 
         case tMINUS:
             pop_token();
-            return new_unary_ast(AST_UNARY_MINUS, parse_unary_expr());
+            return new_unary_ast(AST_UNARY_MINUS, parse_cast_expr());
 
         case tINC:
             pop_token();
@@ -265,15 +267,15 @@ AST *parse_unary_expr()
 
         case tAND:
             pop_token();
-            return new_unary_ast(AST_ADDR, parse_unary_expr());
+            return new_unary_ast(AST_ADDR, parse_cast_expr());
 
         case tSTAR:
             pop_token();
-            return new_unary_ast(AST_INDIR, parse_unary_expr());
+            return new_unary_ast(AST_INDIR, parse_cast_expr());
 
         case tEXCL:
             pop_token();
-            return new_unary_ast(AST_NOT, parse_unary_expr());
+            return new_unary_ast(AST_NOT, parse_cast_expr());
 
         case kSIZEOF: {
             AST *ast;
@@ -297,26 +299,51 @@ AST *parse_unary_expr()
     return parse_postfix_expr();
 }
 
+int match_cast_expr(void)
+{
+    SAVE_TOKENSEQ;
+    if (!pop_token_if(tLPAREN)) return 0;
+
+    int ret = 0;
+    if (match_type_name()) ret = 1;
+
+    RESTORE_TOKENSEQ;
+    return ret;
+}
+
+AST *parse_cast_expr(void)
+{
+    if (!match_cast_expr()) return parse_unary_expr();
+    expect_token(tLPAREN);
+    Type *type = parse_type_name();
+    expect_token(tRPAREN);
+    AST *target = parse_cast_expr();
+
+    AST *ast = new_unary_ast(AST_CAST, target);
+    ast->type = type;
+    return ast;
+}
+
 AST *parse_multiplicative_expr()
 {
-    AST *ast = parse_unary_expr();
+    AST *ast = parse_cast_expr();
 
     while (1) {
         Token *token = peek_token();
         switch (token->kind) {
             case tSTAR:
                 pop_token();
-                ast = new_binop_ast(AST_MUL, ast, parse_unary_expr());
+                ast = new_binop_ast(AST_MUL, ast, parse_cast_expr());
                 break;
 
             case tSLASH:
                 pop_token();
-                ast = new_binop_ast(AST_DIV, ast, parse_unary_expr());
+                ast = new_binop_ast(AST_DIV, ast, parse_cast_expr());
                 break;
 
             case tPERCENT:
                 pop_token();
-                ast = new_binop_ast(AST_REM, ast, parse_unary_expr());
+                ast = new_binop_ast(AST_REM, ast, parse_cast_expr());
                 break;
 
             default:
@@ -525,6 +552,8 @@ AST *parse_assignment_expr()
         tok2ast[tRSHIFTEQ] = AST_RSHIFT;
     }
 
+    if (match_cast_expr()) return parse_cast_expr();
+
     SAVE_TOKENSEQ;
     last = parse_unary_expr();
     token = pop_token();
@@ -672,7 +701,9 @@ AST *parse_iteration_stmt()
     return ast;
 }
 
-Type *parse_type_name()
+int match_type_name(void) { return match_type_specifier(); }
+
+Type *parse_type_name(void)
 {
     Type *type;
 

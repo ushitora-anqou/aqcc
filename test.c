@@ -1663,6 +1663,36 @@ int test331()
     EXPECT_INT(i, 2);
 }
 
+int test332()
+{
+    int a = 257;
+    char b = a;
+    char c = (char)b;
+    EXPECT_INT(b, 1);
+    EXPECT_INT((int)c, 1);
+
+    char d = 34;
+    int e = d;
+    int f = (char)d;
+    EXPECT_INT(e, 34);
+    EXPECT_INT(f, 34);
+
+    struct hoge {
+        int a;
+    };
+    struct piyo {
+        char c[4];
+    };
+
+    struct hoge h;
+    h.a = 67305985;  // 0x04030201
+    struct piyo *p = &h;
+    EXPECT_INT((int)((struct piyo *)&h)->c[0], 1);
+    EXPECT_INT((int)((struct piyo *)&h)->c[1], 2);
+    EXPECT_INT((int)((struct piyo *)&h)->c[2], 3);
+    EXPECT_INT((int)((struct piyo *)&h)->c[3], 4);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1990,4 +2020,5 @@ int main()
     test329();
     test330();
     test331();
+    test332();
 }
