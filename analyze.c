@@ -475,7 +475,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
             funcdef = lookup_func(env, ast->fname);
             if (funcdef) {  // found: already declared
-                ast->type = funcdef->type;
+                ast->type = analyze_type(env, funcdef->type);
             }
             else {
                 warn("function \"%s\" call type is deduced to int", ast->fname);
@@ -508,15 +508,21 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             else {  // no declaration
                 add_func(env, ast->fname, ast);
             }
+            ast->type = analyze_type(env, ast->type);
 
             // make function's local scope/env
             ast->env = new_env(env);
             ast->env->scoped_vars = new_vector();
             // add param into functions's scope
             // in reversed order for easy code generation.
-            if (ast->params)
-                for (i = vector_size(ast->params) - 1; i >= 0; i--)
-                    add_var(ast->env, (AST *)vector_get(ast->params, i));
+            if (ast->params) {
+                for (i = vector_size(ast->params) - 1; i >= 0; i--) {
+                    AST *param = (AST *)vector_get(ast->params, i);
+                    param->type = analyze_type(env, param->type);
+                    vector_set(ast->params, i, param);
+                    add_var(ast->env, param);
+                }
+            }
 
             // analyze body
             init_goto_info();

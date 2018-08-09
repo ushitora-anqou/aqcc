@@ -1737,6 +1737,14 @@ void test334(void)
     EXPECT_INT(*(char *)ptr, 42);
 }
 
+Number test335detail(Number n) { return n; }
+
+void test335(void)
+{
+    EXPECT_INT(test335detail(5), 5);
+    EXPECT_INT(test335detail(5) == 5, 1);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2067,4 +2075,5 @@ int main()
     test332();
     test333();
     test334();
+    test335();
 }
