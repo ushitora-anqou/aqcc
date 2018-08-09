@@ -849,7 +849,8 @@ int match_type_specifier()
 {
     Token *token = peek_token();
     int kind = token->kind;
-    if (kind == kINT || kind == kCHAR || kind == kTYPEDEF) return 1;
+    if (kind == kINT || kind == kCHAR || kind == kTYPEDEF || kind == kVOID)
+        return 1;
     if (match_struct_or_union_specifier()) return 1;
     if (match_typedef_name()) return 1;
     return 0;
@@ -859,6 +860,7 @@ Type *parse_type_specifier()
 {
     if (pop_token_if(kINT)) return type_int();
     if (pop_token_if(kCHAR)) return type_char();
+    if (pop_token_if(kVOID)) return type_void();
     if (match_struct_or_union_specifier())
         return parse_struct_or_union_specifier();
     if (match_typedef_name()) return parse_typedef_name();

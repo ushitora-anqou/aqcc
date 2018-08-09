@@ -365,6 +365,7 @@ void dump_code(Vector *codes, FILE *fh);
 // type.c
 Type *type_int();
 Type *type_char();
+Type *type_void();
 Type *new_pointer_type(Type *src);
 Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);

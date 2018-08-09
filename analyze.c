@@ -175,11 +175,12 @@ int is_complete_type(Type *type)
         case TY_ARY:
             return is_complete_type(type->ary_of);
 
-        case TY_TYPEDEF:
-            return 0;
-
         case TY_STRUCT:
             return type->members != NULL;
+
+        case TY_TYPEDEF:
+        case TY_VOID:
+            return 0;
     }
 
     assert(0);

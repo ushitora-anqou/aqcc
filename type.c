@@ -30,6 +30,15 @@ Type *type_char()
     return type;
 }
 
+Type *type_void()
+{
+    static Type *type = NULL;
+    if (type == NULL) {
+        type = new_type(TY_VOID, -1);
+    }
+    return type;
+}
+
 Type *new_pointer_type(Type *src)
 {
     Type *this;

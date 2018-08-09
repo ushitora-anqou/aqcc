@@ -1693,6 +1693,49 @@ int test332(void)
     EXPECT_INT((int)((struct piyo *)&h)->c[3], 4);
 }
 
+int test333(void)
+{
+    struct hoge {
+        int a;
+    };
+    struct piyo {
+        char c[4];
+    };
+
+    struct hoge h;
+    h.a = 67305985;  // 0x04030201
+    void *ptr = (void *)&h;
+    struct piyo *p = (struct piyo *)ptr;
+    EXPECT_INT((int)((struct piyo *)&h)->c[0], 1);
+    EXPECT_INT((int)((struct piyo *)&h)->c[1], 2);
+    EXPECT_INT((int)((struct piyo *)&h)->c[2], 3);
+    EXPECT_INT((int)((struct piyo *)&h)->c[3], 4);
+}
+
+void *test334detail(int flag)
+{
+    switch (flag) {
+        case 0:
+            return &a;
+        default:
+            return &b;
+    }
+}
+
+int test334(void)
+{
+    a = 30;
+    b = 42;
+
+    void *ptr;
+    ptr = test334detail(0);
+    EXPECT_INT(*(int *)ptr, 30);
+    ptr = test334detail(1);
+    EXPECT_INT(*(char *)ptr, 42);
+    ptr = test334detail(1);
+    EXPECT_INT(*(char *)ptr, 42);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2021,4 +2064,6 @@ int main()
     test330();
     test331();
     test332();
+    test333();
+    test334();
 }
