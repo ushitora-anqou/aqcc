@@ -137,6 +137,10 @@ int is_lvalue(AST *ast)
         case AST_INDIR:
         case AST_MEMBER_REF:
             return 1;
+        case AST_EXPR_LIST:
+            assert(vector_size(ast->exprs) >= 1);
+            return is_lvalue(
+                (AST *)vector_get(ast->exprs, vector_size(ast->exprs) - 1));
     }
 
     return 0;
@@ -382,7 +386,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_EXPR_LIST:
             for (int i = 0; i < vector_size(ast->exprs); i++) {
                 AST *expr = (AST *)vector_get(ast->exprs, i);
-                expr = convert_expr(analyze_ast_detail(env, expr));
+                expr = analyze_ast_detail(env, expr);
                 ast->type = expr->type;
                 vector_set(ast->exprs, i, expr);
             }

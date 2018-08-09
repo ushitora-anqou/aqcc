@@ -1497,6 +1497,16 @@ int test325()
     EXPECT_INT(h.bar, 5);
 }
 
+int test326()
+{
+    struct A {
+        int a;
+    };
+    struct A a;
+    struct A *b = &a;
+    (1, *b).a;
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1818,4 +1828,5 @@ int main()
     test323();
     test324();
     test325();
+    test326();
 }

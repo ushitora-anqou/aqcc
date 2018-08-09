@@ -111,7 +111,7 @@ Token *read_next_ident_token()
     char *str;
     str = string_builder_get(sb);
     KeyValue *kv = map_lookup(str2keyword, str);
-    if (kv) return new_ast((int)kv_value(kv));
+    if (kv) return new_token((int)kv_value(kv));
 
     Token *token = new_token(tIDENT);
     token->sval = str;
