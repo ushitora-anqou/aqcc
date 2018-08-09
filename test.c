@@ -1413,6 +1413,19 @@ int test319()
     EXPECT_INT(b - a, 1);
 }
 
+struct test320struct *test320detail(struct test320struct *a) { return a; }
+
+struct test320struct {
+    int a;
+};
+
+int test320()
+{
+    struct test320struct st;
+    test320detail(&st)->a = 1;
+    EXPECT_INT(st.a, 1);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1728,4 +1741,5 @@ int main()
     test317();
     test318();
     test319();
+    test320();
 }

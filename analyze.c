@@ -148,7 +148,6 @@ AST *lvalue2rvalue(AST *lvalue)
     return lvalue;
 }
 
-// not recursive.
 Type *analyze_type(Env *env, Type *type)
 {
     if (type->kind != TY_STRUCT) return type;
@@ -568,6 +567,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_MEMBER_REF: {
             ast->stsrc = analyze_ast_detail(env, ast->stsrc);
             ast->stsrc->type = analyze_type(env, ast->stsrc->type);
+            if (ast->stsrc->type->members == NULL)
+                error("can't access imcomplete typed struct members", __FILE__,
+                      __LINE__);
             StructMember *sm =
                 lookup_member(ast->stsrc->type->members, ast->member);
             if (sm == NULL) error("no such member", __FILE__, __LINE__);
