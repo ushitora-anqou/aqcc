@@ -20,6 +20,11 @@ struct hoge {
     int piyo;
 };
 
+union piyo {
+    int *foo;
+    int bar;
+};
+
 int printf(char *str, int a, int b, int c);
 
 #define EXPECT_INT(got, expect)                                          \
@@ -1790,6 +1795,15 @@ void test336()
     EXPECT_INT(u3.b3, 1);
 }
 
+void test337()
+{
+    typedef union piyo piyo;
+    piyo p;
+    p.foo = 43;
+    EXPECT_INT(p.foo, 43);
+    EXPECT_INT(p.bar, 43);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2122,4 +2136,5 @@ int main()
     test334();
     test335();
     test336();
+    test337();
 }
