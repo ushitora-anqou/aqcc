@@ -328,15 +328,15 @@ struct AST {
 };
 
 // utility.c
-// error("msg", __FILE__, __LINE__);
-_Noreturn void error(const char *msg, const char *filename, int lineno);
-void warn(const char *msg, const char *filename, int lineno);
+_Noreturn void error(const char *msg, ...);
+void warn(const char *msg, ...);
 void *safe_malloc(size_t size);
 void *safe_realloc(void *ptr, size_t size);
 char *new_str(const char *src);
 int *new_int(int src);
 int max(int a, int b);
-char *format(char *src, ...);
+char *format(const char *src, ...);
+char *vformat(const char *src, va_list ap);
 int unescape_char(int src);
 char *escape_string(char *str, int size);
 char *make_label_string();

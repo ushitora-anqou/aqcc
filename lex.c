@@ -40,7 +40,7 @@ char peekch() { return *source.src; }
 char getch()
 {
     char ch = peekch();
-    if (ch == '\0') error("unexpected EOF", __FILE__, __LINE__);
+    if (ch == '\0') error("unexpected EOF");
 
     if (ch == '\n') {
         source.line++;
@@ -135,7 +135,7 @@ Token *read_next_string_literal_token()
                 goto end;
 
             case '\n':
-                error("unexpected new-line character", __FILE__, __LINE__);
+                error("unexpected new-line character");
         }
 
         string_builder_append(sb, ch);
@@ -153,7 +153,7 @@ end:
 Token *read_next_character_constant_token()
 {
     char ch = getch();
-    if (ch == '\'') error("unexpected singlequote.", __FILE__, __LINE__);
+    if (ch == '\'') error("unexpected singlequote.");
     if (ch == '\\') ch = unescape_char(getch());
     while (getch() != '\'')
         ;
@@ -327,8 +327,7 @@ Token *read_next_token()
                 return new_token(tRBRACKET);
         }
 
-        error(format("%d:%d:unexpected character", source.line, source.column),
-              __FILE__, __LINE__);
+        error(format("%d:%d:unexpected character", source.line, source.column));
     }
 
     return new_token(tEOF);

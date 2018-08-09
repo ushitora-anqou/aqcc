@@ -555,14 +555,12 @@ void generate_code_detail(AST *ast)
         } break;
 
         case AST_BREAK:
-            if (env->break_label < 0)
-                error("invalid break.", __FILE__, __LINE__);
+            if (env->break_label < 0) error("invalid break.");
             appcode("jmp %s", env->break_label);
             break;
 
         case AST_CONTINUE:
-            if (env->continue_label < 0)
-                error("invalid continue.", __FILE__, __LINE__);
+            if (env->continue_label < 0) error("invalid continue.");
             appcode("jmp %s", env->continue_label);
             break;
 

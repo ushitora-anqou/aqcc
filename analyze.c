@@ -77,8 +77,7 @@ AST *add_switch_case(AST *case_ast)
 
 AST *add_switch_default(AST *default_ast)
 {
-    if (default_label)
-        error("duplicate default label for switch", __FILE__, __LINE__);
+    if (default_label) error("duplicate default label for switch");
     AST *label = new_label_ast(make_label_string(), default_ast->lhs);
     default_label = label->label_name;
     return label;
@@ -112,9 +111,7 @@ void replace_goto_label()
     for (int i = 0; i < vector_size(goto_asts); i++) {
         AST *ast = (AST *)vector_get(goto_asts, i);
         KeyValue *kv = map_lookup(label_asts, ast->label_name);
-        if (kv == NULL)
-            error(format("not found such label: '%s'", kv_key(kv)), __FILE__,
-                  __LINE__);
+        if (kv == NULL) error(format("not found such label: '%s'", kv_key(kv)));
         ast->label_name = ((AST *)kv_value(kv))->label_name;
     }
 }
@@ -198,8 +195,7 @@ Type *analyze_type(Env *env, Type *type)
         case TY_ARY:
             type->ary_of = analyze_type(env, type->ary_of);
             if (!is_complete_type(type->ary_of))
-                error("array consists of only complete typed elements",
-                      __FILE__, __LINE__);
+                error("array consists of only complete typed elements");
             type = new_array_type(type->ary_of, type->len);
             break;
 
@@ -220,8 +216,7 @@ Type *analyze_type(Env *env, Type *type)
                 // TODO: duplicate name
                 AST *decl = (AST *)vector_get(type->decls, i);
                 if (decl->kind != AST_STRUCT_VAR_DECL)
-                    error("struct should have only var decls", __FILE__,
-                          __LINE__);
+                    error("struct should have only var decls");
                 decl->type = analyze_type(env, decl->type);
                 if (decl->varname == NULL && (decl->type->kind != TY_STRUCT ||
                                               decl->type->stname != NULL))
@@ -295,7 +290,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->rhs = convert_expr(analyze_ast_detail(env, ast->rhs));
 
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
-                error("ptr + ptr is not allowed", __FILE__, __LINE__);
+                error("ptr + ptr is not allowed");
 
             // Convert ptr+int to int+ptr for easy code generation.
             if (match_type(ast->lhs, TY_PTR)) swap(&ast->lhs, &ast->rhs);
@@ -308,7 +303,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->rhs = convert_expr(analyze_ast_detail(env, ast->rhs));
 
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR))
-                error("int - ptr is not allowed", __FILE__, __LINE__);
+                error("int - ptr is not allowed");
 
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 ast->type = type_int();  // TODO: long
@@ -358,8 +353,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->lhs = convert_expr(analyze_ast_detail(env, ast->lhs));
             ast->type = ast->lhs->type;
             if (ast->type->kind != TY_INT && ast->type->kind != TY_CHAR)
-                error("expect int or char type for unary minus or not",
-                      __FILE__, __LINE__);
+                error("expect int or char type for unary minus or not");
             break;
 
         case AST_NOT:
@@ -372,8 +366,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->then = convert_expr(analyze_ast_detail(env, ast->then));
             ast->els = convert_expr(analyze_ast_detail(env, ast->els));
             if (ast->then->type->kind != ast->els->type->kind)
-                error("then and els should have the same type", __FILE__,
-                      __LINE__);
+                error("then and els should have the same type");
             ast->type = ast->then->type;
             break;
 
@@ -382,8 +375,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->rhs =
                 lvalue2rvalue(ary2ptr(analyze_ast_detail(env, ast->rhs)));
             if (!is_lvalue(ast->lhs))
-                error("should specify lvalue for assignment op", __FILE__,
-                      __LINE__);
+                error("should specify lvalue for assignment op");
             ast->type = ast->lhs->type;
             break;
 
@@ -400,9 +392,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             char *varname = ast->varname;
 
             ast = lookup_var(env, varname);
-            if (!ast)
-                error(format("not declared variable: '%s'", varname), __FILE__,
-                      __LINE__);
+            if (!ast) error(format("not declared variable: '%s'", varname));
             assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
         } break;
 
@@ -413,8 +403,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 break;
             }
             if (!is_complete_type(ast->type))
-                error("incomplete typed variable can't be declared.", __FILE__,
-                      __LINE__);
+                error("incomplete typed variable can't be declared.");
             // ast->type means this variable's type and is alraedy
             // filled when parsing.
             assert(ast->type->nbytes > 0);
@@ -428,8 +417,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 break;
             }
             if (!is_complete_type(ast->type))
-                error("incomplete typed variable can't be declared.", __FILE__,
-                      __LINE__);
+                error("incomplete typed variable can't be declared.");
             assert(ast->type->nbytes > 0);
             add_var(env, ast);
             add_gvar(new_gvar_from_decl(ast, 0));
@@ -450,8 +438,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (ast->lhs->kind == AST_GVAR_DECL) {
                 if (ast->rhs->rhs->kind != AST_INT)
                     // TODO: constant, not int literal
-                    error("global variable initializer must be constant.",
-                          __FILE__, __LINE__);
+                    error("global variable initializer must be constant.");
                 add_var(env, ast->lhs);
                 add_gvar(new_gvar_from_decl(ast->lhs, ast->rhs->rhs->ival));
                 ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
@@ -475,9 +462,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 ast->type = funcdef->type;
             }
             else {
-                warn("function call type is deduced to int", __FILE__,
-                     __LINE__);
-                warn(ast->fname, __FILE__, __LINE__);
+                warn("function \"%s\" call type is deduced to int", ast->fname);
                 ast->type = type_int();
             }
 
@@ -501,9 +486,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 if (func->body != NULL)  // TODO: validate params
                     error(
                         "A function that has the same name as the defined "
-                        "one "
-                        "already exists.",
-                        __FILE__, __LINE__);
+                        "one already exists.");
                 func->body = ast->body;
             }
             else {  // no declaration
@@ -558,8 +541,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
             if (ast->lhs->kind != AST_INT)
-                error("case should take a constant expression.", __FILE__,
-                      __LINE__);
+                error("case should take a constant expression.");
             ast = add_switch_case(ast);
             break;
 
@@ -601,16 +583,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_POSTDEC:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             if (!is_lvalue(ast->lhs))
-                error("should specify lvalue for increment/decrement", __FILE__,
-                      __LINE__);
+                error("should specify lvalue for increment/decrement");
             ast->type = ast->lhs->type;
             break;
 
         case AST_ADDR:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             if (!is_lvalue(ast->lhs))
-                error("should specify lvalue for address-of op", __FILE__,
-                      __LINE__);
+                error("should specify lvalue for address-of op");
             ast->type = new_pointer_type(ast->lhs->type);
             break;
 
@@ -618,11 +598,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->lhs = lvalue2rvalue(ast->lhs);
             if (!match_type(ast->lhs, TY_PTR))
-                error("pointer should come after indirection op", __FILE__,
-                      __LINE__);
+                error("pointer should come after indirection op");
             ast->type = analyze_type(env, ast->lhs->type->ptr_of);
             if (!is_complete_type(ast->type))
-                error("indirection op needs complete type", __FILE__, __LINE__);
+                error("indirection op needs complete type");
             break;
 
         case AST_ARY2PTR:
@@ -648,16 +627,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->stsrc = analyze_ast_detail(env, ast->stsrc);
             if (!is_lvalue(ast->stsrc) &&
                 !is_last_expr_in_list_lvalue(ast->stsrc))
-                error("lhs of dot should be lvalue", __FILE__, __LINE__);
+                error("lhs of dot should be lvalue");
             ast->stsrc->type = analyze_type(env, ast->stsrc->type);
             if (ast->stsrc->type->kind != TY_STRUCT)
-                error("only struct can have members", __FILE__, __LINE__);
+                error("only struct can have members");
             if (!is_complete_type(ast->stsrc->type))
-                error("can't access imcomplete typed struct members", __FILE__,
-                      __LINE__);
+                error("can't access imcomplete typed struct members");
             StructMember *sm =
                 lookup_member(ast->stsrc->type->members, ast->member);
-            if (sm == NULL) error("no such member", __FILE__, __LINE__);
+            if (sm == NULL) error("no such member");
             ast->type = sm->type;
         } break;
 

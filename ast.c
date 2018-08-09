@@ -127,8 +127,7 @@ AST *new_var_decl_ast(int kind, Type *type, char *varname)
 AST *new_var_decl_init_ast(AST *var_decl, AST *initer)
 {
     if (var_decl->kind != AST_LVAR_DECL && var_decl->kind != AST_GVAR_DECL)
-        error("only local/global variable can have initializer.", __FILE__,
-              __LINE__);
+        error("only local/global variable can have initializer.");
 
     AST *ast = new_ast(var_decl->kind == AST_LVAR_DECL ? AST_LVAR_DECL_INIT
                                                        : AST_GVAR_DECL_INIT);

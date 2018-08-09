@@ -17,7 +17,7 @@ AST *add_symbol(Env *env, const char *name, AST *ast)
     KeyValue *kv;
 
     kv = map_lookup(env->symbols, name);
-    if (kv != NULL) error("same symbol already exists.", __FILE__, __LINE__);
+    if (kv != NULL) error("same symbol already exists.");
     map_insert(env->symbols, name, ast);
     return ast;
 }
@@ -60,7 +60,7 @@ AST *lookup_var(Env *env, const char *name)
 
     ast = lookup_symbol(env, name);
     if (ast && ast->kind != AST_LVAR && ast->kind != AST_GVAR)
-        error("found but not var", __FILE__, __LINE__);
+        error("found but not var");
     return ast;
 }
 
@@ -78,14 +78,14 @@ AST *lookup_func(Env *env, const char *name)
 
     ast = lookup_symbol(env, name);
     if (ast && ast->kind != AST_FUNCDEF && ast->kind != AST_FUNC_DECL)
-        error("found but not func", __FILE__, __LINE__);
+        error("found but not func");
     return ast;
 }
 
 Type *add_type(Env *env, Type *type, char *name)
 {
     KeyValue *kv = map_lookup(env->types, name);
-    if (kv != NULL) error("same type already exists.", __FILE__, __LINE__);
+    if (kv != NULL) error("same type already exists.");
     map_insert(env->types, name, type);
     return type;
 }

@@ -4,15 +4,27 @@
 #include <string.h>
 #include "aqcc.h"
 
-_Noreturn void error(const char *msg, const char *filename, int lineno)
+_Noreturn void error(const char *msg, ...)
 {
-    fprintf(stderr, "[ERROR] %s: %s, %d\n", msg, filename, lineno);
+    va_list args;
+    va_start(args, msg);
+    char *str = vformat(msg, args);
+    va_end(args);
+
+    fprintf(stderr, "[ERROR] %s\n", str);
+    fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
     exit(EXIT_FAILURE);
 }
 
-void warn(const char *msg, const char *filename, int lineno)
+void warn(const char *msg, ...)
 {
-    fprintf(stderr, "[WARN] %s: %s, %d\n", msg, filename, lineno);
+    va_list args;
+    va_start(args, msg);
+    char *str = vformat(msg, args);
+    va_end(args);
+
+    fprintf(stderr, "[WARN]  %s\n", str);
+    fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
 }
 
 void *safe_malloc(size_t size)
@@ -20,14 +32,14 @@ void *safe_malloc(size_t size)
     void *ptr;
 
     ptr = malloc(size);
-    if (ptr == NULL) error("malloc failed.", __FILE__, __LINE__);
+    if (ptr == NULL) error("malloc failed.");
     return ptr;
 }
 
 void *safe_realloc(void *ptr, size_t size)
 {
     ptr = realloc(ptr, size);
-    if (ptr == NULL) error("realloc failed.", __FILE__, __LINE__);
+    if (ptr == NULL) error("realloc failed.");
     return ptr;
 }
 
@@ -45,17 +57,22 @@ int *new_int(int src)
     return ret;
 }
 
-char *format(char *src, ...)
+char *vformat(const char *src, va_list ap)
 {
-    va_list args;
     char buf[512];  // TODO: enough length?
-
-    va_start(args, src);
-    vsprintf(buf, src, args);
-    va_end(args);
+    vsprintf(buf, src, ap);
 
     char *ret = safe_malloc(strlen(buf) + 1);
     strcpy(ret, buf);
+    return ret;
+}
+
+char *format(const char *src, ...)
+{
+    va_list args;
+    va_start(args, src);
+    char *ret = vformat(src, args);
+    va_end(args);
     return ret;
 }
 
