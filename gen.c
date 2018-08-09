@@ -498,7 +498,8 @@ void generate_code_detail(AST *ast)
 
             // avoid duplicate needless `ret`
             if (strcmp(last_appended_code(), "ret") == 0) break;
-            appcode("mov $0, #eax");
+
+            if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
             appcode("ret");

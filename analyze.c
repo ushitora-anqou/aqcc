@@ -273,6 +273,9 @@ Type *analyze_type(Env *env, Type *type)
 AST *convert_expr(AST *expr)
 {
     if (expr == NULL || expr->type == NULL) return expr;  // stmt
+    // expr shouldn't have void type when convertible.
+    // TODO: this should be an error.
+    assert(expr->type->kind != TY_VOID);
     return char2int(lvalue2rvalue(ary2ptr(expr)));
 }
 
@@ -482,8 +485,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             // analyze args
             for (i = 0; i < vector_size(ast->args); i++)
                 vector_set(ast->args, i,
-                           char2int(lvalue2rvalue(ary2ptr(analyze_ast_detail(
-                               env, (AST *)vector_get(ast->args, i))))));
+                           convert_expr(analyze_ast_detail(
+                               env, (AST *)vector_get(ast->args, i))));
         } break;
 
         case AST_FUNC_DECL:
@@ -522,11 +525,13 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         } break;
 
         case AST_EXPR_STMT:
-        case AST_RETURN: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            if (ast->lhs)  //
-                ast->lhs = convert_expr(ast->lhs);
-        } break;
+            break;
+
+        case AST_RETURN:
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            if (ast->lhs) ast->lhs = convert_expr(ast->lhs);
+            break;
 
         case AST_COMPOUND: {
             int i;
