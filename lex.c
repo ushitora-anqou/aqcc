@@ -86,25 +86,32 @@ Token *read_next_ident_token()
         string_builder_append(sb, ch);
     }
 
+    static Map *str2keyword = NULL;
+    if (str2keyword == NULL) {
+        str2keyword = new_map();
+
+        map_insert(str2keyword, "return", (void *)kRETURN);
+        map_insert(str2keyword, "if", (void *)kIF);
+        map_insert(str2keyword, "else", (void *)kELSE);
+        map_insert(str2keyword, "while", (void *)kWHILE);
+        map_insert(str2keyword, "break", (void *)kBREAK);
+        map_insert(str2keyword, "continue", (void *)kCONTINUE);
+        map_insert(str2keyword, "for", (void *)kFOR);
+        map_insert(str2keyword, "int", (void *)kINT);
+        map_insert(str2keyword, "char", (void *)kCHAR);
+        map_insert(str2keyword, "sizeof", (void *)kSIZEOF);
+        map_insert(str2keyword, "switch", (void *)kSWITCH);
+        map_insert(str2keyword, "default", (void *)kDEFAULT);
+        map_insert(str2keyword, "case", (void *)kCASE);
+        map_insert(str2keyword, "goto", (void *)kGOTO);
+        map_insert(str2keyword, "struct", (void *)kSTRUCT);
+        map_insert(str2keyword, "typedef", (void *)kTYPEDEF);
+    }
+
     char *str;
     str = string_builder_get(sb);
-
-    if (strcmp(str, "return") == 0) return new_token(kRETURN);
-    if (strcmp(str, "if") == 0) return new_token(kIF);
-    if (strcmp(str, "else") == 0) return new_token(kELSE);
-    if (strcmp(str, "while") == 0) return new_token(kWHILE);
-    if (strcmp(str, "break") == 0) return new_token(kBREAK);
-    if (strcmp(str, "continue") == 0) return new_token(kCONTINUE);
-    if (strcmp(str, "for") == 0) return new_token(kFOR);
-    if (strcmp(str, "int") == 0) return new_token(kINT);
-    if (strcmp(str, "char") == 0) return new_token(kCHAR);
-    if (strcmp(str, "sizeof") == 0) return new_token(kSIZEOF);
-    if (strcmp(str, "switch") == 0) return new_token(kSWITCH);
-    if (strcmp(str, "default") == 0) return new_token(kDEFAULT);
-    if (strcmp(str, "case") == 0) return new_token(kCASE);
-    if (strcmp(str, "goto") == 0) return new_token(kGOTO);
-    if (strcmp(str, "struct") == 0) return new_token(kSTRUCT);
-    if (strcmp(str, "typedef") == 0) return new_token(kTYPEDEF);
+    KeyValue *kv = map_lookup(str2keyword, str);
+    if (kv) return new_ast((int)kv_value(kv));
 
     Token *token = new_token(tIDENT);
     token->sval = str;
