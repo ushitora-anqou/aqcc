@@ -49,7 +49,8 @@ int lookup_member_offset(Vector *members, char *member)
     int size = vector_size(members);
     for (int i = 0; i < size; i++) {
         StructMember *sm = (StructMember *)vector_get(members, i);
-        if (sm->type->kind == TY_STRUCT && sm->name == NULL) {
+        if ((sm->type->kind == TY_STRUCT || sm->type->kind == TY_UNION) &&
+            sm->name == NULL) {
             // nested anonymous struct with no varname.
             // its members can be accessed like parent struct's members.
             int offset = lookup_member_offset(sm->type->members, member);

@@ -821,24 +821,29 @@ Vector *parse_struct_declaration_list()
     return decls;
 }
 
-int match_struct_or_union_specifier() { return peek_token()->kind == kSTRUCT; }
+int match_struct_or_union_specifier()
+{
+    return peek_token()->kind == kSTRUCT || peek_token()->kind == kUNION;
+}
 
 Type *parse_struct_or_union_specifier()
 {
     Token *struct_or_union = pop_token();
-    if (struct_or_union->kind != kSTRUCT)  // TODO: kUNION
+    if (struct_or_union->kind != kSTRUCT && struct_or_union->kind != kUNION)
         error_unexpected_token_str("struct or union", struct_or_union);
+    int kind = struct_or_union->kind == kSTRUCT ? TY_STRUCT : TY_UNION;
 
     char *name = NULL;
     if (match_token(tIDENT)) name = pop_token()->sval;
 
     if (!match_token(tLBRACE)) {
         if (name == NULL) error_unexpected_token_kind(tIDENT, pop_token());
-        return new_struct_type(name, NULL);
+        return new_struct_or_union_type(kind, name, NULL);
     }
     pop_token();
 
-    Type *type = new_struct_type(name, parse_struct_declaration_list());
+    Type *type =
+        new_struct_or_union_type(kind, name, parse_struct_declaration_list());
     expect_token(tRBRACE);
     return type;
 }

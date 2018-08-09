@@ -100,15 +100,15 @@ Type *lookup_type(Env *env, const char *name)
     return (Type *)kv_value(kv);
 }
 
-Type *add_struct_type(Env *env, Type *type)
+Type *add_struct_or_union_type(Env *env, Type *type)
 {
-    assert(type->kind == TY_STRUCT);
-    return add_type(env, type, format("struct %s", type->stname));
+    assert(type->kind == TY_STRUCT || type->kind == TY_UNION);
+    return add_type(env, type, format("struct/union %s", type->stname));
 }
 
-Type *lookup_struct_type(Env *env, const char *name)
+Type *lookup_struct_or_union_type(Env *env, const char *name)
 {
-    Type *type = lookup_type(env, format("struct %s", name));
-    assert(type == NULL || type->kind == TY_STRUCT);
+    Type *type = lookup_type(env, format("struct/union %s", name));
+    assert(type == NULL || type->kind == TY_STRUCT || type->kind == TY_UNION);
     return type;
 }

@@ -58,9 +58,9 @@ Type *new_array_type(Type *src, int len)
     return this;
 }
 
-Type *new_struct_type(char *stname, Vector *decls)
+Type *new_struct_or_union_type(int kind, char *stname, Vector *decls)
 {
-    Type *this = new_type(TY_STRUCT, -1);
+    Type *this = new_type(kind, -1);
     this->stname = stname;
     this->members = NULL;
     this->decls = decls;

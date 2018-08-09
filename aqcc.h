@@ -101,6 +101,7 @@ enum {
     kDEFAULT,
     kGOTO,
     kSTRUCT,
+    kUNION,
     kTYPEDEF,
     kDO,
     kVOID,
@@ -145,6 +146,7 @@ enum {
     TY_PTR,
     TY_ARY,
     TY_STRUCT,
+    TY_UNION,
     TY_TYPEDEF,
     TY_VOID,
 };
@@ -161,7 +163,7 @@ struct Type {
             int len;
         };
 
-        // struct
+        // struct/union
         struct {
             char *stname;
             Vector *members;  // for analyzer, generator
@@ -192,8 +194,8 @@ typedef struct {
 typedef struct {
     Type *type;
     char *name;
-    int offset;
-} StructMember;
+    int offset;  // when union, offset=0
+} StructMember;  // also UnionMember
 
 enum {
     AST_ADD,
@@ -368,7 +370,7 @@ Type *type_void();
 Type *new_pointer_type(Type *src);
 Type *new_array_type(Type *src, int len);
 Env *new_env(Env *parent);
-Type *new_struct_type(char *stname, Vector *members);
+Type *new_struct_or_union_type(int kind, char *stname, Vector *members);
 Type *type_unknown();
 Type *new_typedef_type(char *typedef_name);
 
@@ -379,8 +381,8 @@ AST *add_func(Env *env, const char *name, AST *ast);
 AST *lookup_func(Env *env, const char *name);
 Type *add_type(Env *env, Type *type, char *name);
 Type *lookup_type(Env *env, const char *name);
-Type *add_struct_type(Env *env, Type *type);
-Type *lookup_struct_type(Env *env, const char *name);
+Type *add_struct_or_union_type(Env *env, Type *type);
+Type *lookup_struct_or_union_type(Env *env, const char *name);
 
 // ast.c
 int match_type(AST *ast, int kind);

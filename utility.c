@@ -174,6 +174,7 @@ int alignment_of(Type *type)
             return 8;
         case TY_ARY:
             return alignment_of(type->ary_of);
+        case TY_UNION:
         case TY_STRUCT: {
             int alignment = 0;
             for (int i = 0; i < vector_size(type->members); i++) {

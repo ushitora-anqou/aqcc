@@ -176,6 +176,7 @@ int is_complete_type(Type *type)
             return is_complete_type(type->ary_of);
 
         case TY_STRUCT:
+        case TY_UNION:
             return type->members != NULL;
 
         case TY_TYPEDEF:
@@ -192,7 +193,8 @@ Type *lookup_member_type(Vector *members, char *member)
     int size = vector_size(members);
     for (int i = 0; i < size; i++) {
         StructMember *sm = (StructMember *)vector_get(members, i);
-        if (sm->type->kind == TY_STRUCT && sm->name == NULL) {
+        if ((sm->type->kind == TY_STRUCT || sm->type->kind == TY_UNION) &&
+            sm->name == NULL) {
             // nested anonymous struct with no varname.
             // its members can be accessed like parent struct's members.
             Type *type = lookup_member_type(sm->type->members, member);
@@ -230,26 +232,30 @@ Type *analyze_type(Env *env, Type *type)
             type = new_array_type(type->ary_of, type->len);
             break;
 
+        case TY_UNION:
         case TY_STRUCT: {
             if (type->members != NULL) break;
 
             if (type->decls == NULL) {
-                Type *ntype = lookup_struct_type(env, type->stname);
+                Type *ntype = lookup_struct_or_union_type(env, type->stname);
+                if (ntype != NULL && type->kind != ntype->kind)
+                    error("struct/union specifier is wrong.");
                 type = ntype ? ntype : type;
                 break;
             }
 
             type->members = new_vector();
 
-            // make struct members.
+            // make struct/union members.
             int size = vector_size(type->decls);
             for (int i = 0; i < size; i++) {
                 // TODO: duplicate name
                 AST *decl = (AST *)vector_get(type->decls, i);
                 if (decl->kind != AST_STRUCT_VAR_DECL)
-                    error("struct should have only var decls");
+                    error("struct/union should have only var decls");
                 decl->type = analyze_type(env, decl->type);
-                if (decl->varname == NULL && (decl->type->kind != TY_STRUCT ||
+                if (decl->varname == NULL && ((decl->type->kind != TY_STRUCT &&
+                                               decl->type->kind != TY_UNION) ||
                                               decl->type->stname != NULL))
                     continue;
 
@@ -259,19 +265,32 @@ Type *analyze_type(Env *env, Type *type)
                 vector_push_back(type->members, member);
             }
 
-            // calc offset
-            size = vector_size(type->members);
-            int offset = 0;
-            for (int i = 0; i < size; i++) {
-                StructMember *member =
-                    (StructMember *)vector_get(type->members, i);
-                offset = roundup(offset, alignment_of(member->type));
-                member->offset = offset;
-                offset += member->type->nbytes;
+            if (type->kind == TY_STRUCT) {
+                // calc offset
+                size = vector_size(type->members);
+                int offset = 0;
+                for (int i = 0; i < size; i++) {
+                    StructMember *member =
+                        (StructMember *)vector_get(type->members, i);
+                    offset = roundup(offset, alignment_of(member->type));
+                    member->offset = offset;
+                    offset += member->type->nbytes;
+                }
+                type->nbytes = roundup(offset, alignment_of(type));
             }
-            type->nbytes = roundup(offset, alignment_of(type));
+            else {  // if union
+                // offset is always zero.
+                int max_nbytes = 0;
+                for (int i = 0; i < vector_size(type->members); i++) {
+                    StructMember *member =
+                        (StructMember *)vector_get(type->members, i);
+                    member->offset = 0;
+                    max_nbytes = max(max_nbytes, member->type->nbytes);
+                }
+                type->nbytes = roundup(max_nbytes, alignment_of(type));
+            }
 
-            if (type->stname) add_struct_type(env, type);
+            if (type->stname) add_struct_or_union_type(env, type);
         } break;
     }
 
@@ -667,8 +686,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 !is_last_expr_in_list_lvalue(ast->stsrc))
                 error("lhs of dot should be lvalue");
             ast->stsrc->type = analyze_type(env, ast->stsrc->type);
-            if (ast->stsrc->type->kind != TY_STRUCT)
-                error("only struct can have members");
+            if (ast->stsrc->type->kind != TY_STRUCT &&
+                ast->stsrc->type->kind != TY_UNION)
+                error("only struct/union can have members");
             if (!is_complete_type(ast->stsrc->type))
                 error("can't access imcomplete typed struct members");
             Type *type =

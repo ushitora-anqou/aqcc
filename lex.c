@@ -108,6 +108,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "typedef", (void *)kTYPEDEF);
         map_insert(str2keyword, "do", (void *)kDO);
         map_insert(str2keyword, "void", (void *)kVOID);
+        map_insert(str2keyword, "union", (void *)kUNION);
     }
 
     char *str;

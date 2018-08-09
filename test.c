@@ -1739,10 +1739,55 @@ void test334(void)
 
 Number test335detail(Number n) { return n; }
 
-void test335(void)
+void test335(void) { EXPECT_INT(test335detail(5), 5); }
+
+void test336()
 {
-    EXPECT_INT(test335detail(5), 5);
-    EXPECT_INT(test335detail(5) == 5, 1);
+    union test336union {
+        int a;
+        char b;
+        int *p;
+    } u;
+
+    EXPECT_INT(sizeof(union test336union), 8);
+
+    u.a = 4;
+    EXPECT_INT(u.a, 4);
+    EXPECT_INT(u.b, 4);
+    EXPECT_INT(u.p, 4);
+
+    u.a = 67305985;  // 0x04030201
+    EXPECT_INT(u.a, 67305985);
+    EXPECT_INT(u.b, 1);
+
+    union test336union2 {
+        int a;
+
+        struct {
+            char b0, b1, b2, b3;
+        };
+    } u2;
+    u2.a = 67305985;
+
+    EXPECT_INT(u2.b0, 1);
+    EXPECT_INT(u2.b1, 2);
+    EXPECT_INT(u2.b2, 3);
+    EXPECT_INT(u2.b3, 4);
+
+    struct test336union3 {
+        int a;
+
+        union {
+            char b0, b1, b2, b3;
+        };
+    } u3;
+    u3.a = 67305985;
+    u3.b0 = 1;
+
+    EXPECT_INT(u3.b0, 1);
+    EXPECT_INT(u3.b1, 1);
+    EXPECT_INT(u3.b2, 1);
+    EXPECT_INT(u3.b3, 1);
 }
 
 int main()
@@ -2076,4 +2121,5 @@ int main()
     test333();
     test334();
     test335();
+    test336();
 }
