@@ -106,20 +106,20 @@ void restore_token_seq_saved(TokenSeqSaved *saved)
 // analyzer won't use this data.
 Map *typedef_table;
 
-void init_typedef_table(void) { typedef_table = new_map(); }
+void init_typedef_table() { typedef_table = new_map(); }
 
 void add_typedef_name(char *name)
 {
     map_insert(typedef_table, name, (void *)1);
 }
 
-int match_typedef_name(void)
+int match_typedef_name()
 {
     if (!match_token(tIDENT)) return 0;
     return map_lookup(typedef_table, peek_token()->sval) != NULL;
 }
 
-Type *parse_typedef_name(void)
+Type *parse_typedef_name()
 {
     if (!match_typedef_name())
         error_unexpected_token_str("typedef name", peek_token());
@@ -299,7 +299,7 @@ AST *parse_unary_expr()
     return parse_postfix_expr();
 }
 
-int match_cast_expr(void)
+int match_cast_expr()
 {
     SAVE_TOKENSEQ;
     if (!pop_token_if(tLPAREN)) return 0;
@@ -311,7 +311,7 @@ int match_cast_expr(void)
     return ret;
 }
 
-AST *parse_cast_expr(void)
+AST *parse_cast_expr()
 {
     if (!match_cast_expr()) return parse_unary_expr();
     expect_token(tLPAREN);
@@ -701,9 +701,9 @@ AST *parse_iteration_stmt()
     return ast;
 }
 
-int match_type_name(void) { return match_type_specifier(); }
+int match_type_name() { return match_type_specifier(); }
 
-Type *parse_type_name(void)
+Type *parse_type_name()
 {
     Type *type = parse_type_specifier();
 
