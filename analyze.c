@@ -570,6 +570,11 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast = analyze_ast_detail(env, ast);
         } break;
 
+        case AST_DOWHILE: {
+            ast->cond = convert_expr(analyze_ast_detail(env, ast->cond));
+            ast->then = analyze_ast_detail(env, ast->then);
+        } break;
+
         case AST_FOR: {
             Env *nenv = new_env(env);
             ast->initer = convert_expr(analyze_ast_detail(nenv, ast->initer));

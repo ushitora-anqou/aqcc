@@ -102,6 +102,7 @@ enum {
     kGOTO,
     kSTRUCT,
     kTYPEDEF,
+    kDO,
 };
 
 typedef struct {
@@ -238,6 +239,7 @@ enum {
     AST_CASE,
     AST_DEFAULT,
     AST_WHILE,
+    AST_DOWHILE,
     AST_BREAK,
     AST_CONTINUE,
     AST_FOR,

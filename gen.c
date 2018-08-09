@@ -522,6 +522,26 @@ void generate_code_detail(AST *ast)
             appcode("ret");
             break;
 
+        case AST_DOWHILE: {
+            SAVE_BREAK_CXT;
+            SAVE_CONTINUE_CXT;
+            env->break_label = make_label_string();
+            env->continue_label = make_label_string();
+            char *start_label = make_label_string();
+
+            appcode("%s:", start_label);
+            generate_code_detail(ast->then);
+            appcode("%s:", env->continue_label);
+            generate_code_detail(ast->cond);
+            appcode("pop #rax");
+            appcode("cmp $0, #eax");
+            appcode("jne %s", start_label);
+            appcode("%s:", env->break_label);
+
+            RESTORE_BREAK_CXT;
+            RESTORE_CONTINUE_CXT;
+        } break;
+
         case AST_FOR: {
             SAVE_BREAK_CXT;
             SAVE_CONTINUE_CXT;
@@ -531,7 +551,7 @@ void generate_code_detail(AST *ast)
 
             if (ast->initer != NULL) {
                 generate_code_detail(ast->initer);
-                if (ast->type != NULL)  // if expr
+                if (ast->type != NULL)  // if ast is expr
                     appcode("pop #rax");
             }
             appcode("%s:", start_label);

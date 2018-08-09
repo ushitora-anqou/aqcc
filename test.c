@@ -1619,6 +1619,50 @@ int test330()
     EXPECT_INT(sizeof(test330st12), 312);
 }
 
+int test331()
+{
+    int i = 0;
+    do {
+        i++;
+    } while (i < 5);
+    EXPECT_INT(i, 5);
+
+    i = 0;
+    do {
+        i++;
+    } while (i < 0);
+    EXPECT_INT(i, 1);
+
+    i = 0;
+    do {
+        i++;
+        break;
+    } while (1);
+    EXPECT_INT(i, 1);
+
+    i = 0;
+    do {
+        i++;
+        if (i <= 5) continue;
+        break;
+    } while (1);
+    EXPECT_INT(i, 6);
+
+    int sum = 0;
+    i = 0;
+    do {
+        for (int i = 0; i < 5; i++) {
+            sum++;
+            if (sum >= 3) break;
+        }
+        if (sum == 4) continue;
+        i++;
+        if (sum == 5) break;
+    } while (1);
+    EXPECT_INT(sum, 5);
+    EXPECT_INT(i, 2);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -1945,4 +1989,5 @@ int main()
     test328();
     test329();
     test330();
+    test331();
 }

@@ -616,6 +616,19 @@ AST *parse_iteration_stmt()
             ast = new_while_stmt(cond, body);
         } break;
 
+        case kDO: {
+            AST *body = parse_stmt();
+            expect_token(kWHILE);
+            expect_token(tLPAREN);
+            AST *cond = parse_expr();
+            expect_token(tRPAREN);
+            expect_token(tSEMICOLON);
+
+            ast = new_ast(AST_DOWHILE);
+            ast->cond = cond;
+            ast->then = body;
+        } break;
+
         case kFOR: {
             AST *initer, *cond, *iterer, *body;
 
@@ -1028,6 +1041,7 @@ AST *parse_stmt()
 
         case kWHILE:
         case kFOR:
+        case kDO:
             return parse_iteration_stmt();
 
         case kCASE:

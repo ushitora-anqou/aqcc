@@ -106,6 +106,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "goto", (void *)kGOTO);
         map_insert(str2keyword, "struct", (void *)kSTRUCT);
         map_insert(str2keyword, "typedef", (void *)kTYPEDEF);
+        map_insert(str2keyword, "do", (void *)kDO);
     }
 
     char *str;
