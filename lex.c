@@ -111,6 +111,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "union", (void *)kUNION);
         map_insert(str2keyword, "const", (void *)kCONST);
         map_insert(str2keyword, "enum", (void *)kENUM);
+        map_insert(str2keyword, "_Noreturn", (void *)kNORETURN);
     }
 
     char *str;
@@ -185,6 +186,8 @@ Token *read_next_token()
             Token *token = read_next_ident_token();
             // TODO: for now, const is the same as comments.
             if (token->kind == kCONST) continue;
+            // TODO: for now, _Noreturn is the same as comments.
+            if (token->kind == kNORETURN) continue;
             return token;
         }
 

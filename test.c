@@ -1866,6 +1866,9 @@ int test340detail(int a, ...) { return a; }
 
 void test340() { EXPECT_INT(test340detail(1, 2, 3), 1); }
 
+void exit(int status);
+_Noreturn int reallyexit() { exit(0); }
+
 int main()
 {
     EXPECT_INT(2, 2);

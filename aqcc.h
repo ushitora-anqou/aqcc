@@ -107,6 +107,7 @@ enum {
     kVOID,
     kCONST,
     kENUM,
+    kNORETURN,
 };
 
 typedef struct {
