@@ -1804,6 +1804,18 @@ void test337()
     EXPECT_INT(p.bar, 43);
 }
 
+void test338()
+{
+    const int a = 10;
+    EXPECT_INT(a, 10);
+    const int *p = &a;
+    EXPECT_INT(*p, 10);
+    int *const q = &a;
+    EXPECT_INT(*q, 10);
+    const int *const r = &a;
+    EXPECT_INT(*r, 10);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);

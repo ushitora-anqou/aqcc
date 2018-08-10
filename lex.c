@@ -109,6 +109,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "do", (void *)kDO);
         map_insert(str2keyword, "void", (void *)kVOID);
         map_insert(str2keyword, "union", (void *)kUNION);
+        map_insert(str2keyword, "const", (void *)kCONST);
     }
 
     char *str;
@@ -180,7 +181,10 @@ Token *read_next_token()
 
         if (isalpha(ch) || ch == '_') {
             ungetch();
-            return read_next_ident_token();
+            Token *token = read_next_ident_token();
+            // TODO: for now, const is the same as comments.
+            if (token->kind == kCONST) continue;
+            return token;
         }
 
         switch (ch) {
