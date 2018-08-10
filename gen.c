@@ -493,6 +493,7 @@ void generate_code_detail(AST *ast)
             }
 
             // generate code
+            appcode(".global %s", ast->fname);
             appcode("%s:", ast->fname);
             appcode("push #rbp");
             appcode("mov #rsp, #rbp");
@@ -676,7 +677,6 @@ Vector *generate_code(Vector *asts)
 {
     init_code_env();
 
-    appcode(".global main");
     appcode(".text");
 
     for (int i = 0; i < vector_size(asts); i++)
