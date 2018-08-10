@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "aqcc.h"
 
 struct Vector {
