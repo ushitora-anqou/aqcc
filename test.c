@@ -37,13 +37,13 @@ enum sugoienum {
 int printf(char *str, int a, int b, int c);
 
 #define EXPECT_INT(got, expect)                                          \
-    {                                                                    \
+    do {                                                                 \
         int expect_int = (expect), got_int = (got);                      \
         int wrong_int = expect_int + 1;                                  \
         if (got_int != expect_int || wrong_int == got_int)               \
             printf("[ERROR] %d:%s: expect %d, got %d\n", __LINE__, #got, \
                    expect_int, got_int);                                 \
-    }
+    } while (0)
 
 void test097()
 {
