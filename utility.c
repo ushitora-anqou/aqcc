@@ -192,4 +192,4 @@ int min(int a, int b) { return a < b ? a : b; }
 
 int max(int a, int b) { return a < b ? b : a; }
 
-int roundup(int n, int b) { return (int)(ceil(n / (double)b)) * b; }
+int roundup(int n, int b) { return (n + b - 1) & ~(b - 1); }
