@@ -105,6 +105,7 @@ enum {
     kDO,
     kVOID,
     kCONST,
+    kENUM,
 };
 
 typedef struct {
@@ -136,6 +137,7 @@ struct Env {
     Map *symbols;
     Map *types;
     Vector *scoped_vars;
+    Map *enum_values;
 };
 
 typedef struct AST AST;
@@ -149,6 +151,7 @@ enum {
     TY_UNION,
     TY_TYPEDEF,
     TY_VOID,
+    TY_ENUM,
 };
 
 typedef struct Type Type;
@@ -171,6 +174,11 @@ struct Type {
         };
 
         char *typedef_name;
+
+        struct {
+            char *enname;
+            Vector *enum_list;
+        };
     };
 };
 
@@ -230,6 +238,8 @@ enum {
     AST_LVAR_DECL_INIT,
     AST_GVAR_DECL_INIT,
     AST_STRUCT_VAR_DECL,
+    AST_ENUM_VAR_DECL,
+    AST_ENUM_VAR_DECL_INIT,
     AST_FUNCCALL,
     AST_FUNCDEF,
     AST_FUNC_DECL,
@@ -373,6 +383,7 @@ Env *new_env(Env *parent);
 Type *new_struct_or_union_type(int kind, char *stname, Vector *members);
 Type *type_unknown();
 Type *new_typedef_type(char *typedef_name);
+Type *new_enum_type(char *name, Vector *list);
 
 // env.c
 AST *add_var(Env *env, AST *ast);
@@ -381,8 +392,10 @@ AST *add_func(Env *env, const char *name, AST *ast);
 AST *lookup_func(Env *env, const char *name);
 Type *add_type(Env *env, Type *type, char *name);
 Type *lookup_type(Env *env, const char *name);
-Type *add_struct_or_union_type(Env *env, Type *type);
-Type *lookup_struct_or_union_type(Env *env, const char *name);
+Type *add_struct_or_union_or_enum_type(Env *env, Type *type);
+Type *lookup_struct_or_union_or_enum_type(Env *env, const char *name);
+int add_enum_value(Env *env, char *name, int ival);
+int *lookup_enum_value(Env *env, char *name);
 
 // ast.c
 int match_type(AST *ast, int kind);

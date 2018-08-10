@@ -126,11 +126,22 @@ AST *new_var_decl_ast(int kind, Type *type, char *varname)
 
 AST *new_var_decl_init_ast(AST *var_decl, AST *initer)
 {
-    if (var_decl->kind != AST_LVAR_DECL && var_decl->kind != AST_GVAR_DECL)
-        error("only local/global variable can have initializer.");
+    int kind = -1;
+    switch (var_decl->kind) {
+        case AST_LVAR_DECL:
+            kind = AST_LVAR_DECL_INIT;
+            break;
+        case AST_GVAR_DECL:
+            kind = AST_GVAR_DECL_INIT;
+            break;
+        case AST_ENUM_VAR_DECL:
+            kind = AST_ENUM_VAR_DECL_INIT;
+            break;
+        default:
+            error("only local/global variable can have initializer.");
+    }
 
-    AST *ast = new_ast(var_decl->kind == AST_LVAR_DECL ? AST_LVAR_DECL_INIT
-                                                       : AST_GVAR_DECL_INIT);
+    AST *ast = new_ast(kind);
     ast->lhs = var_decl;
     ast->rhs =
         new_binop_ast(AST_ASSIGN, new_var_ast(var_decl->varname), initer);

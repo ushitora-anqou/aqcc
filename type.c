@@ -73,3 +73,11 @@ Type *new_typedef_type(char *typedef_name)
     this->typedef_name = typedef_name;
     return this;
 }
+
+Type *new_enum_type(char *name, Vector *list)
+{
+    Type *this = new_type(TY_ENUM, -1);
+    this->enname = name;
+    this->enum_list = list;
+    return this;
+}

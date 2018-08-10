@@ -25,6 +25,15 @@ union piyo {
     int bar;
 };
 
+enum sugoienum {
+    SE_A,
+    SE_B,
+    SE_C,
+    SE_D = 0,
+    SE_E,
+    SE_F,
+};
+
 int printf(char *str, int a, int b, int c);
 
 #define EXPECT_INT(got, expect)                                          \
@@ -1816,6 +1825,43 @@ void test338()
     EXPECT_INT(*r, 10);
 }
 
+void test339()
+{
+    enum ENUM { A, B, C, D, E };
+    EXPECT_INT(A, 0);
+    EXPECT_INT(B, 1);
+    EXPECT_INT(C, 2);
+    EXPECT_INT(D, 3);
+    EXPECT_INT(E, 4);
+
+    enum ENUM2 { A2, B2 = 10, C2, D2 = 100, E2 };
+    EXPECT_INT(A2, 0);
+    EXPECT_INT(B2, 10);
+    EXPECT_INT(C2, 11);
+    EXPECT_INT(D2, 100);
+    EXPECT_INT(E2, 101);
+
+    EXPECT_INT(B + D2, 101);
+    EXPECT_INT(C - E2, -99);
+
+    EXPECT_INT(SE_A, 0);
+    EXPECT_INT(SE_B, 1);
+    EXPECT_INT(SE_C, 2);
+    EXPECT_INT(SE_D, 0);
+    EXPECT_INT(SE_E, 1);
+    EXPECT_INT(SE_F, 2);
+
+    enum ENUM a = B;
+    EXPECT_INT(a, B);
+    typedef enum ENUM typedefedenum;
+    typedefedenum ta = C;
+    EXPECT_INT(ta, C);
+    enum ENUM *pa = &a;
+    EXPECT_INT(*pa, B);
+    enum ENUM3 *pb = 0;
+    EXPECT_INT(sizeof(pb), 8);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2150,4 +2196,5 @@ int main()
     test336();
     test337();
     test338();
+    test339();
 }

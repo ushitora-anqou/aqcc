@@ -179,6 +179,7 @@ int is_complete_type(Type *type)
         case TY_UNION:
             return type->members != NULL;
 
+        case TY_ENUM:
         case TY_TYPEDEF:
         case TY_VOID:
             return 0;
@@ -234,10 +235,11 @@ Type *analyze_type(Env *env, Type *type)
 
         case TY_UNION:
         case TY_STRUCT: {
-            if (type->members != NULL) break;
+            if (type->members != NULL) break;  // already analyzed
 
-            if (type->decls == NULL) {
-                Type *ntype = lookup_struct_or_union_type(env, type->stname);
+            if (type->decls == NULL) {  // only declaration e.g. struct A;
+                Type *ntype =
+                    lookup_struct_or_union_or_enum_type(env, type->stname);
                 if (ntype != NULL && type->kind != ntype->kind)
                     error("struct/union specifier is wrong.");
                 type = ntype ? ntype : type;
@@ -290,7 +292,44 @@ Type *analyze_type(Env *env, Type *type)
                 type->nbytes = roundup(max_nbytes, alignment_of(type));
             }
 
-            if (type->stname) add_struct_or_union_type(env, type);
+            if (type->stname) add_struct_or_union_or_enum_type(env, type);
+        } break;
+
+        case TY_ENUM: {
+            if (type->enum_list == NULL) {  // only declaration e.g. enum A;
+                Type *ntype =
+                    lookup_struct_or_union_or_enum_type(env, type->enname);
+                if (ntype == NULL) break;
+                if (ntype->kind != TY_ENUM) error("enum specifier is wrong.");
+                type = type_int();  // TODO: assume int
+                break;
+            }
+
+            for (int i = 0, cnt = 0; i < vector_size(type->enum_list);
+                 i++, cnt++) {
+                AST *ast = (AST *)vector_get(type->enum_list, i);
+
+                switch (ast->kind) {
+                    case AST_ENUM_VAR_DECL:
+                        add_enum_value(env, ast->varname, cnt);
+                        break;
+
+                    case AST_ENUM_VAR_DECL_INIT:
+                        // TODO: constant expr is not only int literal
+                        if (ast->rhs->rhs->kind != AST_INT)
+                            error(
+                                "constant expression is needed for enum "
+                                "initializer");
+                        add_enum_value(env, ast->lhs->varname,
+                                       cnt = ast->rhs->rhs->ival);
+                        break;
+
+                    default:
+                        assert(0);
+                }
+            }
+
+            if (type->enname) add_struct_or_union_or_enum_type(env, type);
         } break;
     }
 
@@ -435,8 +474,13 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             char *varname = ast->varname;
 
             ast = lookup_var(env, varname);
-            if (!ast) error(format("not declared variable: '%s'", varname));
-            assert(ast->kind == AST_LVAR || ast->kind == AST_GVAR);
+            if (!ast) {
+                // maybe enum
+                int *ival = lookup_enum_value(env, varname);
+                if (!ival)
+                    error(format("not declared variable: '%s'", varname));
+                ast = analyze_ast_detail(env, new_int_ast(*ival));
+            }
         } break;
 
         case AST_LVAR_DECL:

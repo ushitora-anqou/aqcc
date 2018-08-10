@@ -13,6 +13,7 @@ AST *parse_compound_stmt();
 int match_declaration();
 AST *parse_declaration(int decl_ast_kind);
 AST *parse_cast_expr(void);
+AST *parse_constant_expr(void);
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
@@ -848,6 +849,38 @@ Type *parse_struct_or_union_specifier()
     return type;
 }
 
+Vector *parse_enumerator_list()
+{
+    Vector *enum_list = new_vector();
+
+    while (match_token(tIDENT)) {
+        AST *var =
+            new_var_decl_ast(AST_ENUM_VAR_DECL, type_int(), pop_token()->sval);
+        if (pop_token_if(tEQ))
+            var = new_var_decl_init_ast(var, parse_constant_expr());
+        vector_push_back(enum_list, var);
+        pop_token_if(tCOMMA);
+    }
+
+    return enum_list;
+}
+
+int match_enum_specifier() { return peek_token()->kind == kENUM; }
+
+Type *parse_enum_specifier()
+{
+    expect_token(kENUM);
+    char *ident = NULL;
+    if (match_token(tIDENT)) ident = pop_token()->sval;
+    if (ident != NULL && !match_token(tLBRACE))
+        return new_enum_type(ident, NULL);
+    expect_token(tLBRACE);
+    Vector *enum_list = parse_enumerator_list();
+    pop_token_if(tCOMMA);
+    expect_token(tRBRACE);
+    return new_enum_type(ident, enum_list);
+}
+
 int match_type_specifier()
 {
     Token *token = peek_token();
@@ -856,6 +889,7 @@ int match_type_specifier()
         return 1;
     if (match_struct_or_union_specifier()) return 1;
     if (match_typedef_name()) return 1;
+    if (match_enum_specifier()) return 1;
     return 0;
 }
 
@@ -867,6 +901,7 @@ Type *parse_type_specifier()
     if (match_struct_or_union_specifier())
         return parse_struct_or_union_specifier();
     if (match_typedef_name()) return parse_typedef_name();
+    if (match_enum_specifier()) return parse_enum_specifier();
 
     error_unexpected_token_str("type specifier", peek_token());
 }

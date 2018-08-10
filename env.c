@@ -9,6 +9,7 @@ Env *new_env(Env *parent)
     this->symbols = new_map();
     this->scoped_vars = parent == NULL ? new_vector() : parent->scoped_vars;
     this->types = new_map();
+    this->enum_values = new_map();
     return this;
 }
 
@@ -100,15 +101,34 @@ Type *lookup_type(Env *env, const char *name)
     return (Type *)kv_value(kv);
 }
 
-Type *add_struct_or_union_type(Env *env, Type *type)
+Type *add_struct_or_union_or_enum_type(Env *env, Type *type)
 {
-    assert(type->kind == TY_STRUCT || type->kind == TY_UNION);
+    assert(type->kind == TY_STRUCT || type->kind == TY_UNION ||
+           type->kind == TY_ENUM);
     return add_type(env, type, format("struct/union %s", type->stname));
 }
 
-Type *lookup_struct_or_union_type(Env *env, const char *name)
+Type *lookup_struct_or_union_or_enum_type(Env *env, const char *name)
 {
     Type *type = lookup_type(env, format("struct/union %s", name));
-    assert(type == NULL || type->kind == TY_STRUCT || type->kind == TY_UNION);
+    assert(type == NULL || type->kind == TY_STRUCT || type->kind == TY_UNION ||
+           type->kind == TY_ENUM);
     return type;
+}
+
+int add_enum_value(Env *env, char *name, int ival)
+{
+    if (lookup_enum_value(env, name)) error("duplicate enum name: '%s'", name);
+    map_insert(env->enum_values, name, new_int(ival));
+    return ival;
+}
+
+int *lookup_enum_value(Env *env, char *name)
+{
+    KeyValue *kv = map_lookup(env->enum_values, name);
+    if (kv == NULL) {
+        if (env->parent == NULL) return NULL;
+        return lookup_enum_value(env->parent, name);
+    }
+    return kv_value(kv);
 }

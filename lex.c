@@ -110,6 +110,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "void", (void *)kVOID);
         map_insert(str2keyword, "union", (void *)kUNION);
         map_insert(str2keyword, "const", (void *)kCONST);
+        map_insert(str2keyword, "enum", (void *)kENUM);
     }
 
     char *str;
