@@ -18,7 +18,7 @@ AST *add_symbol(Env *env, const char *name, AST *ast)
     KeyValue *kv;
 
     kv = map_lookup(env->symbols, name);
-    if (kv != NULL) error("same symbol already exists.");
+    if (kv != NULL) error("same symbol already exists: '%s'", name);
     map_insert(env->symbols, name, ast);
     return ast;
 }
@@ -86,7 +86,7 @@ AST *lookup_func(Env *env, const char *name)
 Type *add_type(Env *env, Type *type, char *name)
 {
     KeyValue *kv = map_lookup(env->types, name);
-    if (kv != NULL) error("same type already exists.");
+    if (kv != NULL) error("same type already exists: '%s'", name);
     map_insert(env->types, name, type);
     return type;
 }
