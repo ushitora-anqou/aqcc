@@ -352,7 +352,6 @@ void *safe_malloc(int size);
 void *safe_realloc(void *ptr, int size);
 char *new_str(const char *src);
 int *new_int(int src);
-int max(int a, int b);
 char *format(const char *src, ...);
 char *vformat(const char *src, va_list ap);
 int unescape_char(int src);
