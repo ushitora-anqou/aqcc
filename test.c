@@ -34,7 +34,7 @@ enum sugoienum {
     SE_F,
 };
 
-int printf(char *str, int a, int b, int c);
+int printf(char *str, ...);
 
 #define EXPECT_INT(got, expect)                                          \
     do {                                                                 \
@@ -1862,6 +1862,10 @@ void test339()
     EXPECT_INT(sizeof(pb), 8);
 }
 
+int test340detail(int a, ...) { return a; }
+
+void test340() { EXPECT_INT(test340detail(1, 2, 3), 1); }
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2197,4 +2201,5 @@ int main()
     test337();
     test338();
     test339();
+    test340();
 }

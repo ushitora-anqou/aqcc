@@ -589,6 +589,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (ast->params) {
                 for (i = vector_size(ast->params) - 1; i >= 0; i--) {
                     AST *param = (AST *)vector_get(ast->params, i);
+                    if (param == NULL) {
+                        assert(i == vector_size(ast->params) - 1);
+                        continue;
+                    }
                     param->type = analyze_type(env, param->type);
                     vector_set(ast->params, i, param);
                     add_var(ast->env, param);

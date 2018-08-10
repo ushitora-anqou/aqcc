@@ -85,6 +85,7 @@ enum {
     tRBRACKET,
     tINC,
     tDEC,
+    tDOTS,
     tEOF,
     kIF,
     kELSE,

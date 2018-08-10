@@ -729,6 +729,7 @@ Vector *parse_parameter_type_list()
     }
 
     while (1) {
+        if (pop_token_if(tDOTS)) break;
         Type *type = parse_declaration_specifiers();
         AST *ast = parse_declarator(type);
         vector_push_back(

@@ -314,7 +314,14 @@ Token *read_next_token()
                 return new_token(tCOMMA);
 
             case '.':
-                return new_token(tDOT);
+                ch = getch();
+                if (ch != '.') {
+                    ungetch();
+                    return new_token(tDOT);
+                }
+                if (getch() != '.')
+                    error(":%d:%d: unexpected dot", source.line, source.column);
+                return new_token(tDOTS);  // ...
 
             case '{':
                 return new_token(tLBRACE);
