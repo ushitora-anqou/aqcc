@@ -27,7 +27,7 @@ void warn(const char *msg, ...)
     fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
 }
 
-void *safe_malloc(size_t size)
+void *safe_malloc(int size)
 {
     void *ptr;
 
@@ -36,7 +36,7 @@ void *safe_malloc(size_t size)
     return ptr;
 }
 
-void *safe_realloc(void *ptr, size_t size)
+void *safe_realloc(void *ptr, int size)
 {
     ptr = realloc(ptr, size);
     if (ptr == NULL) error("realloc failed.");

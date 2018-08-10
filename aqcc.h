@@ -13,9 +13,9 @@ typedef struct Vector Vector;
 Vector *new_vector();
 Vector *new_vector_from_scalar(void *scalar);
 void vector_push_back(Vector *this, void *item);
-void *vector_get(Vector *this, size_t i);
-size_t vector_size(Vector *this);
-void *vector_set(Vector *this, size_t i, void *item);
+void *vector_get(Vector *this, int i);
+int vector_size(Vector *this);
+void *vector_set(Vector *this, int i, void *item);
 void vector_push_back_vector(Vector *this, Vector *src);
 Vector *clone_vector(Vector *src);
 
@@ -23,7 +23,7 @@ Vector *clone_vector(Vector *src);
 typedef struct KeyValue KeyValue;
 typedef struct Map Map;
 Map *new_map();
-size_t map_size(Map *map);
+int map_size(Map *map);
 KeyValue *map_insert(Map *this, const char *key, void *item);
 KeyValue *map_lookup(Map *this, const char *key);
 const char *kv_key(KeyValue *kv);
@@ -34,7 +34,7 @@ typedef struct StringBuilder StringBuilder;
 StringBuilder *new_string_builder();
 char string_builder_append(StringBuilder *this, char ch);
 char *string_builder_get(StringBuilder *this);
-size_t string_builder_size(StringBuilder *this);
+int string_builder_size(StringBuilder *this);
 
 enum {
     tINT,
@@ -122,11 +122,11 @@ typedef struct {
 
 typedef struct {
     Vector *tokens;
-    size_t idx;
+    int idx;
 } TokenSeq;
 
 typedef struct {
-    size_t idx;
+    int idx;
 } TokenSeqSaved;
 
 typedef struct Env Env;
@@ -336,8 +336,8 @@ struct AST {
 // utility.c
 _Noreturn void error(const char *msg, ...);
 void warn(const char *msg, ...);
-void *safe_malloc(size_t size);
-void *safe_realloc(void *ptr, size_t size);
+void *safe_malloc(int size);
+void *safe_realloc(void *ptr, int size);
 char *new_str(const char *src);
 int *new_int(int src);
 int max(int a, int b);

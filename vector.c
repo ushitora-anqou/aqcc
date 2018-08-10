@@ -2,7 +2,7 @@
 #include "aqcc.h"
 
 struct Vector {
-    size_t size, rsved_size;
+    int size, rsved_size;
     void **data;
 };
 
@@ -24,7 +24,7 @@ Vector *new_vector_from_scalar(void *scalar)
     return this;
 }
 
-size_t vector_size(Vector *this) { return this->size; }
+int vector_size(Vector *this) { return this->size; }
 
 void vector_push_back(Vector *this, void *item)
 {
@@ -37,13 +37,13 @@ void vector_push_back(Vector *this, void *item)
     this->data[this->size++] = item;
 }
 
-void *vector_get(Vector *this, size_t i)
+void *vector_get(Vector *this, int i)
 {
     if (i >= this->size) return NULL;
     return this->data[i];
 }
 
-void *vector_set(Vector *this, size_t i, void *item)
+void *vector_set(Vector *this, int i, void *item)
 {
     assert(this != NULL && i < vector_size(this));
     this->data[i] = item;
@@ -52,7 +52,7 @@ void *vector_set(Vector *this, size_t i, void *item)
 
 void vector_push_back_vector(Vector *this, Vector *src)
 {
-    for (size_t i = 0; i < vector_size(src); i++)
+    for (int i = 0; i < vector_size(src); i++)
         vector_push_back(this, vector_get(src, i));
 }
 

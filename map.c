@@ -20,7 +20,7 @@ Map *new_map()
     return this;
 }
 
-size_t map_size(Map *this) { return vector_size(this->data); }
+int map_size(Map *this) { return vector_size(this->data); }
 
 KeyValue *map_insert(Map *this, const char *key, void *item)
 {
@@ -33,7 +33,7 @@ KeyValue *map_insert(Map *this, const char *key, void *item)
 
 KeyValue *map_lookup(Map *this, const char *key)
 {
-    size_t i;
+    int i;
 
     for (i = 0; i < vector_size(this->data); i++) {
         KeyValue *kv = (KeyValue *)vector_get(this->data, i);
