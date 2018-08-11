@@ -368,7 +368,7 @@ int max(int a, int b);
 int roundup(int n, int b);
 
 // lex.c
-Vector *read_all_tokens(FILE *fh);
+Vector *read_all_tokens(char *src);
 const char *token_kind2str(int kind);
 
 // parse.c

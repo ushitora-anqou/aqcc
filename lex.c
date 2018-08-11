@@ -354,13 +354,9 @@ Token *read_next_token()
     return make_token(tEOF);
 }
 
-Vector *read_all_tokens(FILE *fh)
+Vector *read_all_tokens(char *src)
 {
-    // read the file all
-    StringBuilder *sb = new_string_builder();
-    int ch;
-    while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
-    init_source(string_builder_get(sb));
+    init_source(src);
 
     Vector *tokens = new_vector();
     while (1) {
