@@ -41,6 +41,14 @@ KeyValue *map_lookup(Map *this, const char *key)
     return NULL;
 }
 
-const char *kv_key(KeyValue *kv) { return kv->key; }
+const char *kv_key(KeyValue *kv)
+{
+    if (kv == NULL) return NULL;
+    return kv->key;
+}
 
-void *kv_value(KeyValue *kv) { return kv->value; }
+void *kv_value(KeyValue *kv)
+{
+    if (kv == NULL) return NULL;
+    return kv->value;
+}
