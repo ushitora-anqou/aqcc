@@ -12,6 +12,18 @@ _Noreturn void error(const char *msg, ...)
     exit(EXIT_FAILURE);
 }
 
+_Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
+{
+    error(":%d:%d: unexpected token: expect %s, got %s", got->line, got->column,
+          token_kind2str(expect_kind), token_kind2str(got->kind));
+}
+
+_Noreturn void error_unexpected_token_str(char *expect_str, Token *got)
+{
+    error(":%d:%d: unexpected token: expect %s, got %s", got->line, got->column,
+          expect_str, token_kind2str(got->kind));
+}
+
 void warn(const char *msg, ...)
 {
     va_list args;

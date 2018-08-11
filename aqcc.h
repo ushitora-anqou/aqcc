@@ -350,6 +350,8 @@ struct AST {
 
 // utility.c
 _Noreturn void error(const char *msg, ...);
+_Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
+_Noreturn void error_unexpected_token_str(char *expect_str, Token *got);
 void warn(const char *msg, ...);
 void *safe_malloc(int size);
 void *safe_realloc(void *ptr, int size);
@@ -426,5 +428,22 @@ Vector *get_gvar_list();
 
 // cpp.c
 Vector *preprocess_tokens(Vector *tokens);
+
+// token.c
+Token *new_token(int kind, int line, int column);
+TokenSeq *new_token_seq(Vector *tokens);
+void init_tokenseq(Vector *tokens);
+Token *peek_token();
+Token *pop_token();
+Token *expect_token(int kind);
+int match_token(int kind);
+Token *pop_token_if(int kind);
+int match_token2(int kind0, int kind1);
+TokenSeqSaved *new_token_seq_saved();
+void restore_token_seq_saved(TokenSeqSaved *saved);
+
+#define SAVE_TOKENSEQ \
+    TokenSeqSaved *token_seq_saved__dummy = new_token_seq_saved();
+#define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
 #endif

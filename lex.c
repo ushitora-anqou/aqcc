@@ -23,6 +23,11 @@ void init_source(char *src)
     }
 }
 
+Token *make_token(int kind)
+{
+    return new_token(kind, source.line, source.column);
+}
+
 void ungetch()
 {
     source.src--;
@@ -52,22 +57,13 @@ char getch()
     return *source.src++;
 }
 
-Token *new_token(int kind)
-{
-    Token *token = safe_malloc(sizeof(Token));
-    token->kind = kind;
-    token->line = source.line;
-    token->column = source.column;
-    return token;
-}
-
 Token *read_next_int_token()
 {
     int acc = 0;
 
     while (isdigit(peekch())) acc = 10 * acc + getch() - '0';
 
-    Token *token = new_token(tINT);
+    Token *token = make_token(tINT);
     token->ival = acc;
     return token;
 }
@@ -117,9 +113,9 @@ Token *read_next_ident_token()
     char *str;
     str = string_builder_get(sb);
     KeyValue *kv = map_lookup(str2keyword, str);
-    if (kv) return new_token((int)kv_value(kv));
+    if (kv) return make_token((int)kv_value(kv));
 
-    Token *token = new_token(tIDENT);
+    Token *token = make_token(tIDENT);
     token->sval = str;
     return token;
 }
@@ -149,7 +145,7 @@ Token *read_next_string_literal_token()
 
     Token *token;
 end:
-    token = new_token(tSTRING_LITERAL);
+    token = make_token(tSTRING_LITERAL);
     token->sval = string_builder_get(sb);
     token->ssize = string_builder_size(sb);
     return token;
@@ -164,7 +160,7 @@ Token *read_next_character_constant_token()
     while (getch() != '\'')
         ;
 
-    Token *token = new_token(tINT);
+    Token *token = make_token(tINT);
     token->ival = ch;
     return token;
 }
@@ -201,28 +197,28 @@ Token *read_next_token()
 
             case '+':
                 ch = getch();
-                if (ch == '+') return new_token(tINC);
-                if (ch == '=') return new_token(tPLUSEQ);
+                if (ch == '+') return make_token(tINC);
+                if (ch == '=') return make_token(tPLUSEQ);
                 ungetch();
-                return new_token(tPLUS);
+                return make_token(tPLUS);
 
             case '-':
                 ch = getch();
-                if (ch == '=') return new_token(tMINUSEQ);
-                if (ch == '>') return new_token(tARROW);
-                if (ch == '-') return new_token(tDEC);
+                if (ch == '=') return make_token(tMINUSEQ);
+                if (ch == '>') return make_token(tARROW);
+                if (ch == '-') return make_token(tDEC);
                 ungetch();
-                return new_token(tMINUS);
+                return make_token(tMINUS);
 
             case '*':
                 ch = getch();
-                if (ch == '=') return new_token(tSTAREQ);
+                if (ch == '=') return make_token(tSTAREQ);
                 ungetch();
-                return new_token(tSTAR);
+                return make_token(tSTAR);
 
             case '/':
                 ch = getch();
-                if (ch == '=') return new_token(tSLASHEQ);
+                if (ch == '=') return make_token(tSLASHEQ);
                 if (ch == '*') {  // old comment
                     while (1) {
                         if (getch() != '*') continue;
@@ -237,125 +233,125 @@ Token *read_next_token()
                     continue;
                 }
                 ungetch();
-                return new_token(tSLASH);
+                return make_token(tSLASH);
 
             case '%':
                 ch = getch();
-                if (ch == '=') return new_token(tPERCENTEQ);
+                if (ch == '=') return make_token(tPERCENTEQ);
                 ungetch();
-                return new_token(tPERCENT);
+                return make_token(tPERCENT);
 
             case '(':
-                return new_token(tLPAREN);
+                return make_token(tLPAREN);
 
             case ')':
-                return new_token(tRPAREN);
+                return make_token(tRPAREN);
 
             case '<':
                 ch = getch();
                 switch (ch) {
                     case '<':
                         ch = getch();
-                        if (ch == '=') return new_token(tLSHIFTEQ);
+                        if (ch == '=') return make_token(tLSHIFTEQ);
                         ungetch();
-                        return new_token(tLSHIFT);
+                        return make_token(tLSHIFT);
                     case '=':
-                        return new_token(tLTE);
+                        return make_token(tLTE);
                 }
                 ungetch();
-                return new_token(tLT);
+                return make_token(tLT);
 
             case '>':
                 ch = getch();
                 switch (ch) {
                     case '>':
                         ch = getch();
-                        if (ch == '=') return new_token(tRSHIFTEQ);
+                        if (ch == '=') return make_token(tRSHIFTEQ);
                         ungetch();
-                        return new_token(tRSHIFT);
+                        return make_token(tRSHIFT);
                     case '=':
-                        return new_token(tGTE);
+                        return make_token(tGTE);
                 }
                 ungetch();
-                return new_token(tGT);
+                return make_token(tGT);
 
             case '=':
                 ch = getch();
-                if (ch == '=') return new_token(tEQEQ);
+                if (ch == '=') return make_token(tEQEQ);
                 ungetch();
-                return new_token(tEQ);
+                return make_token(tEQ);
 
             case '!':
                 ch = getch();
-                if (ch == '=') return new_token(tNEQ);
+                if (ch == '=') return make_token(tNEQ);
                 ungetch();
-                return new_token(tEXCL);
+                return make_token(tEXCL);
 
             case '&':
                 ch = getch();
-                if (ch == '&') return new_token(tANDAND);
-                if (ch == '=') return new_token(tANDEQ);
+                if (ch == '&') return make_token(tANDAND);
+                if (ch == '=') return make_token(tANDEQ);
                 ungetch();
-                return new_token(tAND);
+                return make_token(tAND);
 
             case '^':
                 ch = getch();
-                if (ch == '=') return new_token(tHATEQ);
+                if (ch == '=') return make_token(tHATEQ);
                 ungetch();
-                return new_token(tHAT);
+                return make_token(tHAT);
 
             case '|':
                 ch = getch();
-                if (ch == '|') return new_token(tBARBAR);
-                if (ch == '=') return new_token(tBAREQ);
+                if (ch == '|') return make_token(tBARBAR);
+                if (ch == '=') return make_token(tBAREQ);
                 ungetch();
-                return new_token(tBAR);
+                return make_token(tBAR);
 
             case ';':
-                return new_token(tSEMICOLON);
+                return make_token(tSEMICOLON);
 
             case ',':
-                return new_token(tCOMMA);
+                return make_token(tCOMMA);
 
             case '.':
                 ch = getch();
                 if (ch != '.') {
                     ungetch();
-                    return new_token(tDOT);
+                    return make_token(tDOT);
                 }
                 if (getch() != '.')
                     error(":%d:%d: unexpected dot", source.line, source.column);
-                return new_token(tDOTS);  // ...
+                return make_token(tDOTS);  // ...
 
             case '{':
-                return new_token(tLBRACE);
+                return make_token(tLBRACE);
 
             case '}':
-                return new_token(tRBRACE);
+                return make_token(tRBRACE);
 
             case ':':
-                return new_token(tCOLON);
+                return make_token(tCOLON);
 
             case '?':
-                return new_token(tQUESTION);
+                return make_token(tQUESTION);
 
             case '[':
-                return new_token(tLBRACKET);
+                return make_token(tLBRACKET);
 
             case ']':
-                return new_token(tRBRACKET);
+                return make_token(tRBRACKET);
 
             case '#':
-                return new_token(tNUMBER);
+                return make_token(tNUMBER);
 
             case '\n':
-                return new_token(tNEWLINE);
+                return make_token(tNEWLINE);
         }
 
         error(format("%d:%d:unexpected character", source.line, source.column));
     }
 
-    return new_token(tEOF);
+    return make_token(tEOF);
 }
 
 Vector *read_all_tokens(FILE *fh)

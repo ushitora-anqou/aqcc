@@ -1,23 +1,25 @@
 #include "aqcc.h"
 
-void preprocess_tokens_detail(Vector *tokens, int index, Vector *ntokens)
+void preprocess_tokens_detail(Vector *ntokens)
 {
-    assert(
+    // assert(
 }
 
 Vector *preprocess_tokens(Vector *tokens)
 {
-    Vector *ntokens = new_vector();
+    init_tokenseq(tokens);
 
-    for (int i = 0; i < vector_size(tokens); i++) {
-        Token *token = (Token *)vector_get(tokens, i);
+    Vector *ntokens = new_vector();
+    while (!match_token(tEOF)) {
+        Token *token = pop_token();
         if (token->kind == tNUMBER)
-            preprocess_tokens_detail(tokens, i, ntokens);
+            preprocess_tokens_detail(ntokens);
         else if (token->kind == tNEWLINE)
             continue;
         else
             vector_push_back(ntokens, token);
     }
+    vector_push_back(ntokens, expect_token(tEOF));
 
     return ntokens;
 }
