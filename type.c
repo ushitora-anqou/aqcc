@@ -7,6 +7,7 @@ Type *new_type(int kind, int nbytes)
     this = safe_malloc(sizeof(Type));
     this->kind = kind;
     this->nbytes = nbytes;
+    this->is_static = 0;
     return this;
 }
 
@@ -79,5 +80,13 @@ Type *new_enum_type(char *name, Vector *list)
     Type *this = new_type(TY_ENUM, -1);
     this->enname = name;
     this->enum_list = list;
+    return this;
+}
+
+Type *new_static_type(Type *type)
+{
+    Type *this = safe_malloc(sizeof(Type));
+    memcpy(this, type, sizeof(Type));
+    this->is_static = 1;
     return this;
 }

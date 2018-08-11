@@ -110,6 +110,7 @@ enum {
     kCONST,
     kENUM,
     kNORETURN,
+    kSTATIC,
 };
 
 typedef struct {
@@ -160,7 +161,7 @@ enum {
 
 typedef struct Type Type;
 struct Type {
-    int kind, nbytes;
+    int kind, nbytes, is_static;
 
     union {
         Type *ptr_of;
@@ -192,10 +193,7 @@ struct GVar {
     Type *type;
 
     int ival;
-
-    struct {
-        char *sval;
-    };
+    char *sval;
 };
 
 typedef struct {
@@ -390,6 +388,7 @@ Type *new_struct_or_union_type(int kind, char *stname, Vector *members);
 Type *type_unknown();
 Type *new_typedef_type(char *typedef_name);
 Type *new_enum_type(char *name, Vector *list);
+Type *new_static_type(Type *type);
 
 // env.c
 AST *add_var(Env *env, AST *ast);

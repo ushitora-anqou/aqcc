@@ -18,7 +18,7 @@ GVar *new_gvar_from_decl(AST *ast)
     assert(ast->kind == AST_GVAR_DECL);
 
     GVar *this;
-    this = safe_malloc(sizeof(GVar));
+    this = (GVar *)safe_malloc(sizeof(GVar));
     this->name = ast->varname;
     this->type = ast->type;
     this->ival = 0;
@@ -29,10 +29,24 @@ GVar *new_gvar_from_decl(AST *ast)
 GVar *new_gvar_from_string_literal(char *sval, int ssize)
 {
     GVar *this;
-    this = safe_malloc(sizeof(GVar));
+    this = (GVar *)safe_malloc(sizeof(GVar));
     this->name = format(".LC%d", gvar_string_literal_label++);
     this->type = new_array_type(type_char(), ssize);
     this->sval = sval;
+    return this;
+}
+
+GVar *new_gvar_from_static_lvar(AST *lvar)
+{
+    assert(lvar->kind == AST_LVAR && lvar->type->is_static);
+
+    char *gen_varname = make_label_string();
+    lvar->gen_varname = gen_varname;
+
+    GVar *this = (GVar *)safe_malloc(sizeof(GVar));
+    this->name = gen_varname;
+    this->type = lvar->type;
+    this->ival = 0;
     return this;
 }
 
@@ -212,6 +226,8 @@ Type *analyze_type(Env *env, Type *type)
 {
     assert(type != NULL);
 
+    int org_is_static = type->is_static;
+
     switch (type->kind) {
         case TY_INT:
         case TY_CHAR:
@@ -333,6 +349,7 @@ Type *analyze_type(Env *env, Type *type)
         } break;
     }
 
+    if (org_is_static) type = new_static_type(type);
     return type;
 }
 
@@ -478,7 +495,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
         } break;
 
-        case AST_LVAR_DECL:
+        case AST_LVAR_DECL: {
+            // ast->type means this variable's type and is alraedy
+            // filled when parsing.
             ast->type = analyze_type(env, ast->type);
             if (ast->varname == NULL) {
                 ast = new_ast(AST_NOP);
@@ -486,13 +505,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
             if (!is_complete_type(ast->type))
                 error("incomplete typed variable can't be declared.");
-            // ast->type means this variable's type and is alraedy
-            // filled when parsing.
             assert(ast->type->nbytes > 0);
-            add_var(env, ast);
-            break;
+            AST *var = add_var(env, ast);
+
+            if (ast->type->is_static) add_gvar(new_gvar_from_static_lvar(var));
+        } break;
 
         case AST_GVAR_DECL:
+            // ast->type means this variable's type and is alraedy
+            // filled when parsing.
             ast->type = analyze_type(env, ast->type);
             if (ast->varname == NULL) {
                 ast = new_ast(AST_NOP);
@@ -513,7 +534,20 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_LVAR_DECL_INIT:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            ast->rhs = analyze_ast_detail(env, ast->rhs);
+            if (ast->lhs->type->is_static) {
+                if (ast->rhs->rhs->kind != AST_INT)
+                    // TODO: constant, not int literal
+                    error(
+                        "static local variable initializer must be constant.");
+                Vector *gvar_list = get_gvar_list();
+                GVar *gvar =
+                    (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);
+                gvar->ival = ast->rhs->rhs->ival;
+                ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
+            }
+            else {
+                ast->rhs = analyze_ast_detail(env, ast->rhs);
+            }
             break;
 
         case AST_GVAR_DECL_INIT: {

@@ -843,12 +843,19 @@ AST *parse_init_declarator_list(int decl_ast_kind, Type *base_type)
     return ast;
 }
 
-int match_declaration_specifiers() { return match_type_specifier(); }
+int match_declaration_specifiers()
+{
+    return match_token(kSTATIC) || match_type_specifier();
+}
 
 Type *parse_declaration_specifiers()
 {
     // TODO: recursive
-    return parse_type_specifier();
+    int is_static = 0;
+    if (pop_token_if(kSTATIC)) is_static = 1;
+    Type *type = parse_type_specifier();
+    if (is_static) type = new_static_type(type);
+    return type;
 }
 
 int match_declaration() { return match_declaration_specifiers(); }
@@ -936,7 +943,7 @@ AST *parse_compound_stmt()
     expect_token(tLBRACE);
     while (!match_token(tRBRACE)) {
         AST *ast;
-        if (match_type_specifier())
+        if (match_declaration())
             ast = parse_declaration(AST_LVAR_DECL);
         else
             ast = parse_stmt();

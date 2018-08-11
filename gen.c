@@ -462,7 +462,10 @@ void generate_code_detail(AST *ast)
             break;
 
         case AST_LVAR:
-            appcode("lea %d(#rbp), #rax", ast->stack_idx);
+            if (ast->type->is_static)
+                appcode("lea %s(#rip), #rax", ast->gen_varname);
+            else
+                appcode("lea %d(#rbp), #rax", ast->stack_idx);
             appcode("push #rax");
             break;
 

@@ -1869,6 +1869,17 @@ void test340() { EXPECT_INT(test340detail(1, 2, 3), 1); }
 void exit(int status);
 _Noreturn int reallyexit() { exit(0); }
 
+void test341(int ival)
+{
+    static int a = 1;
+    a++;
+    EXPECT_INT(a, ival);
+
+    static int *p = 0;
+    p = &a;
+    EXPECT_INT(*p, ival);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2204,5 +2215,7 @@ int main()
     test337();
     test338();
     test339();
+    test341(2);
     test340();
+    test341(3);
 }
