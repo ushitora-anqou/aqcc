@@ -366,6 +366,7 @@ int alignment_of(Type *type);
 int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
+Vector *read_tokens_from_filepath(char *filepath);
 
 // lex.c
 Vector *read_all_tokens(char *src);
@@ -433,6 +434,7 @@ Vector *preprocess_tokens(Vector *tokens);
 Token *new_token(int kind, int line, int column);
 TokenSeq *new_token_seq(Vector *tokens);
 void init_tokenseq(Vector *tokens);
+void insert_tokens(Vector *tokens);
 Token *peek_token();
 Token *pop_token();
 Token *expect_token(int kind);

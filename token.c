@@ -22,6 +22,21 @@ TokenSeq *tokenseq;
 
 void init_tokenseq(Vector *tokens) { tokenseq = new_token_seq(tokens); }
 
+void insert_tokens(Vector *tokens)
+{
+    Vector *tmp = new_vector();
+    for (int i = 0; i < tokenseq->idx; i++)
+        vector_push_back(tmp, vector_get(tokenseq->tokens, i));
+    for (int i = 0; i < vector_size(tokens); i++) {
+        Token *token = vector_get(tokens, i);
+        if (token->kind == tEOF) break;
+        vector_push_back(tmp, token);
+    }
+    for (int i = tokenseq->idx; i < vector_size(tokenseq->tokens); i++)
+        vector_push_back(tmp, vector_get(tokenseq->tokens, i));
+    tokenseq->tokens = tmp;
+}
+
 Token *peek_token()
 {
     Token *token = vector_get(tokenseq->tokens, tokenseq->idx);

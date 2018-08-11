@@ -17,16 +17,63 @@ Vector *lookup_define(char *name)
     return (Vector *)kv_value(map_lookup(define_table, name));
 }
 
-void preprocess_tokens_detail_number(Vector *ntokens)
+void preprocess_tokens_detail_define()
 {
-    char *keyword = expect_token(tIDENT)->sval;
-    // TODO: other preprocess token
-    if (strcmp(keyword, "define") != 0) error("invalid preprocess token");
     char *name = expect_token(tIDENT)->sval;
     Vector *tokens = new_vector();
     while (!match_token(tNEWLINE)) vector_push_back(tokens, pop_token());
     pop_token();
     add_define(name, tokens);
+}
+
+void preprocess_tokens_detail_include()
+{
+    char *filepath = expect_token(tSTRING_LITERAL)->sval;
+    expect_token(tNEWLINE);
+    insert_tokens(read_tokens_from_filepath(filepath));
+}
+
+void preprocess_tokens_detail_ifndef()
+{
+    char *name = expect_token(tIDENT)->sval;
+    expect_token(tNEWLINE);
+    if (!lookup_define(name)) return;
+
+    // search corresponding #endif
+    // TODO: #ifdef, #if
+    int cnt = 1;
+    while (1) {
+        Token *token = pop_token();
+
+        if (token->kind == tEOF)
+            error_unexpected_token_str("#endif corresponding to #ifndef",
+                                       token);
+
+        if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
+            char *ident = token->sval;
+            if (strcmp("ifndef", ident) == 0)
+                cnt++;
+            else if (strcmp("endif", ident) == 0 && --cnt == 0)
+                break;
+        }
+    }
+    expect_token(tNEWLINE);
+}
+
+void preprocess_tokens_detail_number()
+{
+    char *keyword = expect_token(tIDENT)->sval;
+    // TODO: other preprocess token
+    if (strcmp(keyword, "define") == 0)
+        preprocess_tokens_detail_define();
+    else if (strcmp(keyword, "include") == 0)
+        preprocess_tokens_detail_include();
+    else if (strcmp(keyword, "ifndef") == 0)
+        preprocess_tokens_detail_ifndef();
+    else if (strcmp(keyword, "endif") == 0)
+        return;
+    else
+        error("invalid preprocess token");
 }
 
 Vector *preprocess_tokens(Vector *tokens)
@@ -38,16 +85,16 @@ Vector *preprocess_tokens(Vector *tokens)
     while (!match_token(tEOF)) {
         Token *token = pop_token();
         if (token->kind == tNUMBER) {
-            preprocess_tokens_detail_number(ntokens);
+            preprocess_tokens_detail_number();
             continue;
         }
 
         if (token->kind == tNEWLINE) continue;
 
         if (token->kind == tIDENT) {
-            Vector *tokens = lookup_define(token->sval);
-            if (tokens != NULL) {  // found: replace tokens
-                vector_push_back_vector(ntokens, tokens);
+            Vector *deftokens = lookup_define(token->sval);
+            if (deftokens != NULL) {  // found: replace tokens
+                insert_tokens(deftokens);
                 continue;
             }
         }

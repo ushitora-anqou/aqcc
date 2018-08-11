@@ -201,3 +201,33 @@ int min(int a, int b) { return a < b ? a : b; }
 int max(int a, int b) { return a < b ? b : a; }
 
 int roundup(int n, int b) { return (n + b - 1) & ~(b - 1); }
+
+char *read_entire_file(FILE *fh)
+{
+    // read the file all
+    StringBuilder *sb = new_string_builder();
+    int ch;
+    while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
+    return string_builder_get(sb);
+}
+
+void erase_backslash_newline(char *src)
+{
+    char *r = src, *w = src;
+    while (*r != '\0') {
+        if (*r == '\\' && *(r + 1) == '\n')
+            r += 2;
+        else
+            *w++ = *r++;
+    }
+    *w = '\0';
+}
+
+Vector *read_tokens_from_filepath(char *filepath)
+{
+    FILE *fh = fopen(filepath, "r");
+    char *src = read_entire_file(fh);
+    fclose(fh);
+    erase_backslash_newline(src);
+    return read_all_tokens(src);
+}
