@@ -293,7 +293,7 @@ struct AST {
         };
 
         struct {
-            char *varname;
+            char *varname, *gen_varname;
             int stack_idx;
         };
 
@@ -414,6 +414,7 @@ AST *new_ary2ptr_ast(AST *ary);
 AST *ary2ptr(AST *ary);
 AST *char2int(AST *ch);
 AST *new_var_ast(char *varname);
+AST *new_lgvar_ast(int kind, Type *type, char *varname, int stack_idx);
 AST *new_var_decl_ast(int kind, Type *type, char *varname);
 AST *new_var_decl_init_ast(AST *var_decl, AST *initer);
 AST *new_unary_ast(int kind, AST *that);

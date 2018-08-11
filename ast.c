@@ -114,6 +114,18 @@ AST *new_unary_ast(int kind, AST *that)
     return ast;
 }
 
+// variable reference
+AST *new_lgvar_ast(int kind, Type *type, char *varname, int stack_idx)
+{
+    assert(kind == AST_LVAR || kind == AST_GVAR);
+    AST *ast = new_ast(kind);
+    ast->type = type;
+    ast->varname = ast->gen_varname = varname;
+    ast->stack_idx = stack_idx;
+    return ast;
+}
+
+// variable declaration
 AST *new_var_decl_ast(int kind, Type *type, char *varname)
 {
     AST *ast;
@@ -124,6 +136,7 @@ AST *new_var_decl_ast(int kind, Type *type, char *varname)
     return ast;
 }
 
+// variable declaration with initializer
 AST *new_var_decl_init_ast(AST *var_decl, AST *initer)
 {
     int kind = -1;

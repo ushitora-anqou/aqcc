@@ -44,10 +44,8 @@ AST *add_var(Env *env, AST *ast)
     // Create a local/global variable instance.
     // All AST_VAR that point the same variable will be replaced with
     // the pointer to this AST_LVAR/AST_GVAR instance when analyzing.
-    var = new_ast(ast->kind == AST_LVAR_DECL ? AST_LVAR : AST_GVAR);
-    var->type = ast->type;
-    var->varname = ast->varname;
-    var->stack_idx = -1;
+    var = new_lgvar_ast(ast->kind == AST_LVAR_DECL ? AST_LVAR : AST_GVAR,
+                        ast->type, ast->varname, -1);
 
     add_symbol(env, ast->varname, var);
     vector_push_back(env->scoped_vars, var);

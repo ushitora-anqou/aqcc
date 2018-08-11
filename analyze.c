@@ -359,12 +359,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_STRING_LITERAL: {
             GVar *gvar =
                 add_gvar(new_gvar_from_string_literal(ast->sval, ast->ssize));
-
-            AST *ast;
-            ast = new_ast(AST_GVAR);
-            ast->varname = gvar->name;
-            ast->type = gvar->type;
-            return ast;
+            ast = new_lgvar_ast(AST_GVAR, gvar->type, gvar->name, -1);
         } break;
 
         case AST_ADD:

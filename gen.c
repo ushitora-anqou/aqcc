@@ -467,7 +467,7 @@ void generate_code_detail(AST *ast)
             break;
 
         case AST_GVAR:
-            appcode("lea %s(#rip), #rax", ast->varname);
+            appcode("lea %s(#rip), #rax", ast->gen_varname);
             appcode("push #rax");
             break;
 
