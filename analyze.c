@@ -13,7 +13,7 @@ GVar *add_gvar(GVar *gvar)
 
 Vector *get_gvar_list() { return gvar_list; }
 
-GVar *new_gvar_from_decl(AST *ast, int ival)
+GVar *new_gvar_from_decl(AST *ast)
 {
     assert(ast->kind == AST_GVAR_DECL);
 
@@ -21,7 +21,7 @@ GVar *new_gvar_from_decl(AST *ast, int ival)
     this = safe_malloc(sizeof(GVar));
     this->name = ast->varname;
     this->type = ast->type;
-    this->ival = ival;
+    this->ival = 0;
     this->sval = NULL;
     return this;
 }
@@ -502,7 +502,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 error("incomplete typed variable can't be declared.");
             assert(ast->type->nbytes > 0);
             add_var(env, ast);
-            add_gvar(new_gvar_from_decl(ast, 0));
+            add_gvar(new_gvar_from_decl(ast));
             break;
 
         case AST_TYPEDEF_VAR_DECL:
@@ -516,16 +516,17 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->rhs = analyze_ast_detail(env, ast->rhs);
             break;
 
-        case AST_GVAR_DECL_INIT:
-            if (ast->lhs->kind == AST_GVAR_DECL) {
-                if (ast->rhs->rhs->kind != AST_INT)
-                    // TODO: constant, not int literal
-                    error("global variable initializer must be constant.");
-                add_var(env, ast->lhs);
-                add_gvar(new_gvar_from_decl(ast->lhs, ast->rhs->rhs->ival));
-                ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
-            }
-            break;
+        case AST_GVAR_DECL_INIT: {
+            ast->lhs = analyze_ast_detail(env, ast->lhs);
+            if (ast->rhs->rhs->kind != AST_INT)
+                // TODO: constant, not int literal
+                error("global variable initializer must be constant.");
+            Vector *gvar_list = get_gvar_list();
+            GVar *gvar =
+                (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);
+            gvar->ival = ast->rhs->rhs->ival;
+            ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
+        } break;
 
         case AST_DECL_LIST:
             for (int i = 0; i < vector_size(ast->decls); i++) {
