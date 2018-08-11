@@ -86,6 +86,8 @@ enum {
     tINC,
     tDEC,
     tDOTS,
+    tNUMBER,
+    tNEWLINE,
     tEOF,
     kIF,
     kELSE,
@@ -421,5 +423,8 @@ AST *new_int_ast(int ival);
 // analyze.c
 void analyze_ast(Vector *asts);
 Vector *get_gvar_list();
+
+// cpp.c
+Vector *preprocess_tokens(Vector *tokens);
 
 #endif

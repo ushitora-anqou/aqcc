@@ -174,7 +174,8 @@ Token *read_next_token()
     while (peekch() != '\0') {
         char ch = getch();
 
-        if (isspace(ch)) continue;
+        // \n should be a token because \n has some meaning in preprocessing.
+        if (isspace(ch) && ch != '\n') continue;
 
         if (isdigit(ch)) {
             ungetch();
@@ -343,6 +344,12 @@ Token *read_next_token()
 
             case ']':
                 return new_token(tRBRACKET);
+
+            case '#':
+                return new_token(tNUMBER);
+
+            case '\n':
+                return new_token(tNEWLINE);
         }
 
         error(format("%d:%d:unexpected character", source.line, source.column));
