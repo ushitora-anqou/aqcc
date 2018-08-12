@@ -19,7 +19,8 @@ aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c 
 	gcc -c env.c -o _self_env.o
 	gcc -c ast.c -o _self_ast.o
 	gcc -c analyze.c -o _self_analyze.o
-	gcc -c string_builder.c -o _self_string_builder.o
+	./aqcc string_builder.c > _self_string_builder.s
+	gcc -c _self_string_builder.s -o _self_string_builder.o
 	gcc -c cpp.c -o _self_cpp.o
 	gcc -c token.c -o _self_token.o
 	gcc _self_main.o _self_vector.o _self_utility.o _self_map.o _self_lex.o _self_parse.o _self_gen.o _self_type.o _self_env.o _self_ast.o _self_analyze.o _self_string_builder.o _self_cpp.o _self_token.o \
