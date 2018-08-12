@@ -20,7 +20,8 @@ aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c 
 	gcc -c type.c -o _self_type.o
 	./aqcc env.c > _self_env.s
 	gcc -c _self_env.s -o _self_env.o
-	gcc -c ast.c -o _self_ast.o
+	./aqcc ast.c > _self_ast.s
+	gcc -c _self_ast.s -o _self_ast.o
 	gcc -c analyze.c -o _self_analyze.o
 	./aqcc string_builder.c > _self_string_builder.s
 	gcc -c _self_string_builder.s -o _self_string_builder.o
