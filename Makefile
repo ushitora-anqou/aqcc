@@ -9,7 +9,8 @@ test: $(TARGET) testutil.o
 
 aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c
 	gcc -c main.c -o _self_main.o
-	gcc -c vector.c -o _self_vector.o
+	./aqcc vector.c > _self_vector.s
+	gcc -c _self_vector.s -o _self_vector.o
 	gcc -c utility.c -o _self_utility.o
 	gcc -c map.c -o _self_map.o
 	gcc -c lex.c -o _self_lex.o
