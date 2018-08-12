@@ -239,7 +239,7 @@ Type *analyze_type(Env *env, Type *type)
 
         case TY_TYPEDEF:
             // typedef replacement
-            type = lookup_type(env, type->typedef_name);
+            type = analyze_type(env, lookup_type(env, type->typedef_name));
             break;
 
         case TY_ARY:

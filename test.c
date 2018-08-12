@@ -1880,6 +1880,42 @@ void test341(int ival)
     EXPECT_INT(*p, ival);
 }
 
+void test342()
+{
+    typedef struct Tree Tree;
+    struct Tree {
+        Tree *lhs, *rhs;
+        int val;
+    };
+    /*
+           a
+         /   \
+        b     c
+            /   \
+           d     e
+   */
+
+    Tree a, b, c, d, e;
+    a.val = 10;
+    b.val = 11;
+    c.val = 12;
+    d.val = 13;
+    e.val = 14;
+    a.lhs = &b;
+    a.rhs = &c;
+    b.lhs = b.rhs = 0;
+    c.lhs = &d;
+    c.rhs = &e;
+    d.lhs = d.rhs = e.lhs = e.rhs = 0;
+
+    Tree *root = &a;
+    EXPECT_INT(root->val, 10);
+    EXPECT_INT(root->lhs->val, 11);
+    EXPECT_INT(root->rhs->val, 12);
+    EXPECT_INT(root->rhs->lhs->val, 13);
+    EXPECT_INT(root->rhs->rhs->val, 14);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2218,4 +2254,5 @@ int main()
     test341(2);
     test340();
     test341(3);
+    test342();
 }
