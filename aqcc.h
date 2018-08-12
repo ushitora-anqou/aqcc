@@ -3,10 +3,21 @@
 
 //#include <assert.h>
 //#include <ctype.h>
-#include <stdarg.h>
+//#include <stdarg.h>
 //#include <stdio.h>
 //#include <stdlib.h>
 //#include <string.h>
+
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
+
+typedef struct {
+    unsigned int gp_offset;
+    unsigned int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
 
 typedef struct _IO_FILE FILE;
 extern FILE *stdin;  /* Standard input stream.  */
