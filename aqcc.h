@@ -431,6 +431,7 @@ Type *new_typedef_type(char *typedef_name);
 Type *new_enum_type(char *name, Vector *list);
 Type *new_static_type(Type *type);
 Type *new_extern_type(Type *type);
+void move_static_extern_specifier(Type *src, Type *dst);
 
 // env.c
 AST *add_var(Env *env, AST *ast);

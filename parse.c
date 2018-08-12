@@ -667,8 +667,11 @@ AST *parse_direct_declarator(Type *type)
     while (pop_token_if(tLBRACKET)) {
         // TODO: parse assignment-expr
         int num = expect_token(tINT)->ival;
-        type = new_array_type(type, num);
         expect_token(tRBRACKET);
+
+        Type *ntype = new_array_type(type, num);
+        move_static_extern_specifier(type, ntype);
+        type = ntype;
     }
 
     AST *ast = new_ast(AST_NOP);
@@ -689,8 +692,11 @@ int match_declarator()
 
 AST *parse_declarator(Type *type)
 {
-    while (pop_token_if(tSTAR))  //
-        type = new_pointer_type(type);
+    while (pop_token_if(tSTAR)) {
+        Type *ntype = new_pointer_type(type);
+        move_static_extern_specifier(type, ntype);
+        type = ntype;
+    }
     return parse_direct_declarator(type);
 }
 

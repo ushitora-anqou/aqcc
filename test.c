@@ -1878,6 +1878,10 @@ void test341(int ival)
     static int *p = 0;
     p = &a;
     EXPECT_INT(*p, ival);
+
+    static int ary[10];
+    ary[5]++;
+    EXPECT_INT(ary[5], ival - 1);
 }
 
 void test342()
@@ -2033,6 +2037,7 @@ int main()
     EXPECT_INT(2 || 1, 1);
     EXPECT_INT(-2 || 1, 1);
 
+    test341(2);
     test097();
     test098();
     test099();
@@ -2247,6 +2252,7 @@ int main()
     test315();
     test316();
     test317();
+    test341(3);
     test318();
     test319();
     test320();
@@ -2269,9 +2275,8 @@ int main()
     test337();
     test338();
     test339();
-    test341(2);
     test340();
-    test341(3);
+    test341(4);
     test342();
     test343();
     test344();

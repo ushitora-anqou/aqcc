@@ -657,7 +657,7 @@ void generate_code_detail(AST *ast)
         case AST_GVAR_DECL_INIT:
             generate_code_detail(ast->lhs);
             generate_code_detail(ast->rhs);
-            appcode("pop #rax");
+            if (ast->rhs->kind == AST_ASSIGN) appcode("pop #rax");
             break;
 
         case AST_DECL_LIST:

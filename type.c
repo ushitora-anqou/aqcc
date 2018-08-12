@@ -11,6 +11,13 @@ Type *new_type(int kind, int nbytes)
     return this;
 }
 
+void move_static_extern_specifier(Type *src, Type *dst)
+{
+    if (src->is_static) dst->is_static = 1;
+    if (src->is_extern) dst->is_extern = 1;
+    src->is_static = src->is_extern = 0;
+}
+
 Type *type_int()
 {
     static Type *type = NULL;
@@ -42,18 +49,14 @@ Type *type_void()
 
 Type *new_pointer_type(Type *src)
 {
-    Type *this;
-
-    this = new_type(TY_PTR, 8);
+    Type *this = new_type(TY_PTR, 8);
     this->ptr_of = src;
     return this;
 }
 
 Type *new_array_type(Type *src, int len)
 {
-    Type *this;
-
-    this = new_type(TY_ARY, src->nbytes * len);
+    Type *this = new_type(TY_ARY, src->nbytes * len);
     this->ary_of = src;
     this->len = len;
     return this;
