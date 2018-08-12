@@ -12,7 +12,8 @@ aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c 
 	./aqcc vector.c > _self_vector.s
 	gcc -c _self_vector.s -o _self_vector.o
 	gcc -c utility.c -o _self_utility.o
-	gcc -c map.c -o _self_map.o
+	./aqcc map.c > _self_map.s
+	gcc -c _self_map.s -o _self_map.o
 	gcc -c lex.c -o _self_lex.o
 	gcc -c parse.c -o _self_parse.o
 	gcc -c gen.c -o _self_gen.o
