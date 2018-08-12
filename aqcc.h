@@ -1,12 +1,40 @@
 #ifndef AQCC_AQCC_H
 #define AQCC_AQCC_H
 
-#include <assert.h>
-#include <ctype.h>
+//#include <assert.h>
+//#include <ctype.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+
+typedef struct _IO_FILE FILE;
+extern FILE *stdin;  /* Standard input stream.  */
+extern FILE *stdout; /* Standard output stream.  */
+extern FILE *stderr; /* Standard error output stream.  */
+#define NULL ((void *)0)
+int printf(const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+int sprintf(char *str, const char *format, ...);
+#define EXIT_FAILURE 1 /* Failing exit status.  */
+#define EXIT_SUCCESS 0 /* Successful exit status.  */
+void exit(int status);
+void *malloc(int size);
+void *realloc(void *ptr, int size);
+int strlen(const char *s);
+int strcmp(const char *s1, const char *s2);
+char *strcpy(char *dest, const char *src);
+int vsprintf(char *str, const char *format, va_list ap);
+void *memset(void *s, int c, int n);
+int fgetc(FILE *stream);
+#define EOF (-1)
+FILE *fopen(const char *pathname, const char *mode);
+int fclose(FILE *stream);
+int isalnum(int c);
+int isalpha(int c);
+int isdigit(int c);
+int isspace(int c);
+void *memcpy(void *dest, const void *src, int n);
 
 // vector.c
 typedef struct Vector Vector;
@@ -365,6 +393,7 @@ int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
 Vector *read_tokens_from_filepath(char *filepath);
+void assert(int cond);
 
 // lex.c
 Vector *read_all_tokens(char *src);

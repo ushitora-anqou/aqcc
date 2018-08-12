@@ -231,3 +231,11 @@ Vector *read_tokens_from_filepath(char *filepath)
     erase_backslash_newline(src);
     return read_all_tokens(src);
 }
+
+// alternative assert
+void assert(int cond)
+{
+    if (cond) return;
+    fprintf(stderr, "[ASSERT] %s, %d\n", __FILE__, __LINE__);
+    exit(EXIT_FAILURE);
+}

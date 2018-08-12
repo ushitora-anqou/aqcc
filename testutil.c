@@ -7,7 +7,8 @@ int add_all(int a, int b, int c, int d, int e, int f, int g, int h)
 }
 int add_two(int a, int b) { return a + b; }
 
-#include <stdlib.h>
+//#include <stdlib.h>
+void *malloc(int size);
 int *alloc4(int **p)
 {
     *p = malloc(sizeof(int) * 4);

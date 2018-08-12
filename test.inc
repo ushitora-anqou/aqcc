@@ -1,5 +1,5 @@
-#include <assert.h>
-#include <string.h>
+//#include <assert.h>
+//#include <string.h>
 
 void test_vector(int n)
 {
