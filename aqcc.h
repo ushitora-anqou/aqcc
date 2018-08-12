@@ -150,6 +150,7 @@ enum {
     kENUM,
     kNORETURN,
     kSTATIC,
+    kEXTERN,
 };
 
 typedef struct {
@@ -200,7 +201,7 @@ enum {
 
 typedef struct Type Type;
 struct Type {
-    int kind, nbytes, is_static;
+    int kind, nbytes, is_static, is_extern;
 
     union {
         Type *ptr_of;
@@ -429,6 +430,7 @@ Type *type_unknown();
 Type *new_typedef_type(char *typedef_name);
 Type *new_enum_type(char *name, Vector *list);
 Type *new_static_type(Type *type);
+Type *new_extern_type(Type *type);
 
 // env.c
 AST *add_var(Env *env, AST *ast);

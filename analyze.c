@@ -227,6 +227,7 @@ Type *analyze_type(Env *env, Type *type)
     assert(type != NULL);
 
     int org_is_static = type->is_static;
+    int org_is_extern = type->is_extern;
 
     switch (type->kind) {
         case TY_INT:
@@ -350,6 +351,7 @@ Type *analyze_type(Env *env, Type *type)
     }
 
     if (org_is_static) type = new_static_type(type);
+    if (org_is_extern) type = new_extern_type(type);
     return type;
 }
 
@@ -508,7 +510,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             assert(ast->type->nbytes > 0);
             AST *var = add_var(env, ast);
 
-            if (ast->type->is_static) add_gvar(new_gvar_from_static_lvar(var));
+            if (var->type->is_static) add_gvar(new_gvar_from_static_lvar(var));
         } break;
 
         case AST_GVAR_DECL:
@@ -523,7 +525,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 error("incomplete typed variable can't be declared.");
             assert(ast->type->nbytes > 0);
             add_var(env, ast);
-            add_gvar(new_gvar_from_decl(ast));
+            if (!ast->type->is_extern) add_gvar(new_gvar_from_decl(ast));
             break;
 
         case AST_TYPEDEF_VAR_DECL:
@@ -534,6 +536,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_LVAR_DECL_INIT:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            if (ast->lhs->type->is_extern)
+                error("extern variable can't have any initializer: '%s'",
+                      ast->lhs->varname);
             if (ast->lhs->type->is_static) {
                 if (ast->rhs->rhs->kind != AST_INT)
                     // TODO: constant, not int literal
@@ -555,6 +560,9 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (ast->rhs->rhs->kind != AST_INT)
                 // TODO: constant, not int literal
                 error("global variable initializer must be constant.");
+            if (ast->lhs->type->is_extern)
+                error("extern variable can't have any initializer: '%s'",
+                      ast->lhs->varname);
             Vector *gvar_list = get_gvar_list();
             GVar *gvar =
                 (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);

@@ -7,7 +7,7 @@ Type *new_type(int kind, int nbytes)
     this = safe_malloc(sizeof(Type));
     this->kind = kind;
     this->nbytes = nbytes;
-    this->is_static = 0;
+    this->is_static = this->is_extern = 0;
     return this;
 }
 
@@ -88,5 +88,13 @@ Type *new_static_type(Type *type)
     Type *this = safe_malloc(sizeof(Type));
     memcpy(this, type, sizeof(Type));
     this->is_static = 1;
+    return this;
+}
+
+Type *new_extern_type(Type *type)
+{
+    Type *this = safe_malloc(sizeof(Type));
+    memcpy(this, type, sizeof(Type));
+    this->is_extern = 1;
     return this;
 }

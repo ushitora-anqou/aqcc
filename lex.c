@@ -109,6 +109,7 @@ Token *read_next_ident_token()
         map_insert(str2keyword, "enum", (void *)kENUM);
         map_insert(str2keyword, "_Noreturn", (void *)kNORETURN);
         map_insert(str2keyword, "static", (void *)kSTATIC);
+        map_insert(str2keyword, "extern", (void *)kEXTERN);
     }
 
     char *str;

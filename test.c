@@ -1916,6 +1916,24 @@ void test342()
     EXPECT_INT(root->rhs->rhs->val, 14);
 }
 
+void test343inc();
+void test343()
+{
+    extern Number test343inc_var;
+    EXPECT_INT(test343inc_var, 343);
+    test343inc();
+    EXPECT_INT(test343inc_var, 344);
+}
+
+void test344inc();
+void test344()
+{
+    extern Number test344inc_var;
+    EXPECT_INT(test344inc_var, 344);
+    test344inc();
+    EXPECT_INT(test344inc_var, 345);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2255,4 +2273,6 @@ int main()
     test340();
     test341(3);
     test342();
+    test343();
+    test344();
 }

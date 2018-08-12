@@ -845,16 +845,19 @@ AST *parse_init_declarator_list(int decl_ast_kind, Type *base_type)
 
 int match_declaration_specifiers()
 {
-    return match_token(kSTATIC) || match_type_specifier();
+    return match_token(kSTATIC) || match_token(kEXTERN) ||
+           match_type_specifier();
 }
 
 Type *parse_declaration_specifiers()
 {
     // TODO: recursive
-    int is_static = 0;
+    int is_static = 0, is_extern = 0;
     if (pop_token_if(kSTATIC)) is_static = 1;
+    if (pop_token_if(kEXTERN)) is_extern = 1;
     Type *type = parse_type_specifier();
     if (is_static) type = new_static_type(type);
+    if (is_extern) type = new_extern_type(type);
     return type;
 }
 

@@ -19,3 +19,10 @@ int *alloc4(int **p)
 
     return *p;
 }
+
+typedef int Number;
+Number test343inc_var = 343;
+void test343inc() { test343inc_var++; }
+
+Number test344inc_var = 344;
+void test344inc() { test344inc_var++; }
