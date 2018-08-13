@@ -88,33 +88,34 @@ typedef struct {
     int reg_save_area_stack_idx, overflow_arg_area_stack_idx;
     Vector *code;
 } CodeEnv;
-CodeEnv *env;
+CodeEnv *codeenv;
 
-#define SAVE_BREAK_CXT char *break_cxt__org_break_label = env->break_label;
-#define RESTORE_BREAK_CXT env->break_label = break_cxt__org_break_label;
+#define SAVE_BREAK_CXT char *break_cxt__org_break_label = codeenv->break_label;
+#define RESTORE_BREAK_CXT codeenv->break_label = break_cxt__org_break_label;
 #define SAVE_CONTINUE_CXT \
-    char *continue_cxt__org_continue_label = env->continue_label;
+    char *continue_cxt__org_continue_label = codeenv->continue_label;
 #define RESTORE_CONTINUE_CXT \
-    env->continue_label = continue_cxt__org_continue_label;
+    codeenv->continue_label = continue_cxt__org_continue_label;
 #define SAVE_VARIADIC_CXT                                \
     int save_variadic_cxt__reg_save_area_stack_idx =     \
-            env->reg_save_area_stack_idx,                \
+            codeenv->reg_save_area_stack_idx,            \
         save_variadic_cxt__overflow_arg_area_stack_idx = \
-            env->overflow_arg_area_stack_idx;
+            codeenv->overflow_arg_area_stack_idx;
 
-#define RESTORE_VARIADIC_CXT                                                   \
-    env->reg_save_area_stack_idx = save_variadic_cxt__reg_save_area_stack_idx; \
-    env->overflow_arg_area_stack_idx =                                         \
+#define RESTORE_VARIADIC_CXT                        \
+    codeenv->reg_save_area_stack_idx =              \
+        save_variadic_cxt__reg_save_area_stack_idx; \
+    codeenv->overflow_arg_area_stack_idx =          \
         save_variadic_cxt__overflow_arg_area_stack_idx;
 
 void generate_code_detail(AST *ast);
 
 void init_code_env()
 {
-    env = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
-    env->continue_label = env->break_label = NULL;
-    env->reg_save_area_stack_idx = 0;
-    env->code = new_vector();
+    codeenv = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
+    codeenv->continue_label = codeenv->break_label = NULL;
+    codeenv->reg_save_area_stack_idx = 0;
+    codeenv->code = new_vector();
 }
 
 void appcode(const char *src, ...)
@@ -142,7 +143,7 @@ void appcode(const char *src, ...)
     vsprintf(buf2, buf, args);
     va_end(args);
 
-    vector_push_back(env->code, new_str(buf2));
+    vector_push_back(codeenv->code, new_str(buf2));
 }
 
 void dump_code(Vector *code, FILE *fh)
@@ -153,7 +154,8 @@ void dump_code(Vector *code, FILE *fh)
 
 const char *last_appended_code()
 {
-    return (const char *)vector_get(env->code, vector_size(env->code) - 1);
+    return (const char *)vector_get(codeenv->code,
+                                    vector_size(codeenv->code) - 1);
 }
 
 void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
@@ -478,7 +480,7 @@ void generate_code_detail(AST *ast)
                 appcode("jmp %s", exit_label);
 
             SAVE_BREAK_CXT;
-            env->break_label = exit_label;
+            codeenv->break_label = exit_label;
             generate_code_detail(ast->switch_body);
             appcode("%s:", exit_label);
             RESTORE_BREAK_CXT;
@@ -573,8 +575,8 @@ void generate_code_detail(AST *ast)
 
             // generate body
             SAVE_VARIADIC_CXT;
-            env->reg_save_area_stack_idx = stack_idx;
-            env->overflow_arg_area_stack_idx =
+            codeenv->reg_save_area_stack_idx = stack_idx;
+            codeenv->overflow_arg_area_stack_idx =
                 ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
                             : -1;
             generate_code_detail(ast->body);
@@ -612,18 +614,18 @@ void generate_code_detail(AST *ast)
         case AST_DOWHILE: {
             SAVE_BREAK_CXT;
             SAVE_CONTINUE_CXT;
-            env->break_label = make_label_string();
-            env->continue_label = make_label_string();
+            codeenv->break_label = make_label_string();
+            codeenv->continue_label = make_label_string();
             char *start_label = make_label_string();
 
             appcode("%s:", start_label);
             generate_code_detail(ast->then);
-            appcode("%s:", env->continue_label);
+            appcode("%s:", codeenv->continue_label);
             generate_code_detail(ast->cond);
             appcode("pop #rax");
             appcode("cmp $0, #eax");
             appcode("jne %s", start_label);
-            appcode("%s:", env->break_label);
+            appcode("%s:", codeenv->break_label);
 
             RESTORE_BREAK_CXT;
             RESTORE_CONTINUE_CXT;
@@ -632,8 +634,8 @@ void generate_code_detail(AST *ast)
         case AST_FOR: {
             SAVE_BREAK_CXT;
             SAVE_CONTINUE_CXT;
-            env->break_label = make_label_string();
-            env->continue_label = make_label_string();
+            codeenv->break_label = make_label_string();
+            codeenv->continue_label = make_label_string();
             char *start_label = make_label_string();
 
             if (ast->initer != NULL) {
@@ -646,29 +648,29 @@ void generate_code_detail(AST *ast)
                 generate_code_detail(ast->midcond);
                 appcode("pop #rax");
                 appcode("cmp $0, #eax");
-                appcode("je %s", env->break_label);
+                appcode("je %s", codeenv->break_label);
             }
             generate_code_detail(ast->for_body);
-            appcode("%s:", env->continue_label);
+            appcode("%s:", codeenv->continue_label);
             if (ast->iterer != NULL) {
                 generate_code_detail(ast->iterer);
                 appcode("pop #rax");
             }
             appcode("jmp %s", start_label);
-            appcode("%s:", env->break_label);
+            appcode("%s:", codeenv->break_label);
 
             RESTORE_BREAK_CXT;
             RESTORE_CONTINUE_CXT;
         } break;
 
         case AST_BREAK:
-            if (env->break_label < 0) error("invalid break.");
-            appcode("jmp %s", env->break_label);
+            if (codeenv->break_label < 0) error("invalid break.");
+            appcode("jmp %s", codeenv->break_label);
             break;
 
         case AST_CONTINUE:
-            if (env->continue_label < 0) error("invalid continue.");
-            appcode("jmp %s", env->continue_label);
+            if (codeenv->continue_label < 0) error("invalid continue.");
+            appcode("jmp %s", codeenv->continue_label);
             break;
 
         case AST_GOTO:
@@ -732,9 +734,10 @@ void generate_code_detail(AST *ast)
             assert(ast->rhs->kind == AST_INT);
             appcode("movl $%d, (#rax)", ast->rhs->ival * 8);
             appcode("movl $48, 4(#rax)");
-            appcode("leaq %d(#rbp), #rdi", env->overflow_arg_area_stack_idx);
+            appcode("leaq %d(#rbp), #rdi",
+                    codeenv->overflow_arg_area_stack_idx);
             appcode("mov %rdi, 8(#rax)");
-            appcode("leaq %d(#rbp), #rdi", env->reg_save_area_stack_idx);
+            appcode("leaq %d(#rbp), #rdi", codeenv->reg_save_area_stack_idx);
             appcode("mov %rdi, 16(#rax)");
         } break;
 
@@ -787,5 +790,5 @@ Vector *generate_code(Vector *asts)
         appcode("%s %d", type2spec[gvar->type->kind], gvar->ival);
     }
 
-    return clone_vector(env->code);
+    return clone_vector(codeenv->code);
 }
