@@ -1938,6 +1938,15 @@ void test344()
     EXPECT_INT(test344inc_var, 345);
 }
 
+void test345()
+{
+    char *str =
+        "abc"
+        "def";
+    EXPECT_INT(str[2], 'c');
+    EXPECT_INT(str[3], 'd');
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2280,4 +2289,5 @@ int main()
     test342();
     test343();
     test344();
+    test345();
 }

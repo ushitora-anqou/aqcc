@@ -40,23 +40,55 @@ Type *parse_typedef_name()
     return new_typedef_type(expect_token(tIDENT)->sval);
 }
 
+AST *parse_string_literal()
+{
+    Vector *strs = new_vector();
+    vector_push_back(strs, expect_token(tSTRING_LITERAL));
+    // parse successive string literals.
+    while (match_token(tSTRING_LITERAL)) vector_push_back(strs, pop_token());
+
+    // calc size
+    int size = 0;
+    for (int i = 0; i < vector_size(strs); i++)
+        size += ((Token *)vector_get(strs, i))->ssize - 1;
+    size++;  // '\0'
+
+    // concatenate strings
+    char *buf = (char *)safe_malloc(size);
+    int offset = 0;
+    for (int i = 0; i < vector_size(strs); i++) {
+        Token *token = (Token *)vector_get(strs, i);
+        memcpy(buf + offset, token->sval, token->ssize - 1);
+        offset += token->ssize - 1;
+    }
+
+    assert(offset == size - 1);
+    buf[offset] = '\0';
+
+    AST *ast = new_ast(AST_STRING_LITERAL);
+    ast->sval = buf;
+    ast->ssize = size;
+    return ast;
+}
+
 AST *parse_primary_expr()
 {
     AST *ast;
-    Token *token = pop_token();
+    Token *token = peek_token();
     switch (token->kind) {
         case tINT:
-            return new_int_ast(token->ival);
+            pop_token();
+            ast = new_int_ast(token->ival);
+            break;
 
         case tLPAREN:
+            pop_token();
             ast = parse_expr();
             expect_token(tRPAREN);
             break;
 
         case tSTRING_LITERAL:
-            ast = new_ast(AST_STRING_LITERAL);
-            ast->sval = token->sval;
-            ast->ssize = token->ssize;
+            ast = parse_string_literal();
             break;
 
         case tIDENT:
@@ -66,6 +98,7 @@ AST *parse_primary_expr()
         default:
             error_unexpected_token_str("primary expression", token);
     }
+
     return ast;
 }
 
