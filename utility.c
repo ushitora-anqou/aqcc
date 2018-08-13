@@ -8,7 +8,7 @@ _Noreturn void error(const char *msg, ...)
     va_end(args);
 
     fprintf(stderr, "[ERROR] %s\n", str);
-    fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
+    // fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
     exit(EXIT_FAILURE);
 }
 
@@ -32,7 +32,7 @@ void warn(const char *msg, ...)
     va_end(args);
 
     fprintf(stderr, "[WARN]  %s\n", str);
-    fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
+    // fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
 }
 
 void *safe_malloc(int size)
@@ -236,6 +236,6 @@ Vector *read_tokens_from_filepath(char *filepath)
 void assert(int cond)
 {
     if (cond) return;
-    fprintf(stderr, "[ASSERT] %s, %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "[ASSERT] %d\n", cond);
     exit(EXIT_FAILURE);
 }
