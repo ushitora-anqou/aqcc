@@ -225,6 +225,10 @@ AST *parse_unary_expr()
             pop_token();
             return new_unary_ast(AST_NOT, parse_cast_expr());
 
+        case tTILDE:
+            pop_token();
+            return new_unary_ast(AST_COMPL, parse_cast_expr());
+
         case kSIZEOF: {
             AST *ast;
             ast = new_ast(AST_SIZEOF);

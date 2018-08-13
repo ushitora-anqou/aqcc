@@ -459,11 +459,12 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = ast->lhs->type;  // TODO: consider both lhs and rhs
         } break;
 
+        case AST_COMPL:
         case AST_UNARY_MINUS:
             ast->lhs = convert_expr(analyze_ast_detail(env, ast->lhs));
             ast->type = ast->lhs->type;
             if (ast->type->kind != TY_INT && ast->type->kind != TY_CHAR)
-                error("expect int or char type for unary minus or not");
+                error("expect int or char type for unary minus or compl");
             break;
 
         case AST_NOT:

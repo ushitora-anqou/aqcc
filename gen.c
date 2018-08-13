@@ -228,6 +228,13 @@ void generate_code_detail(AST *ast)
             appcode("push #rax");
             break;
 
+        case AST_COMPL:
+            generate_code_detail(ast->lhs);
+            appcode("pop #rax");
+            appcode("not #eax");
+            appcode("push #rax");
+            break;
+
         case AST_LSHIFT:
             generate_code_detail(ast->lhs);
             generate_code_detail(ast->rhs);

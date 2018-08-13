@@ -2079,6 +2079,9 @@ int main()
     EXPECT_INT(0 || 0, 0);
     EXPECT_INT(2 || 1, 1);
     EXPECT_INT(-2 || 1, 1);
+    EXPECT_INT(~0, -1);
+    EXPECT_INT(~1, -2);
+    EXPECT_INT(~5, -6);
 
     test341(2);
     test097();

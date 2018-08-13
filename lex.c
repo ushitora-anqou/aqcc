@@ -346,6 +346,9 @@ Token *read_next_token()
             case '#':
                 return make_token(tNUMBER);
 
+            case '~':
+                return make_token(tTILDE);
+
             case '\n':
                 return make_token(tNEWLINE);
         }
