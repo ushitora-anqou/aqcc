@@ -1981,6 +1981,15 @@ void test346()
     EXPECT_INT(buf[8], '\0');
 }
 
+int test347detail(int ary[4]) { return ary[2]; }
+
+int test347()
+{
+    int ary[4];
+    ary[2] = 100;
+    EXPECT_INT(test347detail(ary), 100);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2328,4 +2337,5 @@ int main()
     test344();
     test345();
     test346();
+    test347();
 }

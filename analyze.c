@@ -637,7 +637,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 for (int i = vector_size(ast->params) - 1; i >= 0; i--) {
                     AST *param = (AST *)vector_get(ast->params, i);
                     param->type = analyze_type(env, param->type);
-                    vector_set(ast->params, i, param);
+                    if (param->type->kind == TY_ARY)
+                        param->type = new_pointer_type(param->type->ary_of);
                     add_var(ast->env, param);
                 }
             }
