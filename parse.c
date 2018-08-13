@@ -483,8 +483,8 @@ AST *parse_assignment_expr()
     Token *token;
     int kind;
 
-    if (tok2ast[0] == 0) {                       // if not initialized
-        memset(tok2ast, 0xff, sizeof(tok2ast));  // fill tok2ast with -1
+    if (tok2ast[0] == 0) {                      // if not initialized
+        memset(tok2ast, 255, sizeof(tok2ast));  // fill tok2ast with -1
         tok2ast[tEQ] = AST_NOP;
         tok2ast[tPLUSEQ] = AST_ADD;
         tok2ast[tMINUSEQ] = AST_SUB;

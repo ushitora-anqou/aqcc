@@ -88,7 +88,7 @@ int unescape_char(int src)
 {
     static int table[128];
     if (table[0] == 0) {
-        memset(table, 0xff, sizeof(table));
+        memset(table, 255, sizeof(table));
 
         table['n'] = '\n';
         table['r'] = '\r';
