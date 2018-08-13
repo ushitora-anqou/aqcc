@@ -316,6 +316,8 @@ enum {
     AST_DECL_LIST,
     AST_TYPEDEF_VAR_DECL,
     AST_CAST,
+    AST_VA_START,
+    AST_VA_END,
 };
 
 struct AST {
@@ -357,6 +359,7 @@ struct AST {
             Vector *params;  // formal parameters
             AST *body;       // If NULL then only declaration exists.
             Env *env;
+            int is_variadic;
         };
 
         // AST_ARY2PTR

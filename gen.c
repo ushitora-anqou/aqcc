@@ -1,12 +1,5 @@
 #include "aqcc.h"
 
-#define SAVE_BREAK_CXT char *break_cxt__org_break_label = env->break_label;
-#define RESTORE_BREAK_CXT env->break_label = break_cxt__org_break_label;
-#define SAVE_CONTINUE_CXT \
-    char *continue_cxt__org_continue_label = env->continue_label;
-#define RESTORE_CONTINUE_CXT \
-    env->continue_label = continue_cxt__org_continue_label;
-
 const char *reg_name(int byte, int i)
 {
     const char *lreg[] = {"%al", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
@@ -65,9 +58,27 @@ int lookup_member_offset(Vector *members, char *member)
 
 typedef struct {
     char *continue_label, *break_label;
+    int reg_save_area_stack_idx, overflow_arg_area_stack_idx;
     Vector *code;
 } CodeEnv;
 CodeEnv *env;
+
+#define SAVE_BREAK_CXT char *break_cxt__org_break_label = env->break_label;
+#define RESTORE_BREAK_CXT env->break_label = break_cxt__org_break_label;
+#define SAVE_CONTINUE_CXT \
+    char *continue_cxt__org_continue_label = env->continue_label;
+#define RESTORE_CONTINUE_CXT \
+    env->continue_label = continue_cxt__org_continue_label;
+#define SAVE_VARIADIC_CXT                                \
+    int save_variadic_cxt__reg_save_area_stack_idx =     \
+            env->reg_save_area_stack_idx,                \
+        save_variadic_cxt__overflow_arg_area_stack_idx = \
+            env->overflow_arg_area_stack_idx;
+
+#define RESTORE_VARIADIC_CXT                                                   \
+    env->reg_save_area_stack_idx = save_variadic_cxt__reg_save_area_stack_idx; \
+    env->overflow_arg_area_stack_idx =                                         \
+        save_variadic_cxt__overflow_arg_area_stack_idx;
 
 void generate_code_detail(AST *ast);
 
@@ -75,6 +86,7 @@ void init_code_env()
 {
     env = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
     env->continue_label = env->break_label = NULL;
+    env->reg_save_area_stack_idx = 0;
     env->code = new_vector();
 }
 
@@ -495,6 +507,8 @@ void generate_code_detail(AST *ast)
                 var->stack_idx = stack_idx;
             }
 
+            stack_idx -= (!!ast->is_variadic) * 48;
+
             // generate code
             appcode(".global %s", ast->fname);
             appcode("%s:", ast->fname);
@@ -517,8 +531,20 @@ void generate_code_detail(AST *ast)
                 }
             }
 
+            // place Register Save Area if the function has variadic params.
+            if (ast->is_variadic)
+                for (int i = 0; i < 6; i++)
+                    appcode("mov %s, %d(#rbp)", reg_name(8, i + 1),
+                            stack_idx + i * 8);
+
             // generate body
+            SAVE_VARIADIC_CXT;
+            env->reg_save_area_stack_idx = stack_idx;
+            env->overflow_arg_area_stack_idx =
+                ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
+                            : -1;
             generate_code_detail(ast->body);
+            RESTORE_VARIADIC_CXT;
 
             // avoid duplicate needless `ret`
             if (strcmp(last_appended_code(), "ret") == 0) break;
@@ -532,7 +558,8 @@ void generate_code_detail(AST *ast)
         case AST_EXPR_STMT:
             if (ast->lhs == NULL) break;
             generate_code_detail(ast->lhs);
-            appcode("pop #rax");
+            if (ast->lhs->type && ast->lhs->type->kind != TY_VOID)
+                appcode("pop #rax");
             break;
 
         case AST_RETURN:
@@ -664,6 +691,18 @@ void generate_code_detail(AST *ast)
             for (int i = 0; i < vector_size(ast->decls); i++)
                 generate_code_detail((AST *)vector_get(ast->decls, i));
             break;
+
+        case AST_VA_START: {
+            generate_code_detail(ast->lhs);
+            appcode("pop #rax /* va_start */");
+            assert(ast->rhs->kind == AST_INT);
+            appcode("movl $%d, (#rax)", ast->rhs->ival * 8);
+            appcode("movl $48, 4(#rax)");
+            appcode("leaq %d(#rbp), #rdi", env->overflow_arg_area_stack_idx);
+            appcode("mov %rdi, 8(#rax)");
+            appcode("leaq %d(#rbp), #rdi", env->reg_save_area_stack_idx);
+            appcode("mov %rdi, 16(#rax)");
+        } break;
 
         case AST_GVAR_DECL:
         case AST_LVAR_DECL:

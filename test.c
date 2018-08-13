@@ -1947,6 +1947,40 @@ void test345()
     EXPECT_INT(str[3], 'd');
 }
 
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+
+int vsprintf(char *str, const char *format, va_list ap);
+void test346vsprintf(char *p, char *str, ...)
+{
+    va_list args;
+    va_start(args, str);
+    vsprintf(p, str, args);
+    va_end(args);
+}
+
+void test346()
+{
+    char buf[256];
+    test346vsprintf(buf, "%d%d%d%d%d%d%d%d", 0, 1, 2, 3, 4, 5, 6, 7);
+    EXPECT_INT(buf[0], '0');
+    EXPECT_INT(buf[1], '1');
+    EXPECT_INT(buf[2], '2');
+    EXPECT_INT(buf[3], '3');
+    EXPECT_INT(buf[4], '4');
+    EXPECT_INT(buf[5], '5');
+    EXPECT_INT(buf[6], '6');
+    EXPECT_INT(buf[7], '7');
+    EXPECT_INT(buf[8], '\0');
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2290,4 +2324,5 @@ int main()
     test343();
     test344();
     test345();
+    test346();
 }

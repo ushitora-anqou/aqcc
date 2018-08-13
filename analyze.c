@@ -97,6 +97,20 @@ AST *add_switch_default(AST *default_ast)
     return label;
 }
 
+Vector *va_start_params;
+
+Vector *set_va_start_params(Vector *params) { va_start_params = params; }
+
+int get_index_in_va_start_params(char *name)
+{
+    for (int i = 0; i < vector_size(va_start_params); i++) {
+        AST *param = (AST *)vector_get(va_start_params, i);
+        if (strcmp(param->varname, name) == 0) return i;
+    }
+
+    return -1;
+}
+
 Vector *goto_asts;
 Map *label_asts;
 
@@ -579,10 +593,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_FUNCCALL: {
-            AST *funcdef;
-            int i;
-
-            funcdef = lookup_func(env, ast->fname);
+            AST *funcdef = lookup_func(env, ast->fname);
             if (funcdef) {  // found: already declared
                 ast->type = analyze_type(env, funcdef->type);
             }
@@ -592,7 +603,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
 
             // analyze args
-            for (i = 0; i < vector_size(ast->args); i++)
+            for (int i = 0; i < vector_size(ast->args); i++)
                 vector_set(ast->args, i,
                            convert_expr(analyze_ast_detail(
                                env, (AST *)vector_get(ast->args, i))));
@@ -603,10 +614,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_FUNCDEF: {
-            AST *func;
-            int i;
-
-            func = lookup_func(env, ast->fname);
+            AST *func = lookup_func(env, ast->fname);
             if (func) {                  // already declared or defined.
                 if (func->body != NULL)  // TODO: validate params
                     error(
@@ -625,12 +633,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             // add param into functions's scope
             // in reversed order for easy code generation.
             if (ast->params) {
-                for (i = vector_size(ast->params) - 1; i >= 0; i--) {
+                for (int i = vector_size(ast->params) - 1; i >= 0; i--) {
                     AST *param = (AST *)vector_get(ast->params, i);
-                    if (param == NULL) {
-                        assert(i == vector_size(ast->params) - 1);
-                        continue;
-                    }
                     param->type = analyze_type(env, param->type);
                     vector_set(ast->params, i, param);
                     add_var(ast->env, param);
@@ -639,6 +643,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
             // analyze body
             init_goto_info();
+            set_va_start_params(ast->params);
             ast->body = analyze_ast_detail(ast->env, ast->body);
             replace_goto_label();
         } break;
@@ -797,6 +802,25 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->lhs->type = ast->type;
             ast = ast->lhs;
             break;
+
+        case AST_VA_START: {
+            if (vector_size(ast->args) != 2)
+                error("invalid number of arguments of va_start()");
+            AST *lhs = (AST *)vector_get(ast->args, 0),
+                *rhs = (AST *)vector_get(ast->args, 1);
+            lhs = analyze_ast_detail(env, lhs);
+            rhs = analyze_ast_detail(env, rhs);
+            if (rhs->kind != AST_LVAR) error("invalid argument of va_start()");
+            int index = get_index_in_va_start_params(rhs->varname);
+            if (index < 0)
+                error("invalid argument of va_start(): not such param");
+            ast = new_binop_ast(AST_VA_START, lhs, new_int_ast(index + 1));
+            ast->type = type_void();
+        } break;
+
+        case AST_VA_END: {
+            ast = new_ast(AST_NOP);
+        } break;
     }
 
     return ast;

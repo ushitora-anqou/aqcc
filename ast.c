@@ -38,6 +38,7 @@ AST *new_func_ast(int kind, char *fname, Vector *args, Vector *params,
     ast->type = ret_type;
     ast->body = NULL;
     ast->env = NULL;
+    ast->is_variadic = 0;
     return ast;
 }
 

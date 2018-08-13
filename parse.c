@@ -122,14 +122,16 @@ AST *parse_postfix_expr()
     AST *ast;
 
     if (match_token2(tIDENT, tLPAREN)) {  // function call
-        Token *ident;
-
-        ident = pop_token();
+        Token *ident = pop_token();
         pop_token();
-
-        ast = new_func_ast(AST_FUNCCALL, ident->sval,
-                           parse_argument_expr_list(), NULL, NULL);
+        Vector *args = parse_argument_expr_list();
         expect_token(tRPAREN);
+
+        ast = new_func_ast(AST_FUNCCALL, ident->sval, args, NULL, NULL);
+        if (strcmp(ident->sval, "__builtin_va_start") == 0)
+            ast->kind = AST_VA_START;
+        if (strcmp(ident->sval, "__builtin_va_end") == 0)
+            ast->kind = AST_VA_END;
     }
     else if (match_token(tIDENT))  // variable
         ast = new_var_ast(pop_token()->sval);
@@ -674,7 +676,9 @@ Vector *parse_parameter_type_list()
     }
 
     while (1) {
-        if (pop_token_if(tDOTS)) break;
+        // tDOTS(...) means variadic params. This is parsed by the caller
+        // parse_direct_declarator()
+        if (match_token(tDOTS)) break;
         Type *type = parse_declaration_specifiers();
         AST *ast = parse_declarator(type);
         vector_push_back(
@@ -693,8 +697,11 @@ AST *parse_direct_declarator(Type *type)
     if (pop_token_if(tLPAREN)) {  // function declarator
         // TODO: K&R style
         Vector *params = parse_parameter_type_list();
+        int is_variadic = pop_token_if(tDOTS);
         expect_token(tRPAREN);
-        return new_func_ast(AST_FUNC_DECL, ident, NULL, params, type);
+        AST *ast = new_func_ast(AST_FUNC_DECL, ident, NULL, params, type);
+        ast->is_variadic = is_variadic;
+        return ast;
     }
 
     while (pop_token_if(tLBRACKET)) {
