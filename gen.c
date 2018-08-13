@@ -2,11 +2,38 @@
 
 const char *reg_name(int byte, int i)
 {
-    const char *lreg[] = {"%al", "%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-    const char *xreg[] = {"%ax", "%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
-    const char *ereg[] = {"%eax", "%edi", "%esi", "%edx",
-                          "%ecx", "%r8d", "%r9d"};
-    const char *rreg[] = {"%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+    const char *lreg[7];
+    lreg[0] = "%al";
+    lreg[1] = "%dil";
+    lreg[2] = "%sil";
+    lreg[3] = "%dl";
+    lreg[4] = "%cl";
+    lreg[5] = "%r8b";
+    lreg[6] = "%r9b";
+    const char *xreg[7];
+    xreg[0] = "%ax";
+    xreg[1] = "%di";
+    xreg[2] = "%si";
+    xreg[3] = "%dx";
+    xreg[4] = "%cx";
+    xreg[5] = "%r8w";
+    xreg[6] = "%r9w";
+    const char *ereg[7];
+    ereg[0] = "%eax";
+    ereg[1] = "%edi";
+    ereg[2] = "%esi";
+    ereg[3] = "%edx";
+    ereg[4] = "%ecx";
+    ereg[5] = "%r8d";
+    ereg[6] = "%r9d";
+    const char *rreg[7];
+    rreg[0] = "%rax";
+    rreg[1] = "%rdi";
+    rreg[2] = "%rsi";
+    rreg[3] = "%rdx";
+    rreg[4] = "%rcx";
+    rreg[5] = "%r8";
+    rreg[6] = "%r9";
 
     assert(0 <= i && i <= 6);
 
