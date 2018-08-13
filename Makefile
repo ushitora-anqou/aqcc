@@ -8,7 +8,8 @@ test: $(TARGET) testutil.o
 	./test.sh
 
 aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c
-	gcc -c gen.c -o _self_gen.o
+	./aqcc gen.c > _self_gen.s
+	gcc -c _self_gen.s -o _self_gen.o
 	./aqcc utility.c > _self_utility.s
 	gcc -c _self_utility.s -o _self_utility.o
 	./aqcc main.c > _self_main.s
