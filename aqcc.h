@@ -23,7 +23,7 @@ typedef struct _IO_FILE FILE;
 extern FILE *stdin;  /* Standard input stream.  */
 extern FILE *stdout; /* Standard output stream.  */
 extern FILE *stderr; /* Standard error output stream.  */
-#define NULL ((void *)0)
+#define NULL 0
 int printf(const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int sprintf(char *str, const char *format, ...);
