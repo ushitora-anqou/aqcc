@@ -39,8 +39,16 @@ void test_vector(int n)
 void test_map()
 {
     Map *map = new_map();
-    const char *key[] = {"key0", "key1", "key2", "key3"};
-    int data[] = {0, 1, 2, 3};
+    const char *key[4];
+    key[0] = "key0";
+    key[1] = "key1";
+    key[2] = "key2";
+    key[3] = "key3";
+    int data[4];
+    data[0] = 0;
+    data[1] = 1;
+    data[2] = 2;
+    data[3] = 3;
 
     for (int i = 0; i < 4; i++) {
         KeyValue *kv = map_insert(map, key[i], &data[i]);
