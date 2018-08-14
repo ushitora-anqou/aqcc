@@ -664,12 +664,10 @@ void generate_code_detail(AST *ast)
         } break;
 
         case AST_BREAK:
-            if (codeenv->break_label < 0) error("invalid break.");
             appcode("jmp %s", codeenv->break_label);
             break;
 
         case AST_CONTINUE:
-            if (codeenv->continue_label < 0) error("invalid continue.");
             appcode("jmp %s", codeenv->continue_label);
             break;
 
