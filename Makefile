@@ -1,5 +1,8 @@
 TARGET=aqcc
+TARGET_SELF=aqcc_self
 SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c
+SELF_OBJS=$(SRC:.c=.self.o)
+SELF_ASSEMBLES=$(SRC:.c=.self.s)
 
 $(TARGET): $(SRC) test.inc aqcc.h
 	gcc -o $@ $(SRC) -O0 -g3 -Wall -lm -std=c11
@@ -7,39 +10,16 @@ $(TARGET): $(SRC) test.inc aqcc.h
 test: $(TARGET) testutil.o
 	./test.sh
 
-aqcc_self: $(TARGET) main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c
-	./aqcc gen.c > _self_gen.s
-	gcc -c _self_gen.s -o _self_gen.o
-	./aqcc utility.c > _self_utility.s
-	gcc -c _self_utility.s -o _self_utility.o
-	./aqcc main.c > _self_main.s
-	gcc -c _self_main.s -o _self_main.o
-	./aqcc type.c > _self_type.s
-	gcc -c _self_type.s -o _self_type.o
-	./aqcc lex.c > _self_lex.s
-	gcc -c _self_lex.s -o _self_lex.o
-	./aqcc parse.c > _self_parse.s
-	gcc -c _self_parse.s -o _self_parse.o
-	./aqcc analyze.c > _self_analyze.s
-	gcc -c _self_analyze.s -o _self_analyze.o
-	./aqcc vector.c > _self_vector.s
-	gcc -c _self_vector.s -o _self_vector.o
-	./aqcc map.c > _self_map.s
-	gcc -c _self_map.s -o _self_map.o
-	./aqcc env.c > _self_env.s
-	gcc -c _self_env.s -o _self_env.o
-	./aqcc ast.c > _self_ast.s
-	gcc -c _self_ast.s -o _self_ast.o
-	./aqcc string_builder.c > _self_string_builder.s
-	gcc -c _self_string_builder.s -o _self_string_builder.o
-	./aqcc cpp.c > _self_cpp.s
-	gcc -c _self_cpp.s -o _self_cpp.o
-	./aqcc token.c > _self_token.s
-	gcc -c _self_token.s -o _self_token.o
-	gcc _self_main.o _self_vector.o _self_utility.o _self_map.o _self_lex.o _self_parse.o _self_gen.o _self_type.o _self_env.o _self_ast.o _self_analyze.o _self_string_builder.o _self_cpp.o _self_token.o \
-		-o $@
+$(TARGET_SELF): $(SELF_OBJS)
+	gcc $^ -o $@
 
-self_test: aqcc_self _test_self_test.sh testutil.o
+%.self.s: %.c $(TARGET)
+	./$(TARGET) $< > $@
+
+%.self.o: %.self.s
+	gcc -c $^ -o $@
+
+self_test: $(TARGET_SELF) _test_self_test.sh testutil.o
 	./_test_self_test.sh
 
 _test_self_test.sh: test.sh
@@ -50,8 +30,11 @@ testutil.o: testutil.c aqcc.h
 	gcc -c testutil.c -o testutil.o
 
 clean:
-	rm testutil.o _self_main.o _self_vector.o _self_utility.o _self_map.o _self_lex.o _self_parse.o _self_gen.o _self_type.o _self_env.o _self_ast.o _self_analyze.o _self_string_builder.o _self_cpp.o _self_token.o
+	rm $(SELF_OBJS)
+	rm $(SELF_ASSEMBLES)
 	rm _test_self_test.sh
-	rm aqcc aqcc_self
+	rm $(TARGET) $(TARGET_SELF)
 
 .PHONY: test self self_test test clean
+
+.PRECIOUS: %.self.s
