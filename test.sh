@@ -124,9 +124,56 @@ test_aqcc_experiment "int main() { int a = 0; return ++a; }" 1
 test_aqcc_experiment "int main() { int a = 1; return a--; }" 1
 test_aqcc_experiment "int main() { int a = 1; return --a; }" 0
 test_aqcc_experiment "int main() { int a = 54, *b = &a; return *b; }" 54
-test_aqcc_experiment "int main() { 
+test_aqcc_experiment "int main() {
     int a = 43;
     if (a == 43) return 0;
     return 1;
 }" 0
 test_aqcc_experiment "int main() { int a = 43; return a != 42 ? 1 : 0; }" 1
+test_aqcc_experiment "
+int main()
+{
+    int a = 4, ret = 2;
+    switch (a) {
+        case 1:
+            ret = 1;
+            break;
+        case 4:
+            ret = 4;
+            break;
+    }
+    return ret;
+}" 4
+test_aqcc_experiment "
+int main()
+{
+    int a = 4, ret;
+    switch (a) {
+        case 1:
+            ret = 1;
+        default:
+            ret = 4;
+    }
+    return ret;
+}" 4
+test_aqcc_experiment "
+int main()
+{
+    int a = 1, ret;
+    switch (a) {
+        int i = 0;
+        case 1:
+            i = 4;
+        default:
+            ret = i;
+    }
+    return ret;
+}" 4
+test_aqcc_experiment "
+int main() {
+    int i = 0;
+    do {
+        i++;
+    } while (i < 5);
+    return i;
+}" 5

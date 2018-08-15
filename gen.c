@@ -612,6 +612,65 @@ int generate_register_code_detail(AST *ast)
             return then_reg;
         }
 
+        case AST_SWITCH: {
+            int target_reg = generate_register_code_detail(ast->target);
+            char *name = reg_name(ast->target->type->nbytes, target_reg);
+
+            for (int i = 0; i < vector_size(ast->cases); i++) {
+                SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
+                appcode("cmp $%d, %s", cas->cond, name);
+                // case has been already labeled when analyzing.
+                appcode("je %s", cas->label_name);
+            }
+            char *exit_label = make_label_string();
+            if (ast->default_label)
+                appcode("jmp %s", ast->default_label);
+            else
+                appcode("jmp %s", exit_label);
+
+            SAVE_BREAK_CXT;
+            codeenv->break_label = exit_label;
+            generate_register_code_detail(ast->switch_body);
+            appcode("%s:", exit_label);
+            RESTORE_BREAK_CXT;
+
+            return -1;
+        }
+
+        case AST_DOWHILE: {
+            SAVE_BREAK_CXT;
+            SAVE_CONTINUE_CXT;
+            codeenv->break_label = make_label_string();
+            codeenv->continue_label = make_label_string();
+            char *start_label = make_label_string();
+
+            appcode("%s:", start_label);
+            generate_register_code_detail(ast->then);
+            appcode("%s:", codeenv->continue_label);
+            int cond_reg = generate_register_code_detail(ast->cond);
+            appcode("cmp $0, %s", reg_name(ast->cond->type->nbytes, cond_reg));
+            appcode("jne %s", start_label);
+            appcode("%s:", codeenv->break_label);
+
+            RESTORE_BREAK_CXT;
+            RESTORE_CONTINUE_CXT;
+
+            return -1;
+        }
+
+        case AST_LABEL:
+            appcode("%s:", ast->label_name);
+            generate_register_code_detail(ast->label_stmt);
+            return -1;
+
+        case AST_BREAK:
+            appcode("jmp %s", codeenv->break_label);
+            return -1;
+
+        case AST_CONTINUE:
+            appcode("jmp %s", codeenv->continue_label);
+            return -1;
+
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));
