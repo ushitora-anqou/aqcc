@@ -226,10 +226,9 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
             appcode("mov $%d, %s", ast->ival, reg_name(4, reg));
             return reg;
-        } break;
+        }
 
         case AST_RETURN: {
-            assert(ast->lhs->kind == AST_INT);
             int reg = generate_register_code_detail(ast->lhs);
             appcode("mov %s, #rax", reg_name(8, reg));
             appcode("mov #rbp, #rsp");
@@ -237,6 +236,15 @@ int generate_register_code_detail(AST *ast)
             appcode("ret");
             restore_temp_reg(reg);
         } break;
+
+        case AST_ADD: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("add %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
 
         case AST_FUNCDEF: {
             // allocate stack
