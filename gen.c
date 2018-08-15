@@ -232,15 +232,20 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_RETURN: {
-            int reg = generate_register_code_detail(ast->lhs);
-            appcode("mov %s, #rax", reg_name(8, reg));
+            if (ast->lhs) {
+                int reg = generate_register_code_detail(ast->lhs);
+                restore_temp_reg(reg);
+                appcode("mov %s, #rax", reg_name(8, reg));
+            }
+            else {
+                appcode("mov 0, #rax");
+            }
             appcode("pop #r13");
             appcode("pop #r14");
             appcode("pop #r15");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
             appcode("ret");
-            restore_temp_reg(reg);
             return -1;
         }
 
@@ -501,6 +506,7 @@ int generate_register_code_detail(AST *ast)
                             : -1;
             init_temp_reg();
             generate_register_code_detail(ast->body);
+            assert(temp_reg_table == 0);
             RESTORE_VARIADIC_CXT;
 
             // avoid duplicate needless `ret`
@@ -652,34 +658,51 @@ int generate_register_code_detail(AST *ast)
         case AST_INDIR:
             return generate_register_code_detail(ast->lhs);
 
-        case AST_IF:
         case AST_COND: {
             char *false_label = make_label_string(),
                  *exit_label = make_label_string();
 
             int cond_reg = generate_register_code_detail(ast->cond);
-            appcode("cmp $0, %s", reg_name(ast->cond->type->nbytes, cond_reg));
             restore_temp_reg(cond_reg);
+            appcode("mov %s, #rax", reg_name(8, cond_reg));
+            appcode("cmp $0, #eax");
             appcode("je %s", false_label);
             int then_reg = generate_register_code_detail(ast->then);
+            restore_temp_reg(then_reg);
+            appcode("push %s", reg_name(8, then_reg));
             appcode("jmp %s", exit_label);
             appcode("%s:", false_label);
             if (ast->els != NULL) {
-                restore_temp_reg(then_reg);
                 int els_reg = generate_register_code_detail(ast->els);
-                if (then_reg != els_reg) {
-                    appcode("mov %s, %s",
-                            reg_name(ast->then->type->nbytes, els_reg),
-                            reg_name(ast->els->type->nbytes, then_reg));
-                }
                 restore_temp_reg(els_reg);
+                appcode("push %s", reg_name(8, els_reg));
             }
             appcode("%s:", exit_label);
-            return then_reg;
+            int reg = get_temp_reg();
+            appcode("pop %s", reg_name(8, reg));
+            return reg;
+        }
+
+        case AST_IF: {
+            char *false_label = make_label_string(),
+                 *exit_label = make_label_string();
+
+            int cond_reg = generate_register_code_detail(ast->cond);
+            restore_temp_reg(cond_reg);
+            appcode("mov %s, #rax", reg_name(8, cond_reg));
+            appcode("cmp $0, #eax");
+            appcode("je %s", false_label);
+            generate_register_code_detail(ast->then);
+            appcode("jmp %s", exit_label);
+            appcode("%s:", false_label);
+            if (ast->els != NULL) generate_register_code_detail(ast->els);
+            appcode("%s:", exit_label);
+            return -1;
         }
 
         case AST_SWITCH: {
             int target_reg = generate_register_code_detail(ast->target);
+            restore_temp_reg(target_reg);
             char *name = reg_name(ast->target->type->nbytes, target_reg);
 
             for (int i = 0; i < vector_size(ast->cases); i++) {
