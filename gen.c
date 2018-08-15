@@ -590,6 +590,28 @@ int generate_register_code_detail(AST *ast)
         case AST_INDIR:
             return generate_register_code_detail(ast->lhs);
 
+        case AST_IF:
+        case AST_COND: {
+            char *false_label = make_label_string(),
+                 *exit_label = make_label_string();
+
+            int cond_reg = generate_register_code_detail(ast->cond);
+            appcode("cmp $0, %s", reg_name(ast->cond->type->nbytes, cond_reg));
+            appcode("je %s", false_label);
+            int then_reg = generate_register_code_detail(ast->then);
+            appcode("jmp %s", exit_label);
+            appcode("%s:", false_label);
+            if (ast->els != NULL) {
+                int els_reg = generate_register_code_detail(ast->els);
+                if (then_reg != els_reg)
+                    appcode("mov %s, %s",
+                            reg_name(ast->then->type->nbytes, els_reg),
+                            reg_name(ast->els->type->nbytes, then_reg));
+            }
+            appcode("%s:", exit_label);
+            return then_reg;
+        }
+
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));
