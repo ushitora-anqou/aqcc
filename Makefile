@@ -38,6 +38,7 @@ clean:
 	rm -f $(SELF_ASSEMBLES)
 	rm -f _test_self_test.sh
 	rm -f $(TARGET) $(TARGET_SELF)
+	rm -f _test.s _test.o testutil.o _test.in
 
 .PHONY: test self self_test test clean examples
 
