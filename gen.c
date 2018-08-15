@@ -288,6 +288,96 @@ int generate_register_code_detail(AST *ast)
             return rreg;
         }
 
+        case AST_UNARY_MINUS: {
+            int reg = generate_register_code_detail(ast->lhs);
+            appcode("neg %s", reg_name(ast->type->nbytes, reg));
+            return reg;
+        }
+
+        case AST_COMPL: {
+            int reg = generate_register_code_detail(ast->lhs);
+            appcode("not %s", reg_name(ast->type->nbytes, reg));
+            return reg;
+        }
+
+        case AST_LSHIFT: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("mov %s, #cl", reg_name(1, rreg));
+            appcode("sal #cl, %s", reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_RSHIFT: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("mov %s, #cl", reg_name(1, rreg));
+            appcode("sar #cl, %s", reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_LT: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                    reg_name(ast->type->nbytes, lreg));
+            appcode("setl #al");
+            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_LTE: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                    reg_name(ast->type->nbytes, lreg));
+            appcode("setle #al");
+            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_EQ: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                    reg_name(ast->type->nbytes, lreg));
+            appcode("sete #al");
+            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_AND: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("and %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_XOR: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("xor %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_OR: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("or %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
         case AST_FUNCDEF: {
             // allocate stack
             int stack_idx = 0;
