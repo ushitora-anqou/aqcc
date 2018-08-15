@@ -1,4 +1,5 @@
-CC=../../aqcc_self
+# AQCC
+AQCC=../../aqcc
 
 TARGET=nqueen
 SRC=main.c
@@ -8,7 +9,7 @@ $(TARGET) : $(ASSEMBLES)
 	gcc $^ -o $@
 
 %.s : %.c
-	$(CC) $< > $@
+	$(AQCC) $< > $@
 
 clean:
 	rm -f $(TARGET) $(ASSEMBLES)
