@@ -246,6 +246,15 @@ int generate_register_code_detail(AST *ast)
             return rreg;
         }
 
+        case AST_SUB: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("sub %s, %s", reg_name(ast->type->nbytes, rreg),
+                    reg_name(ast->type->nbytes, lreg));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
         case AST_FUNCDEF: {
             // allocate stack
             int stack_idx = 0;
