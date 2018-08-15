@@ -219,6 +219,12 @@ void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
     }
 }
 
+void generate_mov_mem_reg(int nbytes, int src_reg, int dst_reg)
+{
+    generate_mov_from_memory(nbytes, format("(%s)", reg_name(8, src_reg)),
+                             dst_reg);
+}
+
 int generate_register_code_detail(AST *ast)
 {
     switch (ast->kind) {
@@ -477,12 +483,58 @@ int generate_register_code_detail(AST *ast)
             appcode("ret");
         } break;
 
+        case AST_ASSIGN: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+
+            appcode("mov %s, (%s)", reg_name(ast->type->nbytes, rreg),
+                    reg_name(8, lreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_LVAR: {
+            int reg = get_temp_reg();
+            char *rname = reg_name(8, reg);
+            if (ast->type->is_static || ast->type->is_extern)
+                appcode("lea %s(#rip), %s", ast->gen_varname, rname);
+            else
+                appcode("lea %d(#rbp), %s", ast->stack_idx, rname);
+            return reg;
+        }
+
+        case AST_GVAR: {
+            int reg = get_temp_reg();
+            char *rname = reg_name(8, reg);
+            appcode("lea %s(#rip), %s", ast->gen_varname, rname);
+            return reg;
+        }
+
         case AST_COMPOUND: {
             int i;
 
             for (i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));
         } break;
+
+        case AST_EXPR_STMT:
+            if (ast->lhs == NULL) break;
+            generate_register_code_detail(ast->lhs);
+            break;
+
+        case AST_LVALUE2RVALUE: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = get_temp_reg();
+            generate_mov_mem_reg(ast->type->nbytes, lreg, rreg);
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_GVAR_DECL:
+        case AST_LVAR_DECL:
+        case AST_FUNC_DECL:
+        case AST_NOP:
+            break;
 
         defualt:
             warn("%d\n", ast->kind);
