@@ -503,11 +503,11 @@ int generate_register_code_detail(AST *ast)
             if (strcmp(last_appended_code(), "ret") == 0) return -1;
 
             if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
+            appcode("pop #r13");
+            appcode("pop #r14");
+            appcode("pop #r15");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
-            appcode("pop #r15");
-            appcode("pop #r14");
-            appcode("pop #r13");
             appcode("ret");
             return -1;
         }
