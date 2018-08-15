@@ -415,6 +415,7 @@ void assert(int cond);
 // lex.c
 Vector *read_all_tokens(char *src);
 const char *token_kind2str(int kind);
+Vector *concatenate_string_literal_tokens(Vector *tokens);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);

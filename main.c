@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 
     Vector *tokens = read_tokens_from_filepath(argv[1]);
     tokens = preprocess_tokens(tokens);
+    tokens = concatenate_string_literal_tokens(tokens);
     Vector *asts = parse_prog(tokens);
     analyze_ast(asts);
     Vector *code = generate_code(asts);

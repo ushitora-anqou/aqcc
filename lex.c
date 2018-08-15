@@ -508,3 +508,47 @@ const char *token_kind2str(int kind)
             return "***unknown token***";
     }
 }
+
+Vector *concatenate_string_literal_tokens(Vector *tokens)
+{
+    init_tokenseq(tokens);
+
+    Vector *ntokens = new_vector();
+    while (!match_token(tEOF)) {
+        if (!match_token(tSTRING_LITERAL)) {
+            vector_push_back(ntokens, pop_token());
+            continue;
+        }
+
+        Token *token = pop_token();
+        Vector *strs = new_vector();
+        vector_push_back(strs, token);
+        while (match_token(tSTRING_LITERAL))
+            vector_push_back(strs, pop_token());
+
+        // calc size
+        int size = 0;
+        for (int i = 0; i < vector_size(strs); i++)
+            size += ((Token *)vector_get(strs, i))->ssize - 1;
+        size++;  // '\0'
+
+        // concatenate strings
+        char *buf = (char *)safe_malloc(size);
+        int offset = 0;
+        for (int i = 0; i < vector_size(strs); i++) {
+            Token *token = (Token *)vector_get(strs, i);
+            memcpy(buf + offset, token->sval, token->ssize - 1);
+            offset += token->ssize - 1;
+        }
+
+        assert(offset == size - 1);
+        buf[offset] = '\0';
+
+        token->sval = buf;
+        token->ssize = size;
+        vector_push_back(ntokens, token);
+    }
+    vector_push_back(ntokens, pop_token());  // tEOF
+
+    return ntokens;
+}
