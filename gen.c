@@ -1,24 +1,21 @@
 #include "aqcc.h"
 
-int temp_reg_table[6];
+int temp_reg_table;
 
-void init_temp_reg()
-{
-    for (int i = 0; i < 6; i++) temp_reg_table[i] = 0;
-}
+void init_temp_reg() { temp_reg_table = 0; }
 
 int get_temp_reg()
 {
     for (int i = 0; i < 6; i++) {
-        if (temp_reg_table[i]) continue;
-        temp_reg_table[i] = 1;
+        if (temp_reg_table & (1 << i)) continue;
+        temp_reg_table |= (1 << i);
         return i + 7;  // corresponding to reg_name's index
     }
 
     error("no more register");
 }
 
-int restore_temp_reg(int i) { temp_reg_table[i - 7] = 0; }
+int restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
 
 const char *reg_name(int byte, int i)
 {
@@ -237,6 +234,9 @@ int generate_register_code_detail(AST *ast)
         case AST_RETURN: {
             int reg = generate_register_code_detail(ast->lhs);
             appcode("mov %s, #rax", reg_name(8, reg));
+            appcode("pop #r13");
+            appcode("pop #r14");
+            appcode("pop #r15");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
             appcode("ret");
@@ -463,6 +463,9 @@ int generate_register_code_detail(AST *ast)
             appcode("%s:", ast->fname);
             appcode("push #rbp");
             appcode("mov #rsp, #rbp");
+            appcode("push #r15");
+            appcode("push #r14");
+            appcode("push #r13");
             appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
 
             // assign param to localvar
@@ -492,6 +495,7 @@ int generate_register_code_detail(AST *ast)
             codeenv->overflow_arg_area_stack_idx =
                 ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
                             : -1;
+            init_temp_reg();
             generate_register_code_detail(ast->body);
             RESTORE_VARIADIC_CXT;
 
@@ -501,6 +505,9 @@ int generate_register_code_detail(AST *ast)
             if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
+            appcode("pop #r15");
+            appcode("pop #r14");
+            appcode("pop #r13");
             appcode("ret");
             return -1;
         }
@@ -529,6 +536,26 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
             char *rname = reg_name(8, reg);
             appcode("lea %s(#rip), %s", ast->gen_varname, rname);
+            return reg;
+        }
+
+        case AST_FUNCCALL: {
+            appcode("push #r10");
+            appcode("push #r11");
+            for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
+                int reg = generate_register_code_detail(
+                    (AST *)(vector_get(ast->args, i)));
+                appcode("push %s", reg_name(8, reg));
+                restore_temp_reg(reg);
+            }
+            for (int i = 0; i < min(6, vector_size(ast->args)); i++)
+                appcode("pop %s", reg_name(8, i + 1));
+            appcode("mov $0, #eax");
+            appcode("call %s@PLT", ast->fname);
+            appcode("pop #r11");
+            appcode("pop #r10");
+            int reg = get_temp_reg();
+            appcode("mov #rax, %s", reg_name(8, reg));
             return reg;
         }
 
@@ -617,16 +644,20 @@ int generate_register_code_detail(AST *ast)
 
             int cond_reg = generate_register_code_detail(ast->cond);
             appcode("cmp $0, %s", reg_name(ast->cond->type->nbytes, cond_reg));
+            restore_temp_reg(cond_reg);
             appcode("je %s", false_label);
             int then_reg = generate_register_code_detail(ast->then);
             appcode("jmp %s", exit_label);
             appcode("%s:", false_label);
             if (ast->els != NULL) {
+                restore_temp_reg(then_reg);
                 int els_reg = generate_register_code_detail(ast->els);
-                if (then_reg != els_reg)
+                if (then_reg != els_reg) {
                     appcode("mov %s, %s",
                             reg_name(ast->then->type->nbytes, els_reg),
                             reg_name(ast->els->type->nbytes, then_reg));
+                }
+                restore_temp_reg(els_reg);
             }
             appcode("%s:", exit_label);
             return then_reg;

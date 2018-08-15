@@ -236,3 +236,18 @@ int main()
     *(a + 4) = 10;
     return *(a + 4);
 }" 10
+test_aqcc_experiment "
+int test119fib(int n)
+{
+    return n == 0 ? 0 : n == 1 ? 1 : test119fib(n - 1) + test119fib(n - 2);
+}
+int main()
+{
+    return test119fib(5);
+}" 5
+test_aqcc_experiment "
+int eighth(int a, int b, int c, int d, int e, int f, int g, int h) { return h; }
+int main()
+{
+    return eighth(0, 1, 2, 3, 4, 5, 6, 7);
+}" 7
