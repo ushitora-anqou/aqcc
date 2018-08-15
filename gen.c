@@ -706,6 +706,10 @@ int generate_register_code_detail(AST *ast)
             appcode("jmp %s", codeenv->continue_label);
             return -1;
 
+        case AST_GOTO:
+            appcode("jmp %s", ast->label_name);
+            return -1;
+
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));

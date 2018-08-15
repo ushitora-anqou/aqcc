@@ -200,3 +200,15 @@ int main(){
     } while (1);
     return sum == 5 && i == 2;
 }" 1
+test_aqcc_experiment "
+int main()
+{
+    int i;
+    for (i = 0; i < 10; i++) {
+        switch (i)
+        case 5:
+            goto end_loop;
+    }
+end_loop:
+    return i;
+}" 5
