@@ -522,6 +522,16 @@ int generate_register_code_detail(AST *ast)
             return rreg;
         }
 
+        case AST_EXPR_LIST: {
+            int reg;
+            for (int i = 0; i < vector_size(ast->exprs); i++) {
+                reg = generate_register_code_detail(
+                    (AST *)vector_get(ast->exprs, i));
+                if (i != vector_size(ast->exprs)) restore_temp_reg(reg);
+            }
+            return reg;
+        }
+
         case AST_LVAR: {
             int reg = get_temp_reg();
             char *rname = reg_name(8, reg);

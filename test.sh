@@ -251,3 +251,5 @@ int main()
 {
     return eighth(0, 1, 2, 3, 4, 5, 6, 7);
 }" 7
+test_aqcc_experiment "int main() { int i; return i = 1, 2, 3; }" 3
+
