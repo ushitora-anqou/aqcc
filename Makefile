@@ -29,12 +29,16 @@ _test_self_test.sh: test.sh
 testutil.o: testutil.c aqcc.h
 	gcc -c testutil.c -o testutil.o
 
-clean:
-	rm $(SELF_OBJS)
-	rm $(SELF_ASSEMBLES)
-	rm _test_self_test.sh
-	rm $(TARGET) $(TARGET_SELF)
+examples: $(TARGET)
+	make -C examples
 
-.PHONY: test self self_test test clean
+clean:
+	make -C examples $@
+	rm -f $(SELF_OBJS)
+	rm -f $(SELF_ASSEMBLES)
+	rm -f _test_self_test.sh
+	rm -f $(TARGET) $(TARGET_SELF)
+
+.PHONY: test self self_test test clean examples
 
 .PRECIOUS: %.self.s
