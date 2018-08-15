@@ -119,3 +119,7 @@ test_aqcc_experiment "int main() { return -2 || 1; }" 1
 test_aqcc_experiment "int testasdgasdg; int main() { return testasdgasdg; }" 0
 test_aqcc_experiment "int main() { int a; a = 1; return a; }" 1
 test_aqcc_experiment "int main() { int a; a = 1; return a + 3 + 5; }" 9
+test_aqcc_experiment "int main() { int a; a = 0; return a++; }" 0
+test_aqcc_experiment "int main() { int a; a = 0; return ++a; }" 1
+test_aqcc_experiment "int main() { int a; a = 1; return a--; }" 1
+test_aqcc_experiment "int main() { int a; a = 1; return --a; }" 0

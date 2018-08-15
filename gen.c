@@ -510,6 +510,80 @@ int generate_register_code_detail(AST *ast)
             return reg;
         }
 
+        case AST_POSTINC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            int lreg = generate_register_code_detail(ast->lhs);
+            char *lreg_name = reg_name(8, lreg);
+            int reg = get_temp_reg();
+            generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("add%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
+                        lreg_name);
+            else
+                appcode("inc%c (%s)", suf, lreg_name);
+
+            restore_temp_reg(lreg);
+            return reg;
+        } break;
+
+        case AST_PREINC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            int lreg = generate_register_code_detail(ast->lhs);
+            char *lreg_name = reg_name(8, lreg);
+            int reg = get_temp_reg();
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("add%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
+                        lreg_name);
+            else
+                appcode("inc%c (%s)", suf, lreg_name);
+
+            generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
+
+            restore_temp_reg(lreg);
+            return reg;
+        } break;
+
+        case AST_POSTDEC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            int lreg = generate_register_code_detail(ast->lhs);
+            char *lreg_name = reg_name(8, lreg);
+            int reg = get_temp_reg();
+            generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("sub%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
+                        lreg_name);
+            else
+                appcode("dec%c (%s)", suf, lreg_name);
+
+            restore_temp_reg(lreg);
+            return reg;
+        } break;
+
+        case AST_PREDEC: {
+            char suf = byte2suffix(ast->lhs->type->nbytes);
+
+            int lreg = generate_register_code_detail(ast->lhs);
+            char *lreg_name = reg_name(8, lreg);
+            int reg = get_temp_reg();
+
+            if (match_type(ast->lhs, TY_PTR))
+                appcode("sub%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
+                        lreg_name);
+            else
+                appcode("dec%c (%s)", suf, lreg_name);
+
+            generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
+
+            restore_temp_reg(lreg);
+            return reg;
+        } break;
+
         case AST_COMPOUND: {
             int i;
 
