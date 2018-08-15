@@ -36,4 +36,9 @@ test_aqcc_experiment "int main() { return 3 + 4; }" 7
 test_aqcc_experiment "int main() { return 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10; }" 52
 test_aqcc_experiment "int main() { return 4 - 3; }" 1
 test_aqcc_experiment "int main() { return 3 + 4 + 5 - 6 + 7 - 8 + 9 - 10; }" 4
-
+test_aqcc_experiment "int main() { return 4 * 3; }" 12
+test_aqcc_experiment "int main() { return 3 + 4 * 5 - 6 + 7 * 8 + 9 - 10; }" 72
+test_aqcc_experiment "int main() { return 12 / 4; }" 3
+test_aqcc_experiment "int main() { return 1 + 3 * 4 / 12 - 1; }" 1
+test_aqcc_experiment "int main() { return 11 % 4; }" 3
+test_aqcc_experiment "int main() { return 1 + 6 * 4 / 12 % 2 - 1; }" 0

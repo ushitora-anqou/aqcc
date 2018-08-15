@@ -255,6 +255,39 @@ int generate_register_code_detail(AST *ast)
             return lreg;
         }
 
+        case AST_MUL: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("imul %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_DIV: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("mov %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, 0));
+            appcode("cltd");
+            appcode("idiv %s", reg_name(ast->type->nbytes, rreg));
+            appcode("mov #rax, %s", reg_name(8, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
+        case AST_REM: {
+            int lreg = generate_register_code_detail(ast->lhs),
+                rreg = generate_register_code_detail(ast->rhs);
+            appcode("mov %s, %s", reg_name(ast->type->nbytes, lreg),
+                    reg_name(ast->type->nbytes, 0));
+            appcode("cltd");
+            appcode("idiv %s", reg_name(ast->type->nbytes, rreg));
+            appcode("mov #rdx, %s", reg_name(8, rreg));
+            restore_temp_reg(lreg);
+            return rreg;
+        }
+
         case AST_FUNCDEF: {
             // allocate stack
             int stack_idx = 0;
