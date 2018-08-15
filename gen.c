@@ -378,6 +378,46 @@ int generate_register_code_detail(AST *ast)
             return rreg;
         }
 
+        case AST_LAND: {
+            char *false_label = make_label_string(),
+                 *exit_label = make_label_string();
+            int lreg = generate_register_code_detail(ast->lhs);
+            restore_temp_reg(lreg);
+            appcode("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode("je %s", false_label);
+            // don't execute rhs expression if lhs is false.
+            int rreg = generate_register_code_detail(ast->rhs);
+            char *rreg_name = reg_name(ast->type->nbytes, rreg);
+            appcode("cmp $0, %s", rreg_name);
+            appcode("je %s", false_label);
+            appcode("mov $1, %s", rreg_name);
+            appcode("jmp %s", exit_label);
+            appcode("%s:", false_label);
+            appcode("mov $0, %s", rreg_name);
+            appcode("%s:", exit_label);
+            return rreg;
+        } break;
+
+        case AST_LOR: {
+            char *true_label = make_label_string(),
+                 *exit_label = make_label_string();
+            int lreg = generate_register_code_detail(ast->lhs);
+            restore_temp_reg(lreg);
+            appcode("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode("jne %s", true_label);
+            // don't execute rhs expression if lhs is true.
+            int rreg = generate_register_code_detail(ast->rhs);
+            char *rreg_name = reg_name(ast->type->nbytes, rreg);
+            appcode("cmp $0, %s", rreg_name);
+            appcode("jne %s", true_label);
+            appcode("cmp $0, %s", rreg_name);
+            appcode("jmp %s", exit_label);
+            appcode("%s:", true_label);
+            appcode("mov $1, %s", rreg_name);
+            appcode("%s:", exit_label);
+            return rreg;
+        } break;
+
         case AST_FUNCDEF: {
             // allocate stack
             int stack_idx = 0;

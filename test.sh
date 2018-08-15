@@ -104,3 +104,15 @@ test_aqcc_experiment "int main() { return 1 | 1; }" 1
 test_aqcc_experiment "int main() { return 1 | 2; }" 3
 test_aqcc_experiment "int main() { return 2 | 2; }" 2
 test_aqcc_experiment "int main() { return 3 | 5; }" 7
+test_aqcc_experiment "int main() { return 1 && 0; }" 0
+test_aqcc_experiment "int main() { return 1 && 1; }" 1
+test_aqcc_experiment "int main() { return 0 && 1; }" 0
+test_aqcc_experiment "int main() { return 0 && 0; }" 0
+test_aqcc_experiment "int main() { return 2 && 1; }" 1
+test_aqcc_experiment "int main() { return -2 || 1; }" 1
+test_aqcc_experiment "int main() { return 1 || 0; }" 1
+test_aqcc_experiment "int main() { return 1 || 1; }" 1
+test_aqcc_experiment "int main() { return 0 || 1; }" 1
+test_aqcc_experiment "int main() { return 0 || 0; }" 0
+test_aqcc_experiment "int main() { return 2 || 1; }" 1
+test_aqcc_experiment "int main() { return -2 || 1; }" 1
