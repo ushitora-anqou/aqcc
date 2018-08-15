@@ -241,7 +241,8 @@ int generate_register_code_detail(AST *ast)
             appcode("pop #rbp");
             appcode("ret");
             restore_temp_reg(reg);
-        } break;
+            return -1;
+        }
 
         case AST_ADD: {
             int lreg = generate_register_code_detail(ast->lhs),
@@ -402,7 +403,7 @@ int generate_register_code_detail(AST *ast)
             appcode("mov $0, %s", rreg_name);
             appcode("%s:", exit_label);
             return rreg;
-        } break;
+        }
 
         case AST_LOR: {
             char *true_label = make_label_string(),
@@ -422,7 +423,7 @@ int generate_register_code_detail(AST *ast)
             appcode("mov $1, %s", rreg_name);
             appcode("%s:", exit_label);
             return rreg;
-        } break;
+        }
 
         case AST_FUNCDEF: {
             // allocate stack
@@ -475,13 +476,14 @@ int generate_register_code_detail(AST *ast)
             RESTORE_VARIADIC_CXT;
 
             // avoid duplicate needless `ret`
-            if (strcmp(last_appended_code(), "ret") == 0) break;
+            if (strcmp(last_appended_code(), "ret") == 0) return -1;
 
             if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
             appcode("mov #rbp, #rsp");
             appcode("pop #rbp");
             appcode("ret");
-        } break;
+            return -1;
+        }
 
         case AST_ASSIGN: {
             int lreg = generate_register_code_detail(ast->lhs),
@@ -526,7 +528,7 @@ int generate_register_code_detail(AST *ast)
 
             restore_temp_reg(lreg);
             return reg;
-        } break;
+        }
 
         case AST_PREINC: {
             char suf = byte2suffix(ast->lhs->type->nbytes);
@@ -545,7 +547,7 @@ int generate_register_code_detail(AST *ast)
 
             restore_temp_reg(lreg);
             return reg;
-        } break;
+        }
 
         case AST_POSTDEC: {
             char suf = byte2suffix(ast->lhs->type->nbytes);
@@ -563,7 +565,7 @@ int generate_register_code_detail(AST *ast)
 
             restore_temp_reg(lreg);
             return reg;
-        } break;
+        }
 
         case AST_PREDEC: {
             char suf = byte2suffix(ast->lhs->type->nbytes);
@@ -582,19 +584,16 @@ int generate_register_code_detail(AST *ast)
 
             restore_temp_reg(lreg);
             return reg;
-        } break;
+        }
 
-        case AST_COMPOUND: {
-            int i;
-
-            for (i = 0; i < vector_size(ast->stmts); i++)
+        case AST_COMPOUND:
+            for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));
-        } break;
+            return -1;
 
         case AST_EXPR_STMT:
-            if (ast->lhs == NULL) break;
-            generate_register_code_detail(ast->lhs);
-            break;
+            if (ast->lhs != NULL) generate_register_code_detail(ast->lhs);
+            return -1;
 
         case AST_LVALUE2RVALUE: {
             int lreg = generate_register_code_detail(ast->lhs),
@@ -604,18 +603,28 @@ int generate_register_code_detail(AST *ast)
             return rreg;
         }
 
+        case AST_LVAR_DECL_INIT:
+        case AST_GVAR_DECL_INIT: {
+            generate_register_code_detail(ast->lhs);
+            int rreg = generate_register_code_detail(ast->rhs);
+            if (rreg != -1) restore_temp_reg(rreg);
+            return -1;
+        }
+
+        case AST_DECL_LIST:
+            for (int i = 0; i < vector_size(ast->decls); i++)
+                generate_register_code_detail((AST *)vector_get(ast->decls, i));
+            return -1;
+
         case AST_GVAR_DECL:
         case AST_LVAR_DECL:
         case AST_FUNC_DECL:
         case AST_NOP:
-            break;
-
-        defualt:
-            warn("%d\n", ast->kind);
-            assert(0);
+            return -1;
     }
 
-    return -1;
+    warn("%d\n", ast->kind);
+    assert(0);
 }
 
 void generate_code_detail(AST *ast)
