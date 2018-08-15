@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv)
 {
-    if (argc != 2 && argc != 3) error("Usage: aqcc FILEPATH");
+    if (argc != 2) error("Usage: aqcc FILEPATH");
 
     if (strcmp(argv[1], "test") == 0) {
         execute_test();

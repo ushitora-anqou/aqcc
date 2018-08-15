@@ -238,7 +238,7 @@ int generate_register_code_detail(AST *ast)
                 appcode("mov %s, #rax", reg_name(8, reg));
             }
             else {
-                appcode("mov 0, #rax");
+                appcode("mov $0, #rax");
             }
             appcode("pop #r13");
             appcode("pop #r14");
@@ -472,10 +472,10 @@ int generate_register_code_detail(AST *ast)
             appcode("%s:", ast->fname);
             appcode("push #rbp");
             appcode("mov #rsp, #rbp");
+            appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
             appcode("push #r15");
             appcode("push #r14");
             appcode("push #r13");
-            appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
 
             // assign param to localvar
             if (ast->params) {
