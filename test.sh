@@ -212,3 +212,13 @@ int main()
 end_loop:
     return i;
 }" 5
+test_aqcc_experiment "
+int main()
+{
+    struct hoge {
+        int a;
+    };
+    struct hoge a;
+    a.a = 1;
+    return a.a;
+}" 1

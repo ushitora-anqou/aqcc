@@ -710,6 +710,17 @@ int generate_register_code_detail(AST *ast)
             appcode("jmp %s", ast->label_name);
             return -1;
 
+        case AST_MEMBER_REF: {
+            int offset =
+                lookup_member_offset(ast->stsrc->type->members, ast->member);
+            // the member existence is confirmed when analysis.
+            assert(offset >= 0);
+
+            int reg = generate_register_code_detail(ast->stsrc);
+            appcode("add $%d, %s", offset, reg_name(8, reg));
+            return reg;
+        }
+
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));
