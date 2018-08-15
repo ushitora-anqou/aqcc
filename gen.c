@@ -247,6 +247,16 @@ int generate_register_code_detail(AST *ast)
         case AST_ADD: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
+
+            // int + ptr
+            // TODO: shift
+            // TODO: long
+            if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
+                appcode("cltq");
+                appcode("imul $%d, %s", ast->rhs->type->ptr_of->nbytes,
+                        reg_name(4, lreg));
+            }
+
             appcode("add %s, %s", reg_name(ast->type->nbytes, lreg),
                     reg_name(ast->type->nbytes, rreg));
             restore_temp_reg(lreg);
@@ -256,6 +266,16 @@ int generate_register_code_detail(AST *ast)
         case AST_SUB: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
+
+            // ptr - int
+            // TODO: shift
+            // TODO: long
+            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
+                appcode("cltq");
+                appcode("imul $%d, %s", ast->lhs->type->ptr_of->nbytes,
+                        reg_name(4, rreg));
+            }
+
             appcode("sub %s, %s", reg_name(ast->type->nbytes, rreg),
                     reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
@@ -732,6 +752,12 @@ int generate_register_code_detail(AST *ast)
                 if (reg != -1) restore_temp_reg(reg);
             }
             return -1;
+
+        case AST_ARY2PTR:
+            return generate_register_code_detail(ast->ary);
+
+        case AST_CHAR2INT:
+            return generate_register_code_detail(ast->lhs);
 
         case AST_LVALUE2RVALUE: {
             int lreg = generate_register_code_detail(ast->lhs),

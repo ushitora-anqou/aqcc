@@ -222,3 +222,17 @@ int main()
     a.a = 1;
     return a.a;
 }" 1
+test_aqcc_experiment "
+int main()
+{
+    char ary[5];
+    ary[0] = ary[1] = 10;
+    return ary[0] + ary[1];
+}" 20
+test_aqcc_experiment "
+int main()
+{
+    char a[10];
+    *(a + 4) = 10;
+    return *(a + 4);
+}" 10
