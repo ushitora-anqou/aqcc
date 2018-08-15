@@ -423,6 +423,7 @@ Vector *parse_prog(Vector *tokens);
 // gen.c
 Vector *generate_code(Vector *asts);
 void dump_code(Vector *codes, FILE *fh);
+Vector *generate_register_code(Vector *asts);
 
 // type.c
 Type *type_int();

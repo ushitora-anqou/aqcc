@@ -1,8 +1,28 @@
 #include "aqcc.h"
 
+int temp_reg_table[6];
+
+void init_temp_reg()
+{
+    for (int i = 0; i < 6; i++) temp_reg_table[i] = 0;
+}
+
+int get_temp_reg()
+{
+    for (int i = 0; i < 6; i++) {
+        if (temp_reg_table[i]) continue;
+        temp_reg_table[i] = 1;
+        return i + 7;  // corresponding to reg_name's index
+    }
+
+    error("no more register");
+}
+
+int restore_temp_reg(int i) { temp_reg_table[i - 7] = 0; }
+
 const char *reg_name(int byte, int i)
 {
-    const char *lreg[7];
+    const char *lreg[13];
     lreg[0] = "%al";
     lreg[1] = "%dil";
     lreg[2] = "%sil";
@@ -10,7 +30,13 @@ const char *reg_name(int byte, int i)
     lreg[4] = "%cl";
     lreg[5] = "%r8b";
     lreg[6] = "%r9b";
-    const char *xreg[7];
+    lreg[7] = "%r10b";
+    lreg[8] = "%r11b";
+    lreg[9] = "%r12b";
+    lreg[10] = "%r13b";
+    lreg[11] = "%r14b";
+    lreg[12] = "%r15b";
+    const char *xreg[13];
     xreg[0] = "%ax";
     xreg[1] = "%di";
     xreg[2] = "%si";
@@ -18,7 +44,13 @@ const char *reg_name(int byte, int i)
     xreg[4] = "%cx";
     xreg[5] = "%r8w";
     xreg[6] = "%r9w";
-    const char *ereg[7];
+    xreg[7] = "%r10w";
+    xreg[8] = "%r11w";
+    xreg[9] = "%r12w";
+    xreg[10] = "%r13w";
+    xreg[11] = "%r14w";
+    xreg[12] = "%r15w";
+    const char *ereg[13];
     ereg[0] = "%eax";
     ereg[1] = "%edi";
     ereg[2] = "%esi";
@@ -26,7 +58,13 @@ const char *reg_name(int byte, int i)
     ereg[4] = "%ecx";
     ereg[5] = "%r8d";
     ereg[6] = "%r9d";
-    const char *rreg[7];
+    ereg[7] = "%r10d";
+    ereg[8] = "%r11d";
+    ereg[9] = "%r12d";
+    ereg[10] = "%r13d";
+    ereg[11] = "%r14d";
+    ereg[12] = "%r15d";
+    const char *rreg[13];
     rreg[0] = "%rax";
     rreg[1] = "%rdi";
     rreg[2] = "%rsi";
@@ -34,8 +72,14 @@ const char *reg_name(int byte, int i)
     rreg[4] = "%rcx";
     rreg[5] = "%r8";
     rreg[6] = "%r9";
+    rreg[7] = "%r10";
+    rreg[8] = "%r11";
+    rreg[9] = "%r12";
+    rreg[10] = "%r13";
+    rreg[11] = "%r14";
+    rreg[12] = "%r15";
 
-    assert(0 <= i && i <= 6);
+    assert(0 <= i && i <= 12);
 
     switch (byte) {
         case 1:
@@ -173,6 +217,99 @@ void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
         default:
             assert(0);
     }
+}
+
+int generate_register_code_detail(AST *ast)
+{
+    switch (ast->kind) {
+        case AST_INT: {
+            int reg = get_temp_reg();
+            appcode("mov $%d, %s", ast->ival, reg_name(4, reg));
+            return reg;
+        } break;
+
+        case AST_RETURN: {
+            assert(ast->lhs->kind == AST_INT);
+            int reg = generate_register_code_detail(ast->lhs);
+            appcode("mov %s, #rax", reg_name(8, reg));
+            appcode("mov #rbp, #rsp");
+            appcode("pop #rbp");
+            appcode("ret");
+            restore_temp_reg(reg);
+        } break;
+
+        case AST_FUNCDEF: {
+            // allocate stack
+            int stack_idx = 0;
+            for (int i = ast->params ? max(0, vector_size(ast->params) - 6) : 0;
+                 i < vector_size(ast->env->scoped_vars); i++) {
+                AST *var = (AST *)(vector_get(ast->env->scoped_vars, i));
+
+                stack_idx -= var->type->nbytes;
+                var->stack_idx = stack_idx;
+            }
+
+            stack_idx -= (!!ast->is_variadic) * 48;
+
+            // generate code
+            appcode(".global %s", ast->fname);
+            appcode("%s:", ast->fname);
+            appcode("push #rbp");
+            appcode("mov #rsp, #rbp");
+            appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
+
+            // assign param to localvar
+            if (ast->params) {
+                for (int i = 0; i < vector_size(ast->params); i++) {
+                    AST *var = lookup_var(
+                        ast->env, ((AST *)vector_get(ast->params, i))->varname);
+                    if (i < 6)
+                        appcode("mov %s, %d(#rbp)",
+                                reg_name(var->type->nbytes, i + 1),
+                                var->stack_idx);
+                    else
+                        // should avoid return pointer and saved %rbp
+                        var->stack_idx = 16 + (i - 6) * 8;
+                }
+            }
+
+            // place Register Save Area if the function has variadic params.
+            if (ast->is_variadic)
+                for (int i = 0; i < 6; i++)
+                    appcode("mov %s, %d(#rbp)", reg_name(8, i + 1),
+                            stack_idx + i * 8);
+
+            // generate body
+            SAVE_VARIADIC_CXT;
+            codeenv->reg_save_area_stack_idx = stack_idx;
+            codeenv->overflow_arg_area_stack_idx =
+                ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
+                            : -1;
+            generate_register_code_detail(ast->body);
+            RESTORE_VARIADIC_CXT;
+
+            // avoid duplicate needless `ret`
+            if (strcmp(last_appended_code(), "ret") == 0) break;
+
+            if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
+            appcode("mov #rbp, #rsp");
+            appcode("pop #rbp");
+            appcode("ret");
+        } break;
+
+        case AST_COMPOUND: {
+            int i;
+
+            for (i = 0; i < vector_size(ast->stmts); i++)
+                generate_register_code_detail((AST *)vector_get(ast->stmts, i));
+        } break;
+
+        defualt:
+            warn("%d\n", ast->kind);
+            assert(0);
+    }
+
+    return -1;
 }
 
 void generate_code_detail(AST *ast)
@@ -758,6 +895,47 @@ Vector *generate_code(Vector *asts)
 
     for (int i = 0; i < vector_size(asts); i++)
         generate_code_detail((AST *)vector_get(asts, i));
+
+    appcode(".data");
+
+    Vector *gvar_list = get_gvar_list();
+    for (int i = 0; i < vector_size(gvar_list); i++) {
+        GVar *gvar = (GVar *)vector_get(gvar_list, i);
+
+        appcode("%s:", gvar->name);
+        if (gvar->sval) {
+            assert(gvar->type->kind == TY_ARY &&
+                   gvar->type->ptr_of->kind == TY_CHAR);
+            appcode(".ascii \"%s\"",
+                    escape_string(gvar->sval, gvar->type->nbytes));
+            continue;
+        }
+
+        if (gvar->ival == 0) {
+            appcode(".zero %d", gvar->type->nbytes);
+            continue;
+        }
+
+        assert(gvar->type->kind != TY_ARY);  // TODO: implement
+
+        const char *type2spec[16];  // TODO: enough length?
+        type2spec[TY_INT] = ".long";
+        type2spec[TY_CHAR] = ".byte";
+        type2spec[TY_PTR] = ".quad";
+        appcode("%s %d", type2spec[gvar->type->kind], gvar->ival);
+    }
+
+    return clone_vector(codeenv->code);
+}
+
+Vector *generate_register_code(Vector *asts)
+{
+    init_code_env();
+
+    appcode(".text");
+
+    for (int i = 0; i < vector_size(asts); i++)
+        generate_register_code_detail((AST *)vector_get(asts, i));
 
     appcode(".data");
 
