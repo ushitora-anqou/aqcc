@@ -17,10 +17,7 @@ int main(int argc, char **argv)
     Vector *asts = parse_prog(tokens);
     analyze_ast(asts);
     Vector *code;
-    if (argc == 3 && strcmp(argv[2], "experiment") == 0)
-        code = generate_register_code(asts);
-    else
-        code = generate_code(asts);
+    code = generate_register_code(asts);
 
     dump_code(code, stdout);
 
