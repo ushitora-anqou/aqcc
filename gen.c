@@ -821,6 +821,22 @@ int generate_register_code_detail(AST *ast)
                 generate_register_code_detail((AST *)vector_get(ast->decls, i));
             return -1;
 
+        case AST_VA_START: {
+            int reg = generate_register_code_detail(ast->lhs);
+            char *rname = reg_name(8, reg);
+            assert(ast->rhs->kind == AST_INT);
+            appcode("movl $%d, (%s)", ast->rhs->ival * 8, rname);
+            appcode("movl $48, 4(%s)", rname);
+            appcode("leaq %d(#rbp), #rdi", codeenv->overflow_arg_area_stack_idx,
+                    rname);
+            appcode("mov #rdi, 8(%s)", rname);
+            appcode("leaq %d(#rbp), #rdi", codeenv->reg_save_area_stack_idx,
+                    rname);
+            appcode("mov #rdi, 16(%s)", rname);
+            restore_temp_reg(reg);
+            return -1;
+        }
+
         case AST_GVAR_DECL:
         case AST_LVAR_DECL:
         case AST_FUNC_DECL:

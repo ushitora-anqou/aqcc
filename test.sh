@@ -252,4 +252,31 @@ int main()
     return eighth(0, 1, 2, 3, 4, 5, 6, 7);
 }" 7
 test_aqcc_experiment "int main() { int i; return i = 1, 2, 3; }" 3
+test_aqcc_experiment "
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
 
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+
+int vsprintf(char *str, const char *format, va_list ap);
+void test346vsprintf(char *p, char *str, ...)
+{
+    va_list args;
+    va_start(args, str);
+    vsprintf(p, str, args);
+    va_end(args);
+}
+
+int strcmp(char *lhs, char *rhs);
+int main()
+{
+    char buf[256];
+    test346vsprintf(buf, \"test%s\", \"abc\");
+    if (strcmp(buf, \"testabc\") == 0)  return 1;
+    return 0;
+}" 1
