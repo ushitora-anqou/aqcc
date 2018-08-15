@@ -586,6 +586,10 @@ int generate_register_code_detail(AST *ast)
             return reg;
         }
 
+        case AST_ADDR:
+        case AST_INDIR:
+            return generate_register_code_detail(ast->lhs);
+
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 generate_register_code_detail((AST *)vector_get(ast->stmts, i));

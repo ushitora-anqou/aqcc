@@ -123,3 +123,4 @@ test_aqcc_experiment "int main() { int a = 0; return a++; }" 0
 test_aqcc_experiment "int main() { int a = 0; return ++a; }" 1
 test_aqcc_experiment "int main() { int a = 1; return a--; }" 1
 test_aqcc_experiment "int main() { int a = 1; return --a; }" 0
+test_aqcc_experiment "int main() { int a = 54, *b = &a; return *b; }" 54
