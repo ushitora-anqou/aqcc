@@ -177,3 +177,26 @@ int main() {
     } while (i < 5);
     return i;
 }" 5
+test_aqcc_experiment "
+int main(){
+    int a = 0;
+    int i;
+    for (i = 0; i <= 10; i = i + 1) {
+        a = a + i;
+    }
+    return a;
+}" 55
+test_aqcc_experiment "
+int main(){
+    int sum = 0, i = 0;
+    do {
+        for (int i = 0; i < 5; i++) {
+            sum++;
+            if (sum >= 3) break;
+        }
+        if (sum == 4) continue;
+        i++;
+        if (sum == 5) break;
+    } while (1);
+    return sum == 5 && i == 2;
+}" 1

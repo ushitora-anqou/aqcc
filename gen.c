@@ -652,6 +652,41 @@ int generate_register_code_detail(AST *ast)
             appcode("jne %s", start_label);
             appcode("%s:", codeenv->break_label);
 
+            restore_temp_reg(cond_reg);
+            RESTORE_BREAK_CXT;
+            RESTORE_CONTINUE_CXT;
+
+            return -1;
+        }
+
+        case AST_FOR: {
+            SAVE_BREAK_CXT;
+            SAVE_CONTINUE_CXT;
+            codeenv->break_label = make_label_string();
+            codeenv->continue_label = make_label_string();
+            char *start_label = make_label_string();
+
+            if (ast->initer != NULL) {
+                int reg = generate_register_code_detail(ast->initer);
+                if (reg != -1) restore_temp_reg(reg);  // if expr
+            }
+            appcode("%s:", start_label);
+            if (ast->midcond != NULL) {
+                int reg = generate_register_code_detail(ast->midcond);
+                appcode("cmp $0, %s",
+                        reg_name(ast->midcond->type->nbytes, reg));
+                appcode("je %s", codeenv->break_label);
+                restore_temp_reg(reg);
+            }
+            generate_register_code_detail(ast->for_body);
+            appcode("%s:", codeenv->continue_label);
+            if (ast->iterer != NULL) {
+                int reg = generate_register_code_detail(ast->iterer);
+                if (reg != -1) restore_temp_reg(reg);  // if nop
+            }
+            appcode("jmp %s", start_label);
+            appcode("%s:", codeenv->break_label);
+
             RESTORE_BREAK_CXT;
             RESTORE_CONTINUE_CXT;
 
@@ -677,7 +712,10 @@ int generate_register_code_detail(AST *ast)
             return -1;
 
         case AST_EXPR_STMT:
-            if (ast->lhs != NULL) generate_register_code_detail(ast->lhs);
+            if (ast->lhs != NULL) {
+                int reg = generate_register_code_detail(ast->lhs);
+                if (reg != -1) restore_temp_reg(reg);
+            }
             return -1;
 
         case AST_LVALUE2RVALUE: {
