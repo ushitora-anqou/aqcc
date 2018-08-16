@@ -20,7 +20,67 @@ AST *optimize_ast_constant_detail(AST *ast)
         case AST_OR:
         case AST_LAND:
         case AST_LOR:
-        case AST_NEQ:
+        case AST_NEQ: {
+            ast->lhs = optimize_ast_constant_detail(ast->lhs),
+            ast->rhs = optimize_ast_constant_detail(ast->rhs);
+            if (ast->lhs->kind != AST_INT || ast->rhs->kind != AST_INT)
+                return ast;
+            // TODO: feature work: long
+            int ret = 0;
+            switch (ast->kind) {
+                case AST_ADD:
+                    ret = ast->lhs->ival + ast->rhs->ival;
+                    break;
+                case AST_SUB:
+                    ret = ast->lhs->ival - ast->rhs->ival;
+                    break;
+                case AST_MUL:
+                    ret = ast->lhs->ival * ast->rhs->ival;
+                    break;
+                case AST_DIV:
+                    ret = ast->lhs->ival / ast->rhs->ival;
+                    break;
+                case AST_REM:
+                    ret = ast->lhs->ival % ast->rhs->ival;
+                    break;
+                case AST_LSHIFT:
+                    ret = ast->lhs->ival << ast->rhs->ival;
+                    break;
+                case AST_RSHIFT:
+                    ret = ast->lhs->ival >> ast->rhs->ival;
+                    break;
+                case AST_LT:
+                    ret = ast->lhs->ival < ast->rhs->ival;
+                    break;
+                case AST_LTE:
+                    ret = ast->lhs->ival <= ast->rhs->ival;
+                    break;
+                case AST_EQ:
+                    ret = ast->lhs->ival == ast->rhs->ival;
+                    break;
+                case AST_AND:
+                    ret = ast->lhs->ival & ast->rhs->ival;
+                    break;
+                case AST_XOR:
+                    ret = ast->lhs->ival ^ ast->rhs->ival;
+                    break;
+                case AST_OR:
+                    ret = ast->lhs->ival | ast->rhs->ival;
+                    break;
+                case AST_LAND:
+                    ret = ast->lhs->ival && ast->rhs->ival;
+                    break;
+                case AST_LOR:
+                    ret = ast->lhs->ival || ast->rhs->ival;
+                    break;
+                case AST_NEQ:
+                    ret = ast->lhs->ival != ast->rhs->ival;
+                    break;
+            }
+
+            return new_int_ast(ret);
+        }
+
         case AST_ASSIGN:
         case AST_LVAR_DECL_INIT:
         case AST_GVAR_DECL_INIT:
