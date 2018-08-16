@@ -29,11 +29,25 @@ Code *new_other_code(char *other_op)
     return code;
 }
 
-Code *value(int value) { return new_unary_code(CD_VALUE, value); }
+Code *value(int value)
+{
+    Code *code = new_code(CD_VALUE);
+    code->ival = value;
+    return code;
+}
 
 Code *addrof(int reg, int offset)
 {
-    return new_binop_code(CD_ADDR_OF, new_code(reg), value(offset));
+    Code *code = new_code(CD_ADDR_OF);
+    code->lhs = new_code(reg);
+    code->ival = offset;
+}
+
+Code *mov(Code *lhs, Code *rhs) { return new_binop_code(INST_MOV, lhs, rhs); }
+
+Code *movsbl(Code *lhs, Code *rhs)
+{
+    return new_binop_code(INST_MOVSBL, lhs, rhs);
 }
 
 int temp_reg_table;

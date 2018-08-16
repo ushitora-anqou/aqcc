@@ -392,7 +392,7 @@ struct AST {
 };
 
 enum {
-    REG_8 = 1 << 6,
+    REG_8 = 1 << 5,
     REG_AL = 0 | REG_8,
     REG_DIL,
     REG_SIL,
@@ -407,7 +407,7 @@ enum {
     REG_R14B,
     REG_R15B,
 
-    REG_16 = 1 << 7,
+    REG_16 = 1 << 6,
     REG_AX = 0 | REG_16,
     REG_DI,
     REG_SI,
@@ -453,7 +453,7 @@ enum {
     REG_R15,
 
     INST_MOV = 1 << 9,
-    INST_MOVSB,
+    INST_MOVSBL,
     INST_OTHER,
 
     CD_VALUE,
@@ -466,6 +466,7 @@ struct Code {
 
     char *other_op;
     Code *lhs, *rhs;
+    int ival;
 };
 
 // utility.c
