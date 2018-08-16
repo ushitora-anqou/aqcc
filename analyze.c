@@ -347,7 +347,7 @@ Type *analyze_type(Env *env, Type *type)
                         break;
 
                     case AST_ENUM_VAR_DECL_INIT:
-                        ast = optimize_ast_constant(ast);
+                        ast = optimize_ast_constant(ast, env);
                         if (ast->rhs->rhs->kind != AST_INT)
                             error(
                                 "constant expression is needed for enum "
@@ -556,7 +556,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 error("extern variable can't have any initializer: '%s'",
                       ast->lhs->varname);
             if (ast->lhs->type->is_static) {
-                ast->rhs = optimize_ast_constant(ast->rhs);
+                ast->rhs = optimize_ast_constant(ast->rhs, env);
                 if (ast->rhs->rhs->kind != AST_INT)
                     error(
                         "static local variable initializer must be constant.");
@@ -575,7 +575,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_GVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
-            ast->rhs = optimize_ast_constant(ast->rhs);
+            ast->rhs = optimize_ast_constant(ast->rhs, env);
             if (ast->rhs->rhs->kind != AST_INT)
                 error("global variable initializer must be constant.");
             if (ast->lhs->type->is_extern)
@@ -688,7 +688,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_CASE:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
-            ast->lhs = optimize_ast_constant(ast->lhs);
+            ast->lhs = optimize_ast_constant(ast->lhs, env);
             if (ast->lhs->kind != AST_INT)
                 error("case should take a constant expression.");
             ast = add_switch_case(ast);
@@ -832,7 +832,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
     return ast;
 }
 
-void analyze_ast(Vector *asts)
+Env *analyze_ast(Vector *asts)
 {
     Env *env = new_env(NULL);
     init_gvar_list();

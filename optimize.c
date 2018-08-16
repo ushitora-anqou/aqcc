@@ -1,6 +1,6 @@
 #include "aqcc.h"
 
-AST *optimize_ast_constant_detail(AST *ast)
+AST *optimize_ast_constant_detail(AST *ast, Env *env)
 {
     if (ast == NULL) return ast;
 
@@ -21,8 +21,8 @@ AST *optimize_ast_constant_detail(AST *ast)
         case AST_LAND:
         case AST_LOR:
         case AST_NEQ: {
-            ast->lhs = optimize_ast_constant_detail(ast->lhs),
-            ast->rhs = optimize_ast_constant_detail(ast->rhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env),
+            ast->rhs = optimize_ast_constant_detail(ast->rhs, env);
             if (ast->lhs->kind != AST_INT || ast->rhs->kind != AST_INT)
                 return ast;
             // TODO: feature work: long
@@ -87,14 +87,14 @@ AST *optimize_ast_constant_detail(AST *ast)
         case AST_LVAR_DECL_INIT:
         case AST_GVAR_DECL_INIT:
         case AST_ENUM_VAR_DECL_INIT:
-            ast->lhs = optimize_ast_constant_detail(ast->lhs);
-            ast->rhs = optimize_ast_constant_detail(ast->rhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env);
+            ast->rhs = optimize_ast_constant_detail(ast->rhs, env);
             return ast;
 
         case AST_COMPL:
         case AST_UNARY_MINUS:
         case AST_NOT: {
-            ast->lhs = optimize_ast_constant_detail(ast->lhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env);
             if (ast->lhs->kind != AST_INT) return ast;
             int ret = 0;
             switch (ast->kind) {
@@ -123,104 +123,113 @@ AST *optimize_ast_constant_detail(AST *ast)
         case AST_INDIR:
         case AST_CAST:
         case AST_LVALUE2RVALUE:
-            ast->lhs = optimize_ast_constant_detail(ast->lhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env);
             return ast;
 
         case AST_ARY2PTR:
-            ast->ary = optimize_ast_constant_detail(ast->ary);
+            ast->ary = optimize_ast_constant_detail(ast->ary, env);
             return ast;
 
         case AST_COND:
-            ast->cond = optimize_ast_constant_detail(ast->cond);
-            ast->then = optimize_ast_constant_detail(ast->then);
-            ast->els = optimize_ast_constant_detail(ast->els);
+            ast->cond = optimize_ast_constant_detail(ast->cond, env);
+            ast->then = optimize_ast_constant_detail(ast->then, env);
+            ast->els = optimize_ast_constant_detail(ast->els, env);
             return ast;
 
         case AST_EXPR_LIST:
             for (int i = 0; i < vector_size(ast->exprs); i++)
                 vector_set(ast->exprs, i,
                            optimize_ast_constant_detail(
-                               (AST *)vector_get(ast->exprs, i)));
+                               (AST *)vector_get(ast->exprs, i), env));
             return ast;
+
+        case AST_VAR: {
+            int *ival = lookup_enum_value(env, ast->varname);
+            if (!ival) return ast;
+            return new_int_ast(*ival);
+        }
 
         case AST_DECL_LIST:
             for (int i = 0; i < vector_size(ast->decls); i++)
                 vector_set(ast->decls, i,
                            optimize_ast_constant_detail(
-                               (AST *)vector_get(ast->decls, i)));
+                               (AST *)vector_get(ast->decls, i), env));
             return ast;
 
         case AST_FUNCCALL:
             for (int i = 0; i < vector_size(ast->args); i++)
                 vector_set(ast->args, i,
                            optimize_ast_constant_detail(
-                               (AST *)vector_get(ast->args, i)));
+                               (AST *)vector_get(ast->args, i), env));
             return ast;
 
         case AST_FUNCDEF:
-            ast->body = optimize_ast_constant_detail(ast->body);
+            ast->body = optimize_ast_constant_detail(ast->body, env);
             return ast;
 
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
                 vector_set(ast->stmts, i,
                            optimize_ast_constant_detail(
-                               (AST *)vector_get(ast->stmts, i)));
+                               (AST *)vector_get(ast->stmts, i), env));
             return ast;
 
         case AST_IF:
-            ast->cond = optimize_ast_constant_detail(ast->cond);
-            ast->then = optimize_ast_constant_detail(ast->then);
-            ast->els = optimize_ast_constant_detail(ast->els);
+            ast->cond = optimize_ast_constant_detail(ast->cond, env);
+            ast->then = optimize_ast_constant_detail(ast->then, env);
+            ast->els = optimize_ast_constant_detail(ast->els, env);
             return ast;
 
         case AST_LABEL:
-            ast->label_stmt = optimize_ast_constant_detail(ast->label_stmt);
+            ast->label_stmt =
+                optimize_ast_constant_detail(ast->label_stmt, env);
             return ast;
 
         case AST_CASE:
-            ast->lhs = optimize_ast_constant_detail(ast->lhs);
-            ast->rhs = optimize_ast_constant_detail(ast->rhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env);
+            ast->rhs = optimize_ast_constant_detail(ast->rhs, env);
             return ast;
 
         case AST_DEFAULT:
-            ast->lhs = optimize_ast_constant_detail(ast->lhs);
+            ast->lhs = optimize_ast_constant_detail(ast->lhs, env);
             return ast;
 
         case AST_SWITCH:
-            ast->target = optimize_ast_constant_detail(ast->target);
-            ast->switch_body = optimize_ast_constant_detail(ast->switch_body);
+            ast->target = optimize_ast_constant_detail(ast->target, env);
+            ast->switch_body =
+                optimize_ast_constant_detail(ast->switch_body, env);
             return ast;
 
         case AST_DOWHILE:
-            ast->cond = optimize_ast_constant_detail(ast->cond);
-            ast->then = optimize_ast_constant_detail(ast->then);
+            ast->cond = optimize_ast_constant_detail(ast->cond, env);
+            ast->then = optimize_ast_constant_detail(ast->then, env);
             return ast;
 
         case AST_FOR:
-            ast->initer = optimize_ast_constant_detail(ast->initer);
-            ast->midcond = optimize_ast_constant_detail(ast->midcond);
-            ast->iterer = optimize_ast_constant_detail(ast->iterer);
-            ast->for_body = optimize_ast_constant_detail(ast->for_body);
+            ast->initer = optimize_ast_constant_detail(ast->initer, env);
+            ast->midcond = optimize_ast_constant_detail(ast->midcond, env);
+            ast->iterer = optimize_ast_constant_detail(ast->iterer, env);
+            ast->for_body = optimize_ast_constant_detail(ast->for_body, env);
             return ast;
 
         case AST_MEMBER_REF:
-            ast->stsrc = optimize_ast_constant_detail(ast->stsrc);
+            ast->stsrc = optimize_ast_constant_detail(ast->stsrc, env);
             return ast;
     }
 
     return ast;
 }
 
-AST *optimize_ast_constant(AST *ast)
+AST *optimize_ast_constant(AST *ast, Env *env)
 {
-    return optimize_ast_constant_detail(ast);
+    return optimize_ast_constant_detail(ast, env);
 }
 
-void optimize_asts_constant(Vector *asts)
+void optimize_asts_constant(Vector *asts, Env *env)
 {
     for (int i = 0; i < vector_size(asts); i++)
-        vector_set(asts, i, optimize_ast_constant((AST *)vector_get(asts, i)));
+        vector_set(asts, i,
+                   optimize_ast_constant((AST *)vector_get(asts, i), env));
 }
 
 Vector *optimize_code(Vector *code)

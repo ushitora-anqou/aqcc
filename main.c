@@ -15,8 +15,8 @@ int main(int argc, char **argv)
     tokens = preprocess_tokens(tokens);
     tokens = concatenate_string_literal_tokens(tokens);
     Vector *asts = parse_prog(tokens);
-    analyze_ast(asts);
-    optimize_asts_constant(asts);
+    Env *env = analyze_ast(asts);
+    optimize_asts_constant(asts, env);
     Vector *code = generate_register_code(asts);
     code = optimize_code(code);
 

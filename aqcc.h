@@ -551,7 +551,7 @@ AST *new_lvalue2rvalue_ast(AST *lvalue);
 AST *new_int_ast(int ival);
 
 // analyze.c
-void analyze_ast(Vector *asts);
+Env *analyze_ast(Vector *asts);
 Vector *get_gvar_list();
 
 // cpp.c
@@ -576,8 +576,8 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 #define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
 // optimize.c
-AST *optimize_ast_constant(AST *ast);
-void optimize_asts_constant(Vector *asts);
+AST *optimize_ast_constant(AST *ast, Env *env);
+void optimize_asts_constant(Vector *asts, Env *env);
 Vector *optimize_code(Vector *code);
 
 #endif
