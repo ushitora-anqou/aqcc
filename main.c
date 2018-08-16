@@ -17,8 +17,8 @@ int main(int argc, char **argv)
     Vector *asts = parse_prog(tokens);
     analyze_ast(asts);
     optimize_asts_constant(asts);
-    Vector *code;
-    code = generate_register_code(asts);
+    Vector *code = generate_register_code(asts);
+    code = optimize_code(code);
 
     dump_code(code, stdout);
 

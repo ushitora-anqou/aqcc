@@ -222,3 +222,10 @@ void optimize_asts_constant(Vector *asts)
     for (int i = 0; i < vector_size(asts); i++)
         vector_set(asts, i, optimize_ast_constant((AST *)vector_get(asts, i)));
 }
+
+Vector *optimize_code(Vector *code)
+{
+    Vector *ncodes = new_vector();
+    vector_push_back_vector(ncodes, code);
+    return ncodes;
+}

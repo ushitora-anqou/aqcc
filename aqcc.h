@@ -500,5 +500,6 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 // optimize.c
 AST *optimize_ast_constant(AST *ast);
 void optimize_asts_constant(Vector *asts);
+Vector *optimize_code(Vector *code);
 
 #endif
