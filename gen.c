@@ -70,8 +70,131 @@ int restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
 char *code2str(Code *code)
 {
     switch (code->kind) {
+        case REG_AL:
+            return "%al";
+        case REG_DIL:
+            return "%dil";
+        case REG_SIL:
+            return "%sil";
+        case REG_DL:
+            return "%dl";
+        case REG_CL:
+            return "%cl";
+        case REG_R8B:
+            return "%r8b";
+        case REG_R9B:
+            return "%r9b";
+        case REG_R10B:
+            return "%r10b";
+        case REG_R11B:
+            return "%r11b";
+        case REG_R12B:
+            return "%r12b";
+        case REG_R13B:
+            return "%r13b";
+        case REG_R14B:
+            return "%r14b";
+        case REG_R15B:
+            return "%r15b";
+
+        case REG_AX:
+            return "%ax";
+        case REG_DI:
+            return "%di";
+        case REG_SI:
+            return "%si";
+        case REG_DX:
+            return "%dx";
+        case REG_CX:
+            return "%cx";
+        case REG_R8W:
+            return "%r8w";
+        case REG_R9W:
+            return "%r9w";
+        case REG_R10W:
+            return "%r10w";
+        case REG_R11W:
+            return "%r11w";
+        case REG_R12W:
+            return "%r12w";
+        case REG_R13W:
+            return "%r13w";
+        case REG_R14W:
+            return "%r14w";
+        case REG_R15W:
+            return "%r15w";
+
+        case REG_EAX:
+            return "%eax";
+        case REG_EDI:
+            return "%edi";
+        case REG_ESI:
+            return "%esi";
+        case REG_EDX:
+            return "%edx";
+        case REG_ECX:
+            return "%ecx";
+        case REG_R8D:
+            return "%r8d";
+        case REG_R9D:
+            return "%r9d";
+        case REG_R10D:
+            return "%r10d";
+        case REG_R11D:
+            return "%r11d";
+        case REG_R12D:
+            return "%r12d";
+        case REG_R13D:
+            return "%r13d";
+        case REG_R14D:
+            return "%r14d";
+        case REG_R15D:
+            return "%r15d";
+
+        case REG_RAX:
+            return "%rax";
+        case REG_RDI:
+            return "%rdi";
+        case REG_RSI:
+            return "%rsi";
+        case REG_RDX:
+            return "%rdx";
+        case REG_RCX:
+            return "%rcx";
+        case REG_R8:
+            return "%r8";
+        case REG_R9:
+            return "%r9";
+        case REG_R10:
+            return "%r10";
+        case REG_R11:
+            return "%r11";
+        case REG_R12:
+            return "%r12";
+        case REG_R13:
+            return "%r13";
+        case REG_R14:
+            return "%r14";
+        case REG_R15:
+            return "%r15";
+
+        case INST_MOV:
+            return format("mov %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_MOVSBL:
+            return format("movsbl %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
         case INST_OTHER:
             return code->other_op;
+
+        case CD_VALUE:
+            return format("$%d", code->ival);
+
+        case CD_ADDR_OF:
+            if (code->ival == 0) return format("(%s)", code2str(code->lhs));
+            return format("%d(%s)", code->ival, code2str(code->lhs));
     }
     assert(0);
 }
