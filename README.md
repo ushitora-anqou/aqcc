@@ -3,8 +3,6 @@
 AnQou C Compiler の使い方
 Last Modified: 2018.8.16
 
-文責: [hiromi-mi](https://github.com/hiromi-mi/)
-
 ## aqcc をコンパイル
 
 * `make aqcc` gcc を用い `aqcc` をコンパイル
