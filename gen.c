@@ -41,6 +41,7 @@ Code *addrof(int reg, int offset)
     Code *code = new_code(CD_ADDR_OF);
     code->lhs = new_code(reg);
     code->ival = offset;
+    return code;
 }
 
 Code *mov(Code *lhs, Code *rhs) { return new_binop_code(INST_MOV, lhs, rhs); }
@@ -384,27 +385,43 @@ const char *last_appended_code()
                                     vector_size(codeenv->code) - 1);
 }
 
-void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
+int nbyte_of_reg(int reg)
 {
-    switch (nbytes) {
-        case 1:
-            appcode_str("movsbl %s, %s", src, reg_name(4, dst_reg));
-            break;
+    int ret = (reg & (REG_8 | REG_16 | REG_32 | REG_64)) >> 5;
+    assert(ret == 1 || ret == 2 || ret == 3 || ret == 4);
+    return ret;
+}
 
+int reg_of_nbyte(int nbyte, int reg)
+{
+    switch (nbyte) {
+        case 1:
+            return (reg & 15) | REG_8;
+        case 2:
+            return (reg & 15) | REG_16;
+        case 4:
+            return (reg & 15) | REG_32;
+        case 8:
+            return (reg & 15) | REG_64;
+    }
+    assert(0);
+}
+
+void generate_mov_mem_reg(int nbyte, int src_reg, int dst_reg)
+{
+    switch (nbyte) {
+        case 1: {
+            appcode(movsbl(addrof(reg_of_nbyte(8, src_reg), 0),
+                           new_code(reg_of_nbyte(4, dst_reg))));
+        } break;
         case 4:
         case 8:
-            appcode_str("mov %s, %s", src, reg_name(nbytes, dst_reg));
+            appcode(mov(addrof(reg_of_nbyte(8, src_reg), 0),
+                        new_code(reg_of_nbyte(nbyte, dst_reg))));
             break;
-
         default:
             assert(0);
     }
-}
-
-void generate_mov_mem_reg(int nbytes, int src_reg, int dst_reg)
-{
-    generate_mov_from_memory(nbytes, format("(%s)", reg_name(8, src_reg)),
-                             dst_reg);
 }
 
 int generate_register_code_detail(AST *ast)
