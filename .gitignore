@@ -56,3 +56,10 @@ _test*
 *.~*~
 main
 aqcc
+
+# written by hiromi-mi
+*.self.s
+tags
+aqcc_self
+examples/nqueen/main.s
+examples/nqueen/nqueen

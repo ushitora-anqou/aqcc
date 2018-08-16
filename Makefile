@@ -57,6 +57,7 @@ clean:
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
 	rm -f $(SELF_ASSEMBLES) $(SELFSELF_ASSEMBLES)
 	rm -f _test_self_test.sh
+	rm -f _test.s _test.o testutil.o _test.in
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
 
 .PHONY: test self self_test test clean examples
