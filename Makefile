@@ -37,6 +37,9 @@ self_test: $(TARGET_SELF) _test_self_test.sh testutil.o
 
 selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh testutil.o
 	./_test_selfself_test.sh
+	cat $$(ls *.self.s | sort) > __self_sort.in
+	cat $$(ls *.selfself.s | sort) > __selfself_sort.in
+	diff __self_sort.in __selfself_sort.in
 
 _test_self_test.sh: test.sh
 	cp $^ $@
@@ -56,9 +59,10 @@ clean:
 	make -C examples $@
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
 	rm -f $(SELF_ASSEMBLES) $(SELFSELF_ASSEMBLES)
-	rm -f _test_self_test.sh
+	rm -f _test_self_test.sh _test_selfself_test.sh
 	rm -f _test.s _test.o testutil.o _test.in
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
+	rm -f __self_sort.in __selfself_sort.in
 
 .PHONY: test self self_test test clean examples
 
