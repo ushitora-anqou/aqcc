@@ -2003,6 +2003,17 @@ int test348()
 
     EXPECT_INT(test348a, -1);
     EXPECT_INT(test348b, 8);
+
+    int c = 6;
+    switch (c) {
+        case 1 + 2:
+            c = 3;
+            break;
+        case 3 * 2 + 2 / 3:
+            c = 4;
+            break;
+    }
+    EXPECT_INT(c, 4);
 }
 
 int main()

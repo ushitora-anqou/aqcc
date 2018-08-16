@@ -688,6 +688,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_CASE:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
+            ast->lhs = optimize_ast_constant(ast->lhs);
             if (ast->lhs->kind != AST_INT)
                 error("case should take a constant expression.");
             ast = add_switch_case(ast);
