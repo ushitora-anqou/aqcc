@@ -575,8 +575,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_GVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->rhs = optimize_ast_constant(ast->rhs);
             if (ast->rhs->rhs->kind != AST_INT)
-                // TODO: constant, not int literal
                 error("global variable initializer must be constant.");
             if (ast->lhs->type->is_extern)
                 error("extern variable can't have any initializer: '%s'",
