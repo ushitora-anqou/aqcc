@@ -562,6 +562,7 @@ int generate_register_code_detail(AST *ast)
         case AST_FUNCCALL: {
             appcode("push #r10");
             appcode("push #r11");
+            appcode("push #r12");
             for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
                 int reg = generate_register_code_detail(
                     (AST *)(vector_get(ast->args, i)));
@@ -573,6 +574,7 @@ int generate_register_code_detail(AST *ast)
             appcode("mov $0, #eax");
             appcode("call %s@PLT", ast->fname);
             appcode("add $%d, #rsp", 8 * max(0, vector_size(ast->args) - 6));
+            appcode("pop #r12");
             appcode("pop #r11");
             appcode("pop #r10");
             int reg = get_temp_reg();
