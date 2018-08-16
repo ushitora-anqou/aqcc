@@ -830,13 +830,10 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
 void analyze_ast(Vector *asts)
 {
-    int i;
-    Env *env;
-
-    env = new_env(NULL);
+    Env *env = new_env(NULL);
     init_gvar_list();
 
-    for (i = 0; i < vector_size(asts); i++)
+    for (int i = 0; i < vector_size(asts); i++)
         vector_set(asts, i,
                    analyze_ast_detail(env, (AST *)vector_get(asts, i)));
 }

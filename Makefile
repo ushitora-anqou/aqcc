@@ -1,7 +1,7 @@
 TARGET=aqcc
 TARGET_SELF=aqcc_self
 TARGET_SELFSELF=aqcc_selfself
-SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c
+SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c optimize.c
 SELF_OBJS=$(SRC:.c=.self.o)
 SELFSELF_OBJS=$(SRC:.c=.selfself.o)
 SELF_ASSEMBLES=$(SRC:.c=.self.s)
