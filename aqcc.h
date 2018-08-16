@@ -391,6 +391,83 @@ struct AST {
     };
 };
 
+enum {
+    REG_8 = 1 << 6,
+    REG_AL = 0 | REG_8,
+    REG_DIL,
+    REG_SIL,
+    REG_DL,
+    REG_CL,
+    REG_R8B,
+    REG_R9B,
+    REG_R10B,
+    REG_R11B,
+    REG_R12B,
+    REG_R13B,
+    REG_R14B,
+    REG_R15B,
+
+    REG_16 = 1 << 7,
+    REG_AX = 0 | REG_16,
+    REG_DI,
+    REG_SI,
+    REG_DX,
+    REG_CX,
+    REG_R8W,
+    REG_R9W,
+    REG_R10W,
+    REG_R11W,
+    REG_R12W,
+    REG_R13W,
+    REG_R14W,
+    REG_R15W,
+
+    REG_32 = 1 << 7,
+    REG_EAX = 0 | REG_32,
+    REG_EDI,
+    REG_ESI,
+    REG_EDX,
+    REG_ECX,
+    REG_R8D,
+    REG_R9D,
+    REG_R10D,
+    REG_R11D,
+    REG_R12D,
+    REG_R13D,
+    REG_R14D,
+    REG_R15D,
+
+    REG_64 = 1 << 8,
+    REG_RAX = 0 | REG_64,
+    REG_RDI,
+    REG_RSI,
+    REG_RDX,
+    REG_RCX,
+    REG_R8,
+    REG_R9,
+    REG_R10,
+    REG_R11,
+    REG_R12,
+    REG_R13,
+    REG_R14,
+    REG_R15,
+
+    INST_MOV = 1 << 9,
+    INST_MOVSB,
+    INST_OTHER,
+
+    CD_VALUE,
+    CD_ADDR_OF,
+};
+
+typedef struct Code Code;
+struct Code {
+    int kind;
+
+    char *other_op;
+    Code *lhs, *rhs;
+};
+
 // utility.c
 _Noreturn void error(const char *msg, ...);
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
@@ -421,8 +498,9 @@ Vector *concatenate_string_literal_tokens(Vector *tokens);
 Vector *parse_prog(Vector *tokens);
 
 // gen.c
-void dump_code(Vector *codes, FILE *fh);
+void dump_code(Code *code, FILE *fh);
 Vector *generate_register_code(Vector *asts);
+Code *new_code(int kind);
 
 // type.c
 Type *type_int();

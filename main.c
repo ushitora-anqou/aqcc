@@ -20,7 +20,8 @@ int main(int argc, char **argv)
     Vector *code = generate_register_code(asts);
     code = optimize_code(code);
 
-    dump_code(code, stdout);
+    for (int i = 0; i < vector_size(code); i++)
+        dump_code((Code *)vector_get(code, i), stdout);
 
     return 0;
 }

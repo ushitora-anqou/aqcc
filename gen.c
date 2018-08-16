@@ -1,5 +1,41 @@
 #include "aqcc.h"
 
+Code *new_code(int kind)
+{
+    Code *this = safe_malloc(sizeof(Code));
+    this->kind = kind;
+    return this;
+}
+
+Code *new_binop_code(int kind, Code *lhs, Code *rhs)
+{
+    Code *code = new_code(kind);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    return code;
+}
+
+Code *new_unary_code(int kind, Code *lhs)
+{
+    Code *code = new_code(kind);
+    code->lhs = lhs;
+    return code;
+}
+
+Code *new_other_code(char *other_op)
+{
+    Code *code = new_code(INST_OTHER);
+    code->other_op = other_op;
+    return code;
+}
+
+Code *value(int value) { return new_unary_code(CD_VALUE, value); }
+
+Code *addrof(int reg, int offset)
+{
+    return new_binop_code(CD_ADDR_OF, new_code(reg), value(offset));
+}
+
 int temp_reg_table;
 
 void init_temp_reg() { temp_reg_table = 0; }
@@ -16,6 +52,15 @@ int get_temp_reg()
 }
 
 int restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
+
+char *code2str(Code *code)
+{
+    switch (code->kind) {
+        case INST_OTHER:
+            return code->other_op;
+    }
+    assert(0);
+}
 
 const char *reg_name(int byte, int i)
 {
@@ -159,7 +204,9 @@ void init_code_env()
     codeenv->code = new_vector();
 }
 
-void appcode(const char *src, ...)
+void appcode(Code *code) { vector_push_back(codeenv->code, code); }
+
+void appcode_str(const char *src, ...)
 {
     char buf[256], buf2[256];  // TODO: enough length?
     int i, bufidx;
@@ -184,13 +231,14 @@ void appcode(const char *src, ...)
     vsprintf(buf2, buf, args);
     va_end(args);
 
-    vector_push_back(codeenv->code, new_str(buf2));
+    appcode(new_other_code(new_str(buf2)));
 }
 
-void dump_code(Vector *code, FILE *fh)
-{
-    for (int i = 0; i < vector_size(code); i++)
-        fprintf(fh, "%s\n", (const char *)vector_get(code, i));
+int is_register_code(int kind) { return !(kind & (-1 << 9)); }
+
+void dump_code(Code *code, FILE *fh)
+{  //
+    fprintf(fh, "%s\n", code2str(code));
 }
 
 const char *last_appended_code()
@@ -203,12 +251,12 @@ void generate_mov_from_memory(int nbytes, const char *src, int dst_reg)
 {
     switch (nbytes) {
         case 1:
-            appcode("movsbl %s, %s", src, reg_name(4, dst_reg));
+            appcode_str("movsbl %s, %s", src, reg_name(4, dst_reg));
             break;
 
         case 4:
         case 8:
-            appcode("mov %s, %s", src, reg_name(nbytes, dst_reg));
+            appcode_str("mov %s, %s", src, reg_name(nbytes, dst_reg));
             break;
 
         default:
@@ -227,7 +275,7 @@ int generate_register_code_detail(AST *ast)
     switch (ast->kind) {
         case AST_INT: {
             int reg = get_temp_reg();
-            appcode("mov $%d, %s", ast->ival, reg_name(4, reg));
+            appcode_str("mov $%d, %s", ast->ival, reg_name(4, reg));
             return reg;
         }
 
@@ -235,17 +283,17 @@ int generate_register_code_detail(AST *ast)
             if (ast->lhs) {
                 int reg = generate_register_code_detail(ast->lhs);
                 restore_temp_reg(reg);
-                appcode("mov %s, #rax", reg_name(8, reg));
+                appcode_str("mov %s, #rax", reg_name(8, reg));
             }
             else {
-                appcode("mov $0, #rax");
+                appcode_str("mov $0, #rax");
             }
-            appcode("pop #r13");
-            appcode("pop #r14");
-            appcode("pop #r15");
-            appcode("mov #rbp, #rsp");
-            appcode("pop #rbp");
-            appcode("ret");
+            appcode_str("pop #r13");
+            appcode_str("pop #r14");
+            appcode_str("pop #r15");
+            appcode_str("mov #rbp, #rsp");
+            appcode_str("pop #rbp");
+            appcode_str("ret");
             return -1;
         }
 
@@ -257,12 +305,12 @@ int generate_register_code_detail(AST *ast)
             // TODO: shift
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
-                appcode("cltq");
-                appcode("imul $%d, %s", ast->rhs->type->ptr_of->nbytes,
-                        reg_name(4, lreg));
+                appcode_str("cltq");
+                appcode_str("imul $%d, %s", ast->rhs->type->ptr_of->nbytes,
+                            reg_name(4, lreg));
             }
 
-            appcode("add %s, %s", reg_name(8, lreg), reg_name(8, rreg));
+            appcode_str("add %s, %s", reg_name(8, lreg), reg_name(8, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -275,17 +323,17 @@ int generate_register_code_detail(AST *ast)
             // TODO: shift
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
-                appcode("cltq");
-                appcode("imul $%d, %s", ast->lhs->type->ptr_of->nbytes,
-                        reg_name(4, rreg));
+                appcode_str("cltq");
+                appcode_str("imul $%d, %s", ast->lhs->type->ptr_of->nbytes,
+                            reg_name(4, rreg));
             }
 
-            appcode("sub %s, %s", reg_name(8, rreg), reg_name(8, lreg));
+            appcode_str("sub %s, %s", reg_name(8, rreg), reg_name(8, lreg));
 
             // ptr - ptr
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 // assume pointer size is 8.
-                appcode("sar $%d, %s", 2, reg_name(8, lreg));
+                appcode_str("sar $%d, %s", 2, reg_name(8, lreg));
 
             restore_temp_reg(rreg);
             return lreg;
@@ -294,8 +342,8 @@ int generate_register_code_detail(AST *ast)
         case AST_MUL: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("imul %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, rreg));
+            appcode_str("imul %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -303,11 +351,11 @@ int generate_register_code_detail(AST *ast)
         case AST_DIV: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("mov %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, 0));
-            appcode("cltd");
-            appcode("idiv %s", reg_name(ast->type->nbytes, rreg));
-            appcode("mov #rax, %s", reg_name(8, rreg));
+            appcode_str("mov %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, 0));
+            appcode_str("cltd");
+            appcode_str("idiv %s", reg_name(ast->type->nbytes, rreg));
+            appcode_str("mov #rax, %s", reg_name(8, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -315,32 +363,32 @@ int generate_register_code_detail(AST *ast)
         case AST_REM: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("mov %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, 0));
-            appcode("cltd");
-            appcode("idiv %s", reg_name(ast->type->nbytes, rreg));
-            appcode("mov #rdx, %s", reg_name(8, rreg));
+            appcode_str("mov %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, 0));
+            appcode_str("cltd");
+            appcode_str("idiv %s", reg_name(ast->type->nbytes, rreg));
+            appcode_str("mov #rdx, %s", reg_name(8, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
 
         case AST_UNARY_MINUS: {
             int reg = generate_register_code_detail(ast->lhs);
-            appcode("neg %s", reg_name(ast->type->nbytes, reg));
+            appcode_str("neg %s", reg_name(ast->type->nbytes, reg));
             return reg;
         }
 
         case AST_COMPL: {
             int reg = generate_register_code_detail(ast->lhs);
-            appcode("not %s", reg_name(ast->type->nbytes, reg));
+            appcode_str("not %s", reg_name(ast->type->nbytes, reg));
             return reg;
         }
 
         case AST_LSHIFT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("mov %s, #cl", reg_name(1, rreg));
-            appcode("sal #cl, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("mov %s, #cl", reg_name(1, rreg));
+            appcode_str("sal #cl, %s", reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -348,8 +396,8 @@ int generate_register_code_detail(AST *ast)
         case AST_RSHIFT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("mov %s, #cl", reg_name(1, rreg));
-            appcode("sar #cl, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("mov %s, #cl", reg_name(1, rreg));
+            appcode_str("sar #cl, %s", reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -357,10 +405,10 @@ int generate_register_code_detail(AST *ast)
         case AST_LT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                    reg_name(ast->type->nbytes, lreg));
-            appcode("setl #al");
-            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                        reg_name(ast->type->nbytes, lreg));
+            appcode_str("setl #al");
+            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -368,10 +416,10 @@ int generate_register_code_detail(AST *ast)
         case AST_LTE: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                    reg_name(ast->type->nbytes, lreg));
-            appcode("setle #al");
-            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                        reg_name(ast->type->nbytes, lreg));
+            appcode_str("setle #al");
+            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -379,10 +427,10 @@ int generate_register_code_detail(AST *ast)
         case AST_EQ: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                    reg_name(ast->type->nbytes, lreg));
-            appcode("sete #al");
-            appcode("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
+                        reg_name(ast->type->nbytes, lreg));
+            appcode_str("sete #al");
+            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -390,8 +438,8 @@ int generate_register_code_detail(AST *ast)
         case AST_AND: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("and %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, rreg));
+            appcode_str("and %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -399,8 +447,8 @@ int generate_register_code_detail(AST *ast)
         case AST_XOR: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("xor %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, rreg));
+            appcode_str("xor %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -408,8 +456,8 @@ int generate_register_code_detail(AST *ast)
         case AST_OR: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode("or %s, %s", reg_name(ast->type->nbytes, lreg),
-                    reg_name(ast->type->nbytes, rreg));
+            appcode_str("or %s, %s", reg_name(ast->type->nbytes, lreg),
+                        reg_name(ast->type->nbytes, rreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -419,18 +467,18 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
-            appcode("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
-            appcode("je %s", false_label);
+            appcode_str("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("je %s", false_label);
             // don't execute rhs expression if lhs is false.
             int rreg = generate_register_code_detail(ast->rhs);
             char *rreg_name = reg_name(ast->type->nbytes, rreg);
-            appcode("cmp $0, %s", rreg_name);
-            appcode("je %s", false_label);
-            appcode("mov $1, %s", rreg_name);
-            appcode("jmp %s", exit_label);
-            appcode("%s:", false_label);
-            appcode("mov $0, %s", rreg_name);
-            appcode("%s:", exit_label);
+            appcode_str("cmp $0, %s", rreg_name);
+            appcode_str("je %s", false_label);
+            appcode_str("mov $1, %s", rreg_name);
+            appcode_str("jmp %s", exit_label);
+            appcode_str("%s:", false_label);
+            appcode_str("mov $0, %s", rreg_name);
+            appcode_str("%s:", exit_label);
             return rreg;
         }
 
@@ -439,18 +487,18 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
-            appcode("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
-            appcode("jne %s", true_label);
+            appcode_str("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode_str("jne %s", true_label);
             // don't execute rhs expression if lhs is true.
             int rreg = generate_register_code_detail(ast->rhs);
             char *rreg_name = reg_name(ast->type->nbytes, rreg);
-            appcode("cmp $0, %s", rreg_name);
-            appcode("jne %s", true_label);
-            appcode("cmp $0, %s", rreg_name);
-            appcode("jmp %s", exit_label);
-            appcode("%s:", true_label);
-            appcode("mov $1, %s", rreg_name);
-            appcode("%s:", exit_label);
+            appcode_str("cmp $0, %s", rreg_name);
+            appcode_str("jne %s", true_label);
+            appcode_str("cmp $0, %s", rreg_name);
+            appcode_str("jmp %s", exit_label);
+            appcode_str("%s:", true_label);
+            appcode_str("mov $1, %s", rreg_name);
+            appcode_str("%s:", exit_label);
             return rreg;
         }
 
@@ -468,14 +516,14 @@ int generate_register_code_detail(AST *ast)
             stack_idx -= (!!ast->is_variadic) * 48;
 
             // generate code
-            appcode(".global %s", ast->fname);
-            appcode("%s:", ast->fname);
-            appcode("push #rbp");
-            appcode("mov #rsp, #rbp");
-            appcode("sub $%d, #rsp", roundup(-stack_idx, 16));
-            appcode("push #r15");
-            appcode("push #r14");
-            appcode("push #r13");
+            appcode_str(".global %s", ast->fname);
+            appcode_str("%s:", ast->fname);
+            appcode_str("push #rbp");
+            appcode_str("mov #rsp, #rbp");
+            appcode_str("sub $%d, #rsp", roundup(-stack_idx, 16));
+            appcode_str("push #r15");
+            appcode_str("push #r14");
+            appcode_str("push #r13");
 
             // assign param to localvar
             if (ast->params) {
@@ -483,9 +531,9 @@ int generate_register_code_detail(AST *ast)
                     AST *var = lookup_var(
                         ast->env, ((AST *)vector_get(ast->params, i))->varname);
                     if (i < 6)
-                        appcode("mov %s, %d(#rbp)",
-                                reg_name(var->type->nbytes, i + 1),
-                                var->stack_idx);
+                        appcode_str("mov %s, %d(#rbp)",
+                                    reg_name(var->type->nbytes, i + 1),
+                                    var->stack_idx);
                     else
                         // should avoid return pointer and saved %rbp
                         var->stack_idx = 16 + (i - 6) * 8;
@@ -495,8 +543,8 @@ int generate_register_code_detail(AST *ast)
             // place Register Save Area if the function has variadic params.
             if (ast->is_variadic)
                 for (int i = 0; i < 6; i++)
-                    appcode("mov %s, %d(#rbp)", reg_name(8, i + 1),
-                            stack_idx + i * 8);
+                    appcode_str("mov %s, %d(#rbp)", reg_name(8, i + 1),
+                                stack_idx + i * 8);
 
             // generate body
             SAVE_VARIADIC_CXT;
@@ -512,13 +560,13 @@ int generate_register_code_detail(AST *ast)
             // avoid duplicate needless `ret`
             if (strcmp(last_appended_code(), "ret") == 0) return -1;
 
-            if (ast->type->kind != TY_VOID) appcode("mov $0, #rax");
-            appcode("pop #r13");
-            appcode("pop #r14");
-            appcode("pop #r15");
-            appcode("mov #rbp, #rsp");
-            appcode("pop #rbp");
-            appcode("ret");
+            if (ast->type->kind != TY_VOID) appcode_str("mov $0, #rax");
+            appcode_str("pop #r13");
+            appcode_str("pop #r14");
+            appcode_str("pop #r15");
+            appcode_str("mov #rbp, #rsp");
+            appcode_str("pop #rbp");
+            appcode_str("ret");
             return -1;
         }
 
@@ -526,8 +574,8 @@ int generate_register_code_detail(AST *ast)
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
 
-            appcode("mov %s, (%s)", reg_name(ast->type->nbytes, rreg),
-                    reg_name(8, lreg));
+            appcode_str("mov %s, (%s)", reg_name(ast->type->nbytes, rreg),
+                        reg_name(8, lreg));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -546,39 +594,40 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
             char *rname = reg_name(8, reg);
             if (ast->type->is_static || ast->type->is_extern)
-                appcode("lea %s(#rip), %s", ast->gen_varname, rname);
+                appcode_str("lea %s(#rip), %s", ast->gen_varname, rname);
             else
-                appcode("lea %d(#rbp), %s", ast->stack_idx, rname);
+                appcode_str("lea %d(#rbp), %s", ast->stack_idx, rname);
             return reg;
         }
 
         case AST_GVAR: {
             int reg = get_temp_reg();
             char *rname = reg_name(8, reg);
-            appcode("lea %s(#rip), %s", ast->gen_varname, rname);
+            appcode_str("lea %s(#rip), %s", ast->gen_varname, rname);
             return reg;
         }
 
         case AST_FUNCCALL: {
-            appcode("push #r10");
-            appcode("push #r11");
-            appcode("push #r12");
+            appcode_str("push #r10");
+            appcode_str("push #r11");
+            appcode_str("push #r12");
             for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
                 int reg = generate_register_code_detail(
                     (AST *)(vector_get(ast->args, i)));
-                appcode("push %s", reg_name(8, reg));
+                appcode_str("push %s", reg_name(8, reg));
                 restore_temp_reg(reg);
             }
             for (int i = 0; i < min(6, vector_size(ast->args)); i++)
-                appcode("pop %s", reg_name(8, i + 1));
-            appcode("mov $0, #eax");
-            appcode("call %s@PLT", ast->fname);
-            appcode("add $%d, #rsp", 8 * max(0, vector_size(ast->args) - 6));
-            appcode("pop #r12");
-            appcode("pop #r11");
-            appcode("pop #r10");
+                appcode_str("pop %s", reg_name(8, i + 1));
+            appcode_str("mov $0, #eax");
+            appcode_str("call %s@PLT", ast->fname);
+            appcode_str("add $%d, #rsp",
+                        8 * max(0, vector_size(ast->args) - 6));
+            appcode_str("pop #r12");
+            appcode_str("pop #r11");
+            appcode_str("pop #r10");
             int reg = get_temp_reg();
-            appcode("mov #rax, %s", reg_name(8, reg));
+            appcode_str("mov #rax, %s", reg_name(8, reg));
             return reg;
         }
 
@@ -591,10 +640,10 @@ int generate_register_code_detail(AST *ast)
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode("add%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
-                        lreg_name);
+                appcode_str("add%c $%d, (%s)", suf,
+                            ast->lhs->type->ptr_of->nbytes, lreg_name);
             else
-                appcode("inc%c (%s)", suf, lreg_name);
+                appcode_str("inc%c (%s)", suf, lreg_name);
 
             restore_temp_reg(lreg);
             return reg;
@@ -608,10 +657,10 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode("add%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
-                        lreg_name);
+                appcode_str("add%c $%d, (%s)", suf,
+                            ast->lhs->type->ptr_of->nbytes, lreg_name);
             else
-                appcode("inc%c (%s)", suf, lreg_name);
+                appcode_str("inc%c (%s)", suf, lreg_name);
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
@@ -628,10 +677,10 @@ int generate_register_code_detail(AST *ast)
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode("sub%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
-                        lreg_name);
+                appcode_str("sub%c $%d, (%s)", suf,
+                            ast->lhs->type->ptr_of->nbytes, lreg_name);
             else
-                appcode("dec%c (%s)", suf, lreg_name);
+                appcode_str("dec%c (%s)", suf, lreg_name);
 
             restore_temp_reg(lreg);
             return reg;
@@ -645,10 +694,10 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode("sub%c $%d, (%s)", suf, ast->lhs->type->ptr_of->nbytes,
-                        lreg_name);
+                appcode_str("sub%c $%d, (%s)", suf,
+                            ast->lhs->type->ptr_of->nbytes, lreg_name);
             else
-                appcode("dec%c (%s)", suf, lreg_name);
+                appcode_str("dec%c (%s)", suf, lreg_name);
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
@@ -666,22 +715,22 @@ int generate_register_code_detail(AST *ast)
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
-            appcode("mov %s, #rax", reg_name(8, cond_reg));
-            appcode("cmp $0, #eax");
-            appcode("je %s", false_label);
+            appcode_str("mov %s, #rax", reg_name(8, cond_reg));
+            appcode_str("cmp $0, #eax");
+            appcode_str("je %s", false_label);
             int then_reg = generate_register_code_detail(ast->then);
             restore_temp_reg(then_reg);
-            appcode("push %s", reg_name(8, then_reg));
-            appcode("jmp %s", exit_label);
-            appcode("%s:", false_label);
+            appcode_str("push %s", reg_name(8, then_reg));
+            appcode_str("jmp %s", exit_label);
+            appcode_str("%s:", false_label);
             if (ast->els != NULL) {
                 int els_reg = generate_register_code_detail(ast->els);
                 restore_temp_reg(els_reg);
-                appcode("push %s", reg_name(8, els_reg));
+                appcode_str("push %s", reg_name(8, els_reg));
             }
-            appcode("%s:", exit_label);
+            appcode_str("%s:", exit_label);
             int reg = get_temp_reg();
-            appcode("pop %s", reg_name(8, reg));
+            appcode_str("pop %s", reg_name(8, reg));
             return reg;
         }
 
@@ -691,14 +740,14 @@ int generate_register_code_detail(AST *ast)
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
-            appcode("mov %s, #rax", reg_name(8, cond_reg));
-            appcode("cmp $0, #eax");
-            appcode("je %s", false_label);
+            appcode_str("mov %s, #rax", reg_name(8, cond_reg));
+            appcode_str("cmp $0, #eax");
+            appcode_str("je %s", false_label);
             generate_register_code_detail(ast->then);
-            appcode("jmp %s", exit_label);
-            appcode("%s:", false_label);
+            appcode_str("jmp %s", exit_label);
+            appcode_str("%s:", false_label);
             if (ast->els != NULL) generate_register_code_detail(ast->els);
-            appcode("%s:", exit_label);
+            appcode_str("%s:", exit_label);
             return -1;
         }
 
@@ -709,20 +758,20 @@ int generate_register_code_detail(AST *ast)
 
             for (int i = 0; i < vector_size(ast->cases); i++) {
                 SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
-                appcode("cmp $%d, %s", cas->cond, name);
+                appcode_str("cmp $%d, %s", cas->cond, name);
                 // case has been already labeled when analyzing.
-                appcode("je %s", cas->label_name);
+                appcode_str("je %s", cas->label_name);
             }
             char *exit_label = make_label_string();
             if (ast->default_label)
-                appcode("jmp %s", ast->default_label);
+                appcode_str("jmp %s", ast->default_label);
             else
-                appcode("jmp %s", exit_label);
+                appcode_str("jmp %s", exit_label);
 
             SAVE_BREAK_CXT;
             codeenv->break_label = exit_label;
             generate_register_code_detail(ast->switch_body);
-            appcode("%s:", exit_label);
+            appcode_str("%s:", exit_label);
             RESTORE_BREAK_CXT;
 
             return -1;
@@ -735,13 +784,14 @@ int generate_register_code_detail(AST *ast)
             codeenv->continue_label = make_label_string();
             char *start_label = make_label_string();
 
-            appcode("%s:", start_label);
+            appcode_str("%s:", start_label);
             generate_register_code_detail(ast->then);
-            appcode("%s:", codeenv->continue_label);
+            appcode_str("%s:", codeenv->continue_label);
             int cond_reg = generate_register_code_detail(ast->cond);
-            appcode("cmp $0, %s", reg_name(ast->cond->type->nbytes, cond_reg));
-            appcode("jne %s", start_label);
-            appcode("%s:", codeenv->break_label);
+            appcode_str("cmp $0, %s",
+                        reg_name(ast->cond->type->nbytes, cond_reg));
+            appcode_str("jne %s", start_label);
+            appcode_str("%s:", codeenv->break_label);
 
             restore_temp_reg(cond_reg);
             RESTORE_BREAK_CXT;
@@ -761,22 +811,22 @@ int generate_register_code_detail(AST *ast)
                 int reg = generate_register_code_detail(ast->initer);
                 if (reg != -1) restore_temp_reg(reg);  // if expr
             }
-            appcode("%s:", start_label);
+            appcode_str("%s:", start_label);
             if (ast->midcond != NULL) {
                 int reg = generate_register_code_detail(ast->midcond);
-                appcode("cmp $0, %s",
-                        reg_name(ast->midcond->type->nbytes, reg));
-                appcode("je %s", codeenv->break_label);
+                appcode_str("cmp $0, %s",
+                            reg_name(ast->midcond->type->nbytes, reg));
+                appcode_str("je %s", codeenv->break_label);
                 restore_temp_reg(reg);
             }
             generate_register_code_detail(ast->for_body);
-            appcode("%s:", codeenv->continue_label);
+            appcode_str("%s:", codeenv->continue_label);
             if (ast->iterer != NULL) {
                 int reg = generate_register_code_detail(ast->iterer);
                 if (reg != -1) restore_temp_reg(reg);  // if nop
             }
-            appcode("jmp %s", start_label);
-            appcode("%s:", codeenv->break_label);
+            appcode_str("jmp %s", start_label);
+            appcode_str("%s:", codeenv->break_label);
 
             RESTORE_BREAK_CXT;
             RESTORE_CONTINUE_CXT;
@@ -785,20 +835,20 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_LABEL:
-            appcode("%s:", ast->label_name);
+            appcode_str("%s:", ast->label_name);
             generate_register_code_detail(ast->label_stmt);
             return -1;
 
         case AST_BREAK:
-            appcode("jmp %s", codeenv->break_label);
+            appcode_str("jmp %s", codeenv->break_label);
             return -1;
 
         case AST_CONTINUE:
-            appcode("jmp %s", codeenv->continue_label);
+            appcode_str("jmp %s", codeenv->continue_label);
             return -1;
 
         case AST_GOTO:
-            appcode("jmp %s", ast->label_name);
+            appcode_str("jmp %s", ast->label_name);
             return -1;
 
         case AST_MEMBER_REF: {
@@ -808,7 +858,7 @@ int generate_register_code_detail(AST *ast)
             assert(offset >= 0);
 
             int reg = generate_register_code_detail(ast->stsrc);
-            appcode("add $%d, %s", offset, reg_name(8, reg));
+            appcode_str("add $%d, %s", offset, reg_name(8, reg));
             return reg;
         }
 
@@ -855,14 +905,14 @@ int generate_register_code_detail(AST *ast)
             int reg = generate_register_code_detail(ast->lhs);
             char *rname = reg_name(8, reg);
             assert(ast->rhs->kind == AST_INT);
-            appcode("movl $%d, (%s)", ast->rhs->ival * 8, rname);
-            appcode("movl $48, 4(%s)", rname);
-            appcode("leaq %d(#rbp), #rdi", codeenv->overflow_arg_area_stack_idx,
-                    rname);
-            appcode("mov #rdi, 8(%s)", rname);
-            appcode("leaq %d(#rbp), #rdi", codeenv->reg_save_area_stack_idx,
-                    rname);
-            appcode("mov #rdi, 16(%s)", rname);
+            appcode_str("movl $%d, (%s)", ast->rhs->ival * 8, rname);
+            appcode_str("movl $48, 4(%s)", rname);
+            appcode_str("leaq %d(#rbp), #rdi",
+                        codeenv->overflow_arg_area_stack_idx, rname);
+            appcode_str("mov #rdi, 8(%s)", rname);
+            appcode_str("leaq %d(#rbp), #rdi", codeenv->reg_save_area_stack_idx,
+                        rname);
+            appcode_str("mov #rdi, 16(%s)", rname);
             restore_temp_reg(reg);
             return -1;
         }
@@ -882,28 +932,28 @@ Vector *generate_register_code(Vector *asts)
 {
     init_code_env();
 
-    appcode(".text");
+    appcode_str(".text");
 
     for (int i = 0; i < vector_size(asts); i++)
         generate_register_code_detail((AST *)vector_get(asts, i));
 
-    appcode(".data");
+    appcode_str(".data");
 
     Vector *gvar_list = get_gvar_list();
     for (int i = 0; i < vector_size(gvar_list); i++) {
         GVar *gvar = (GVar *)vector_get(gvar_list, i);
 
-        appcode("%s:", gvar->name);
+        appcode_str("%s:", gvar->name);
         if (gvar->sval) {
             assert(gvar->type->kind == TY_ARY &&
                    gvar->type->ptr_of->kind == TY_CHAR);
-            appcode(".ascii \"%s\"",
-                    escape_string(gvar->sval, gvar->type->nbytes));
+            appcode_str(".ascii \"%s\"",
+                        escape_string(gvar->sval, gvar->type->nbytes));
             continue;
         }
 
         if (gvar->ival == 0) {
-            appcode(".zero %d", gvar->type->nbytes);
+            appcode_str(".zero %d", gvar->type->nbytes);
             continue;
         }
 
@@ -913,7 +963,7 @@ Vector *generate_register_code(Vector *asts)
         type2spec[TY_INT] = ".long";
         type2spec[TY_CHAR] = ".byte";
         type2spec[TY_PTR] = ".quad";
-        appcode("%s %d", type2spec[gvar->type->kind], gvar->ival);
+        appcode_str("%s %d", type2spec[gvar->type->kind], gvar->ival);
     }
 
     return clone_vector(codeenv->code);
