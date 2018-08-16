@@ -27,7 +27,7 @@ union piyo {
 
 enum sugoienum {
     SE_A,
-    SE_B,
+    SE_B = 1 + 2 - 2,
     SE_C,
     SE_D = 0,
     SE_E,

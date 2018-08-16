@@ -84,6 +84,7 @@ AST *optimize_ast_constant_detail(AST *ast)
         case AST_ASSIGN:
         case AST_LVAR_DECL_INIT:
         case AST_GVAR_DECL_INIT:
+        case AST_ENUM_VAR_DECL_INIT:
             ast->lhs = optimize_ast_constant_detail(ast->lhs);
             ast->rhs = optimize_ast_constant_detail(ast->rhs);
             return ast;
@@ -207,9 +208,13 @@ AST *optimize_ast_constant_detail(AST *ast)
     return ast;
 }
 
-void optimize_ast_constant(Vector *asts)
+AST *optimize_ast_constant(AST *ast)
+{
+    return optimize_ast_constant_detail(ast);
+}
+
+void optimize_asts_constant(Vector *asts)
 {
     for (int i = 0; i < vector_size(asts); i++)
-        vector_set(asts, i,
-                   optimize_ast_constant_detail((AST *)vector_get(asts, i)));
+        vector_set(asts, i, optimize_ast_constant((AST *)vector_get(asts, i)));
 }

@@ -497,4 +497,8 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
     TokenSeqSaved *token_seq_saved__dummy = new_token_seq_saved();
 #define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
+// optimize.c
+AST *optimize_ast_constant(AST *ast);
+void optimize_asts_constant(Vector *asts);
+
 #endif

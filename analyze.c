@@ -346,7 +346,7 @@ Type *analyze_type(Env *env, Type *type)
                         break;
 
                     case AST_ENUM_VAR_DECL_INIT:
-                        // TODO: constant expr is not only int literal
+                        ast = optimize_ast_constant(ast);
                         if (ast->rhs->rhs->kind != AST_INT)
                             error(
                                 "constant expression is needed for enum "
