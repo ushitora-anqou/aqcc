@@ -90,7 +90,24 @@ AST *optimize_ast_constant_detail(AST *ast)
 
         case AST_COMPL:
         case AST_UNARY_MINUS:
-        case AST_NOT:
+        case AST_NOT: {
+            ast->lhs = optimize_ast_constant_detail(ast->lhs);
+            if (ast->lhs->kind != AST_INT) return ast;
+            int ret = 0;
+            switch (ast->kind) {
+                case AST_COMPL:
+                    ret = ~ast->lhs->ival;
+                    break;
+                case AST_UNARY_MINUS:
+                    ret = -ast->lhs->ival;
+                    break;
+                case AST_NOT:
+                    ret = !ast->lhs->ival;
+                    break;
+            }
+            return new_int_ast(ret);
+        }
+
         case AST_EXPR_STMT:
         case AST_RETURN:
         case AST_PREINC:
