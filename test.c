@@ -1991,6 +1991,15 @@ int test347()
     EXPECT_INT(test347detail(ary), 100);
 }
 
+int test348()
+{
+    static int a = 5 + 6 - 7 / 2;
+    EXPECT_INT(a, 8);
+
+    static int b = -1;
+    EXPECT_INT(b, -1);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2339,4 +2348,5 @@ int main()
     test345();
     test346();
     test347();
+    test348();
 }

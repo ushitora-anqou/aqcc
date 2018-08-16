@@ -47,6 +47,7 @@ GVar *new_gvar_from_static_lvar(AST *lvar)
     this->name = gen_varname;
     this->type = lvar->type;
     this->ival = 0;
+    this->sval = NULL;
     return this;
 }
 
@@ -549,26 +550,28 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast = new_ast(AST_NOP);
             break;
 
-        case AST_LVAR_DECL_INIT:
+        case AST_LVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             if (ast->lhs->type->is_extern)
                 error("extern variable can't have any initializer: '%s'",
                       ast->lhs->varname);
             if (ast->lhs->type->is_static) {
+                ast->rhs = optimize_ast_constant(ast->rhs);
                 if (ast->rhs->rhs->kind != AST_INT)
-                    // TODO: constant, not int literal
                     error(
                         "static local variable initializer must be constant.");
                 Vector *gvar_list = get_gvar_list();
                 GVar *gvar =
                     (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);
+                assert(gvar->ival == 0);
+                assert(gvar->sval == NULL);
                 gvar->ival = ast->rhs->rhs->ival;
                 ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
             }
             else {
                 ast->rhs = analyze_ast_detail(env, ast->rhs);
             }
-            break;
+        } break;
 
         case AST_GVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);

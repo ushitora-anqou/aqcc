@@ -76,6 +76,8 @@ AST *optimize_ast_constant_detail(AST *ast)
                 case AST_NEQ:
                     ret = ast->lhs->ival != ast->rhs->ival;
                     break;
+                default:
+                    assert(0);
             }
 
             return new_int_ast(ret);
@@ -105,6 +107,8 @@ AST *optimize_ast_constant_detail(AST *ast)
                 case AST_NOT:
                     ret = !ast->lhs->ival;
                     break;
+                default:
+                    assert(0);
             }
             return new_int_ast(ret);
         }
