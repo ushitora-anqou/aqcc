@@ -421,7 +421,6 @@ Vector *concatenate_string_literal_tokens(Vector *tokens);
 Vector *parse_prog(Vector *tokens);
 
 // gen.c
-Vector *generate_code(Vector *asts);
 void dump_code(Vector *codes, FILE *fh);
 Vector *generate_register_code(Vector *asts);
 

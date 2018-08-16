@@ -408,7 +408,8 @@ void test156()
     int *p;
     alloc4(&p);
     int *q = p + 2;
-    EXPECT_INT((q - p) + 1 == -(p - (q + 1)), 1);
+    int r = (q - p) + 1 == -(p - (q + 1));
+    EXPECT_INT(r, 1);
 }
 void test157()
 {
