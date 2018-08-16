@@ -1,11 +1,11 @@
-# AnQou C Compiler: AQCC
+# AnQou C Compiler: aqcc
 
-aqcc **非公式** 解説文
+AnQou C Compiler の使い方
 Last Modified: 2018.8.16
 
 文責: [hiromi-mi](https://github.com/hiromi-mi/)
 
-## AQCC をコンパイル
+## aqcc をコンパイル
 
 * `make aqcc` gcc を用い `aqcc` をコンパイル
 * `make aqcc_self` `aqcc` を用い `aqcc_self` をコンパイル (2度目のコンパイル)
@@ -13,7 +13,7 @@ Last Modified: 2018.8.16
 
 なお、何かしらの理由で生成物を皆削除したいときは、 `make clean` などとしてください。
 
-## AQCC の挙動をテスト
+## aqcc の挙動をテスト
 
 * `make test` `aqcc` をテスト
 * `make self_test` `aqcc_self` をテスト
