@@ -59,7 +59,9 @@ aqcc
 
 # written by hiromi-mi
 *.self.s
+*.selfself.s
 tags
 aqcc_self
+aqcc_selfself
 examples/nqueen/main.s
 examples/nqueen/nqueen
