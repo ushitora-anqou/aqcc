@@ -22,10 +22,12 @@ Code *new_unary_code(int kind, Code *lhs)
     return code;
 }
 
-Code *new_other_code(char *other_op)
+Code *new_other_code(char *other_op, Code *lhs, Code *rhs)
 {
     Code *code = new_code(INST_OTHER);
     code->other_op = other_op;
+    code->lhs = lhs;
+    code->rhs = rhs;
     return code;
 }
 
@@ -36,20 +38,101 @@ Code *value(int value)
     return code;
 }
 
-Code *addrof(int reg, int offset)
+Code *addrof_label(Code *reg, char *label)
+{
+    Code *code = new_code(CD_ADDR_OF_LABEL);
+    code->lhs = reg;
+    code->label = label;
+    return code;
+}
+
+Code *addrof(Code *reg, int offset)
 {
     Code *code = new_code(CD_ADDR_OF);
-    code->lhs = new_code(reg);
+    code->lhs = reg;
     code->ival = offset;
     return code;
 }
 
-Code *mov(Code *lhs, Code *rhs) { return new_binop_code(INST_MOV, lhs, rhs); }
+Code *MOV(Code *lhs, Code *rhs) { return new_binop_code(INST_MOV, lhs, rhs); }
 
-Code *movsbl(Code *lhs, Code *rhs)
+Code *MOVSBL(Code *lhs, Code *rhs)
 {
     return new_binop_code(INST_MOVSBL, lhs, rhs);
 }
+
+Code *MOVZB(Code *lhs, Code *rhs)
+{
+    return new_binop_code(INST_MOVZB, lhs, rhs);
+}
+
+Code *LEA(Code *lhs, Code *rhs) { return new_binop_code(INST_LEA, lhs, rhs); }
+
+Code *PUSH(Code *lhs) { return new_unary_code(INST_PUSH, lhs); }
+
+Code *POP(Code *lhs) { return new_unary_code(INST_POP, lhs); }
+
+Code *ADD(Code *lhs, Code *rhs) { return new_binop_code(INST_ADD, lhs, rhs); }
+
+Code *SUB(Code *lhs, Code *rhs) { return new_binop_code(INST_SUB, lhs, rhs); }
+
+Code *IMUL(Code *lhs, Code *rhs) { return new_binop_code(INST_IMUL, lhs, rhs); }
+
+Code *IDIV(Code *lhs) { return new_unary_code(INST_IDIV, lhs); }
+
+Code *SAR(Code *lhs, Code *rhs) { return new_binop_code(INST_SAR, lhs, rhs); }
+
+Code *SAL(Code *lhs, Code *rhs) { return new_binop_code(INST_SAL, lhs, rhs); }
+
+Code *NEG(Code *lhs) { return new_unary_code(INST_NEG, lhs); }
+
+Code *COMPL(Code *lhs) { return new_unary_code(INST_COMPL, lhs); }
+
+Code *CMP(Code *lhs, Code *rhs) { return new_binop_code(INST_CMP, lhs, rhs); }
+
+Code *SETL(Code *lhs) { return new_unary_code(INST_SETL, lhs); }
+
+Code *SETLE(Code *lhs) { return new_unary_code(INST_SETLE, lhs); }
+
+Code *SETE(Code *lhs) { return new_unary_code(INST_SETE, lhs); }
+
+Code *AND(Code *lhs, Code *rhs) { return new_binop_code(INST_AND, lhs, rhs); }
+
+Code *XOR(Code *lhs, Code *rhs) { return new_binop_code(INST_XOR, lhs, rhs); }
+
+Code *OR(Code *lhs, Code *rhs) { return new_binop_code(INST_OR, lhs, rhs); }
+
+Code *RET() { return new_code(INST_RET); }
+
+Code *EAX() { return new_code(REG_EAX); }
+
+Code *RAX() { return new_code(REG_RAX); }
+
+Code *RBP() { return new_code(REG_RBP); }
+
+Code *RSP() { return new_code(REG_RSP); }
+
+Code *RIP() { return new_code(REG_RIP); }
+
+Code *RDI() { return new_code(REG_RDI); }
+
+Code *RDX() { return new_code(REG_RDX); }
+
+Code *R10() { return new_code(REG_R10); }
+
+Code *R11() { return new_code(REG_R11); }
+
+Code *R12() { return new_code(REG_R12); }
+
+Code *R13() { return new_code(REG_R13); }
+
+Code *R14() { return new_code(REG_R14); }
+
+Code *R15() { return new_code(REG_R15); }
+
+Code *AL() { return new_code(REG_AL); }
+
+Code *CL() { return new_code(REG_CL); }
 
 int temp_reg_table;
 
@@ -70,6 +153,8 @@ int restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
 
 char *code2str(Code *code)
 {
+    if (code == NULL) return NULL;
+
     switch (code->kind) {
         case REG_AL:
             return "%al";
@@ -178,6 +263,13 @@ char *code2str(Code *code)
             return "%r14";
         case REG_R15:
             return "%r15";
+        case REG_RBP:
+            return "%rbp";
+        case REG_RSP:
+            return "%rsp";
+
+        case REG_RIP:
+            return "%rip";
 
         case INST_MOV:
             return format("mov %s, %s", code2str(code->lhs),
@@ -187,8 +279,84 @@ char *code2str(Code *code)
             return format("movsbl %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
 
-        case INST_OTHER:
-            return code->other_op;
+        case INST_MOVZB:
+            return format("movzb %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_LEA:
+            return format("lea %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_POP:
+            return format("pop %s", code2str(code->lhs));
+
+        case INST_PUSH:
+            return format("push %s", code2str(code->lhs));
+
+        case INST_ADD:
+            return format("add %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_SUB:
+            return format("sub %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_IMUL:
+            return format("imul %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_IDIV:
+            return format("idiv %s", code2str(code->lhs));
+
+        case INST_SAR:
+            return format("sar %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_SAL:
+            return format("sal %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_NEG:
+            return format("neg %s", code2str(code->lhs));
+
+        case INST_COMPL:
+            return format("not %s", code2str(code->lhs));
+
+        case INST_CMP:
+            return format("cmp %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_SETL:
+            return format("setl %s", code2str(code->lhs));
+
+        case INST_SETLE:
+            return format("setle %s", code2str(code->lhs));
+
+        case INST_SETE:
+            return format("sete %s", code2str(code->lhs));
+
+        case INST_AND:
+            return format("and %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_XOR:
+            return format("xor %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_OR:
+            return format("or %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_RET:
+            return "ret";
+
+        case INST_OTHER: {
+            char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
+            char *ret = code->other_op;
+            if (lhs) ret = format("%s %s", ret, lhs);
+            if (rhs) ret = format("%s, %s", ret, rhs);
+            return ret;
+        }
 
         case CD_VALUE:
             return format("$%d", code->ival);
@@ -196,7 +364,11 @@ char *code2str(Code *code)
         case CD_ADDR_OF:
             if (code->ival == 0) return format("(%s)", code2str(code->lhs));
             return format("%d(%s)", code->ival, code2str(code->lhs));
+
+        case CD_ADDR_OF_LABEL:
+            return format("%s(%s)", code->label, code2str(code->lhs));
     }
+    warn(format("%d", code->kind));
     assert(0);
 }
 
@@ -369,20 +541,17 @@ void appcode_str(const char *src, ...)
     vsprintf(buf2, buf, args);
     va_end(args);
 
-    appcode(new_other_code(new_str(buf2)));
+    appcode(new_other_code(new_str(buf2), NULL, NULL));
 }
-
-int is_register_code(int kind) { return !(kind & (-1 << 9)); }
 
 void dump_code(Code *code, FILE *fh)
 {  //
     fprintf(fh, "%s\n", code2str(code));
 }
 
-const char *last_appended_code()
+Code *last_appended_code()
 {
-    return (const char *)vector_get(codeenv->code,
-                                    vector_size(codeenv->code) - 1);
+    return (Code *)vector_get(codeenv->code, vector_size(codeenv->code) - 1);
 }
 
 int nbyte_of_reg(int reg)
@@ -407,16 +576,21 @@ int reg_of_nbyte(int nbyte, int reg)
     assert(0);
 }
 
+Code *nbyte_reg(int nbyte, int reg)
+{
+    return new_code(reg_of_nbyte(nbyte, reg));
+}
+
 void generate_mov_mem_reg(int nbyte, int src_reg, int dst_reg)
 {
     switch (nbyte) {
         case 1: {
-            appcode(movsbl(addrof(reg_of_nbyte(8, src_reg), 0),
+            appcode(MOVSBL(addrof(nbyte_reg(8, src_reg), 0),
                            new_code(reg_of_nbyte(4, dst_reg))));
         } break;
         case 4:
         case 8:
-            appcode(mov(addrof(reg_of_nbyte(8, src_reg), 0),
+            appcode(MOV(addrof(nbyte_reg(8, src_reg), 0),
                         new_code(reg_of_nbyte(nbyte, dst_reg))));
             break;
         default:
@@ -429,7 +603,7 @@ int generate_register_code_detail(AST *ast)
     switch (ast->kind) {
         case AST_INT: {
             int reg = get_temp_reg();
-            appcode_str("mov $%d, %s", ast->ival, reg_name(4, reg));
+            appcode(MOV(value(ast->ival), nbyte_reg(4, reg)));
             return reg;
         }
 
@@ -437,17 +611,17 @@ int generate_register_code_detail(AST *ast)
             if (ast->lhs) {
                 int reg = generate_register_code_detail(ast->lhs);
                 restore_temp_reg(reg);
-                appcode_str("mov %s, #rax", reg_name(8, reg));
+                appcode(MOV(nbyte_reg(8, reg), RAX()));
             }
             else {
-                appcode_str("mov $0, #rax");
+                appcode(MOV(value(0), RAX()));
             }
-            appcode_str("pop #r13");
-            appcode_str("pop #r14");
-            appcode_str("pop #r15");
-            appcode_str("mov #rbp, #rsp");
-            appcode_str("pop #rbp");
-            appcode_str("ret");
+            appcode(POP(R13()));
+            appcode(POP(R14()));
+            appcode(POP(R15()));
+            appcode(MOV(RBP(), RSP()));
+            appcode(POP(RBP()));
+            appcode(RET());
             return -1;
         }
 
@@ -460,11 +634,11 @@ int generate_register_code_detail(AST *ast)
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
                 appcode_str("cltq");
-                appcode_str("imul $%d, %s", ast->rhs->type->ptr_of->nbytes,
-                            reg_name(4, lreg));
+                appcode(IMUL(value(ast->rhs->type->ptr_of->nbytes),
+                             nbyte_reg(4, lreg)));
             }
 
-            appcode_str("add %s, %s", reg_name(8, lreg), reg_name(8, rreg));
+            appcode(ADD(nbyte_reg(8, lreg), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -478,16 +652,16 @@ int generate_register_code_detail(AST *ast)
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
                 appcode_str("cltq");
-                appcode_str("imul $%d, %s", ast->lhs->type->ptr_of->nbytes,
-                            reg_name(4, rreg));
+                appcode(IMUL(value(ast->lhs->type->ptr_of->nbytes),
+                             nbyte_reg(4, rreg)));
             }
 
-            appcode_str("sub %s, %s", reg_name(8, rreg), reg_name(8, lreg));
+            appcode(SUB(nbyte_reg(8, rreg), nbyte_reg(8, lreg)));
 
             // ptr - ptr
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
                 // assume pointer size is 8.
-                appcode_str("sar $%d, %s", 2, reg_name(8, lreg));
+                appcode(SAR(value(2), nbyte_reg(8, lreg)));
 
             restore_temp_reg(rreg);
             return lreg;
@@ -496,8 +670,8 @@ int generate_register_code_detail(AST *ast)
         case AST_MUL: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("imul %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, rreg));
+            appcode(IMUL(nbyte_reg(ast->type->nbytes, lreg),
+                         nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -505,11 +679,11 @@ int generate_register_code_detail(AST *ast)
         case AST_DIV: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("mov %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, 0));
+            appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
+                        nbyte_reg(ast->type->nbytes, 0)));
             appcode_str("cltd");
-            appcode_str("idiv %s", reg_name(ast->type->nbytes, rreg));
-            appcode_str("mov #rax, %s", reg_name(8, rreg));
+            appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
+            appcode(MOV(RAX(), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -517,32 +691,32 @@ int generate_register_code_detail(AST *ast)
         case AST_REM: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("mov %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, 0));
+            appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
+                        nbyte_reg(ast->type->nbytes, 0)));
             appcode_str("cltd");
-            appcode_str("idiv %s", reg_name(ast->type->nbytes, rreg));
-            appcode_str("mov #rdx, %s", reg_name(8, rreg));
+            appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
+            appcode(MOV(RDX(), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
 
         case AST_UNARY_MINUS: {
             int reg = generate_register_code_detail(ast->lhs);
-            appcode_str("neg %s", reg_name(ast->type->nbytes, reg));
+            appcode(NEG(nbyte_reg(ast->type->nbytes, reg)));
             return reg;
         }
 
         case AST_COMPL: {
             int reg = generate_register_code_detail(ast->lhs);
-            appcode_str("not %s", reg_name(ast->type->nbytes, reg));
+            appcode(COMPL(nbyte_reg(ast->type->nbytes, reg)));
             return reg;
         }
 
         case AST_LSHIFT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("mov %s, #cl", reg_name(1, rreg));
-            appcode_str("sal #cl, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(MOV(nbyte_reg(1, rreg), CL()));
+            appcode(SAL(CL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -550,8 +724,8 @@ int generate_register_code_detail(AST *ast)
         case AST_RSHIFT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("mov %s, #cl", reg_name(1, rreg));
-            appcode_str("sar #cl, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(MOV(nbyte_reg(1, rreg), CL()));
+            appcode(SAR(CL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -559,10 +733,10 @@ int generate_register_code_detail(AST *ast)
         case AST_LT: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                        reg_name(ast->type->nbytes, lreg));
-            appcode_str("setl #al");
-            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
+                        nbyte_reg(ast->type->nbytes, lreg)));
+            appcode(SETL(AL()));
+            appcode(MOVZB(AL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -570,10 +744,10 @@ int generate_register_code_detail(AST *ast)
         case AST_LTE: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                        reg_name(ast->type->nbytes, lreg));
-            appcode_str("setle #al");
-            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
+                        nbyte_reg(ast->type->nbytes, lreg)));
+            appcode(SETLE(AL()));
+            appcode(MOVZB(AL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -581,10 +755,10 @@ int generate_register_code_detail(AST *ast)
         case AST_EQ: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("cmp %s, %s", reg_name(ast->type->nbytes, rreg),
-                        reg_name(ast->type->nbytes, lreg));
-            appcode_str("sete #al");
-            appcode_str("movzb #al, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
+                        nbyte_reg(ast->type->nbytes, lreg)));
+            appcode(SETE(AL()));
+            appcode(MOVZB(AL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
             return lreg;
         }
@@ -592,8 +766,8 @@ int generate_register_code_detail(AST *ast)
         case AST_AND: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("and %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, rreg));
+            appcode(AND(nbyte_reg(ast->type->nbytes, lreg),
+                        nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -601,8 +775,8 @@ int generate_register_code_detail(AST *ast)
         case AST_XOR: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("xor %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, rreg));
+            appcode(XOR(nbyte_reg(ast->type->nbytes, lreg),
+                        nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -610,8 +784,8 @@ int generate_register_code_detail(AST *ast)
         case AST_OR: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode_str("or %s, %s", reg_name(ast->type->nbytes, lreg),
-                        reg_name(ast->type->nbytes, rreg));
+            appcode(OR(nbyte_reg(ast->type->nbytes, lreg),
+                       nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -621,17 +795,17 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
-            appcode_str("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
             appcode_str("je %s", false_label);
             // don't execute rhs expression if lhs is false.
             int rreg = generate_register_code_detail(ast->rhs);
-            char *rreg_name = reg_name(ast->type->nbytes, rreg);
-            appcode_str("cmp $0, %s", rreg_name);
+            Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
+            appcode(CMP(value(0), rreg_code));
             appcode_str("je %s", false_label);
-            appcode_str("mov $1, %s", rreg_name);
+            appcode(MOV(value(1), rreg_code));
             appcode_str("jmp %s", exit_label);
             appcode_str("%s:", false_label);
-            appcode_str("mov $0, %s", rreg_name);
+            appcode(MOV(value(0), rreg_code));
             appcode_str("%s:", exit_label);
             return rreg;
         }
@@ -641,17 +815,17 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
-            appcode_str("cmp $0, %s", reg_name(ast->type->nbytes, lreg));
+            appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
             appcode_str("jne %s", true_label);
             // don't execute rhs expression if lhs is true.
             int rreg = generate_register_code_detail(ast->rhs);
-            char *rreg_name = reg_name(ast->type->nbytes, rreg);
-            appcode_str("cmp $0, %s", rreg_name);
+            Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
+            appcode(CMP(value(0), rreg_code));
             appcode_str("jne %s", true_label);
-            appcode_str("cmp $0, %s", rreg_name);
+            appcode(CMP(value(0), rreg_code));
             appcode_str("jmp %s", exit_label);
             appcode_str("%s:", true_label);
-            appcode_str("mov $1, %s", rreg_name);
+            appcode(MOV(value(1), rreg_code));
             appcode_str("%s:", exit_label);
             return rreg;
         }
@@ -672,12 +846,12 @@ int generate_register_code_detail(AST *ast)
             // generate code
             appcode_str(".global %s", ast->fname);
             appcode_str("%s:", ast->fname);
-            appcode_str("push #rbp");
-            appcode_str("mov #rsp, #rbp");
-            appcode_str("sub $%d, #rsp", roundup(-stack_idx, 16));
-            appcode_str("push #r15");
-            appcode_str("push #r14");
-            appcode_str("push #r13");
+            appcode(PUSH(RBP()));
+            appcode(MOV(RSP(), RBP()));
+            appcode(SUB(value(roundup(-stack_idx, 16)), RSP()));
+            appcode(PUSH(R15()));
+            appcode(PUSH(R14()));
+            appcode(PUSH(R13()));
 
             // assign param to localvar
             if (ast->params) {
@@ -685,9 +859,8 @@ int generate_register_code_detail(AST *ast)
                     AST *var = lookup_var(
                         ast->env, ((AST *)vector_get(ast->params, i))->varname);
                     if (i < 6)
-                        appcode_str("mov %s, %d(#rbp)",
-                                    reg_name(var->type->nbytes, i + 1),
-                                    var->stack_idx);
+                        appcode(MOV(nbyte_reg(var->type->nbytes, i + 1),
+                                    addrof(RBP(), var->stack_idx)));
                     else
                         // should avoid return pointer and saved %rbp
                         var->stack_idx = 16 + (i - 6) * 8;
@@ -697,8 +870,8 @@ int generate_register_code_detail(AST *ast)
             // place Register Save Area if the function has variadic params.
             if (ast->is_variadic)
                 for (int i = 0; i < 6; i++)
-                    appcode_str("mov %s, %d(#rbp)", reg_name(8, i + 1),
-                                stack_idx + i * 8);
+                    appcode(MOV(nbyte_reg(8, i + 1),
+                                addrof(RBP(), stack_idx + i * 8)));
 
             // generate body
             SAVE_VARIADIC_CXT;
@@ -712,15 +885,17 @@ int generate_register_code_detail(AST *ast)
             RESTORE_VARIADIC_CXT;
 
             // avoid duplicate needless `ret`
-            if (strcmp(last_appended_code(), "ret") == 0) return -1;
+            Code *code = last_appended_code();
+            if (code->kind == INST_OTHER && strcmp(code->other_op, "ret") == 0)
+                return -1;
 
-            if (ast->type->kind != TY_VOID) appcode_str("mov $0, #rax");
-            appcode_str("pop #r13");
-            appcode_str("pop #r14");
-            appcode_str("pop #r15");
-            appcode_str("mov #rbp, #rsp");
-            appcode_str("pop #rbp");
-            appcode_str("ret");
+            if (ast->type->kind != TY_VOID) appcode(MOV(value(0), RAX()));
+            appcode(POP(R13()));
+            appcode(POP(R14()));
+            appcode(POP(R15()));
+            appcode(MOV(RBP(), RSP()));
+            appcode(POP(RBP()));
+            appcode(RET());
             return -1;
         }
 
@@ -728,8 +903,8 @@ int generate_register_code_detail(AST *ast)
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
 
-            appcode_str("mov %s, (%s)", reg_name(ast->type->nbytes, rreg),
-                        reg_name(8, lreg));
+            appcode(MOV(nbyte_reg(ast->type->nbytes, rreg),
+                        addrof(nbyte_reg(8, lreg), 0)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -746,42 +921,41 @@ int generate_register_code_detail(AST *ast)
 
         case AST_LVAR: {
             int reg = get_temp_reg();
-            char *rname = reg_name(8, reg);
+            Code *reg_code = nbyte_reg(8, reg);
             if (ast->type->is_static || ast->type->is_extern)
-                appcode_str("lea %s(#rip), %s", ast->gen_varname, rname);
+                appcode(LEA(addrof_label(RIP(), ast->gen_varname), reg_code));
             else
-                appcode_str("lea %d(#rbp), %s", ast->stack_idx, rname);
+                appcode(LEA(addrof(RBP(), ast->stack_idx), reg_code));
             return reg;
         }
 
         case AST_GVAR: {
             int reg = get_temp_reg();
-            char *rname = reg_name(8, reg);
-            appcode_str("lea %s(#rip), %s", ast->gen_varname, rname);
+            Code *reg_code = nbyte_reg(8, reg);
+            appcode(LEA(addrof_label(RIP(), ast->gen_varname), reg_code));
             return reg;
         }
 
         case AST_FUNCCALL: {
-            appcode_str("push #r10");
-            appcode_str("push #r11");
-            appcode_str("push #r12");
+            appcode(PUSH(R10()));
+            appcode(PUSH(R11()));
+            appcode(PUSH(R12()));
             for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
                 int reg = generate_register_code_detail(
                     (AST *)(vector_get(ast->args, i)));
-                appcode_str("push %s", reg_name(8, reg));
+                appcode(PUSH(nbyte_reg(8, reg)));
                 restore_temp_reg(reg);
             }
             for (int i = 0; i < min(6, vector_size(ast->args)); i++)
-                appcode_str("pop %s", reg_name(8, i + 1));
-            appcode_str("mov $0, #eax");
+                appcode(POP(nbyte_reg(8, i + 1)));
+            appcode(MOV(value(0), EAX()));
             appcode_str("call %s@PLT", ast->fname);
-            appcode_str("add $%d, #rsp",
-                        8 * max(0, vector_size(ast->args) - 6));
-            appcode_str("pop #r12");
-            appcode_str("pop #r11");
-            appcode_str("pop #r10");
+            appcode(ADD(value(8 * max(0, vector_size(ast->args) - 6)), RSP()));
+            appcode(POP(R12()));
+            appcode(POP(R11()));
+            appcode(POP(R10()));
             int reg = get_temp_reg();
-            appcode_str("mov #rax, %s", reg_name(8, reg));
+            appcode(MOV(RAX(), nbyte_reg(8, reg)));
             return reg;
         }
 
@@ -789,15 +963,17 @@ int generate_register_code_detail(AST *ast)
             char suf = byte2suffix(ast->lhs->type->nbytes);
 
             int lreg = generate_register_code_detail(ast->lhs);
-            char *lreg_name = reg_name(8, lreg);
+            Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode_str("add%c $%d, (%s)", suf,
-                            ast->lhs->type->ptr_of->nbytes, lreg_name);
+                appcode(new_other_code(format("add%c", suf),
+                                       value(ast->lhs->type->ptr_of->nbytes),
+                                       addrof(lreg_code, 0)));
             else
-                appcode_str("inc%c (%s)", suf, lreg_name);
+                appcode(new_other_code(format("inc%c", suf),
+                                       addrof(lreg_code, 0), NULL));
 
             restore_temp_reg(lreg);
             return reg;
@@ -807,14 +983,16 @@ int generate_register_code_detail(AST *ast)
             char suf = byte2suffix(ast->lhs->type->nbytes);
 
             int lreg = generate_register_code_detail(ast->lhs);
-            char *lreg_name = reg_name(8, lreg);
+            Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode_str("add%c $%d, (%s)", suf,
-                            ast->lhs->type->ptr_of->nbytes, lreg_name);
+                appcode(new_other_code(format("add%c", suf),
+                                       value(ast->lhs->type->ptr_of->nbytes),
+                                       addrof(lreg_code, 0)));
             else
-                appcode_str("inc%c (%s)", suf, lreg_name);
+                appcode(new_other_code(format("inc%c", suf),
+                                       addrof(lreg_code, 0), NULL));
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
@@ -826,15 +1004,17 @@ int generate_register_code_detail(AST *ast)
             char suf = byte2suffix(ast->lhs->type->nbytes);
 
             int lreg = generate_register_code_detail(ast->lhs);
-            char *lreg_name = reg_name(8, lreg);
+            Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode_str("sub%c $%d, (%s)", suf,
-                            ast->lhs->type->ptr_of->nbytes, lreg_name);
+                appcode(new_other_code(format("sub%c", suf),
+                                       value(ast->lhs->type->ptr_of->nbytes),
+                                       addrof(lreg_code, 0)));
             else
-                appcode_str("dec%c (%s)", suf, lreg_name);
+                appcode(new_other_code(format("dec%c", suf),
+                                       addrof(lreg_code, 0), NULL));
 
             restore_temp_reg(lreg);
             return reg;
@@ -844,14 +1024,16 @@ int generate_register_code_detail(AST *ast)
             char suf = byte2suffix(ast->lhs->type->nbytes);
 
             int lreg = generate_register_code_detail(ast->lhs);
-            char *lreg_name = reg_name(8, lreg);
+            Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode_str("sub%c $%d, (%s)", suf,
-                            ast->lhs->type->ptr_of->nbytes, lreg_name);
+                appcode(new_other_code(format("sub%c", suf),
+                                       value(ast->lhs->type->ptr_of->nbytes),
+                                       addrof(lreg_code, 0)));
             else
-                appcode_str("dec%c (%s)", suf, lreg_name);
+                appcode(new_other_code(format("dec%c", suf),
+                                       addrof(lreg_code, 0), NULL));
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
@@ -869,22 +1051,22 @@ int generate_register_code_detail(AST *ast)
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
-            appcode_str("mov %s, #rax", reg_name(8, cond_reg));
-            appcode_str("cmp $0, #eax");
+            appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
+            appcode(CMP(value(0), EAX()));
             appcode_str("je %s", false_label);
             int then_reg = generate_register_code_detail(ast->then);
             restore_temp_reg(then_reg);
-            appcode_str("push %s", reg_name(8, then_reg));
+            appcode(PUSH(nbyte_reg(8, then_reg)));
             appcode_str("jmp %s", exit_label);
             appcode_str("%s:", false_label);
             if (ast->els != NULL) {
                 int els_reg = generate_register_code_detail(ast->els);
                 restore_temp_reg(els_reg);
-                appcode_str("push %s", reg_name(8, els_reg));
+                appcode(PUSH(nbyte_reg(8, els_reg)));
             }
             appcode_str("%s:", exit_label);
             int reg = get_temp_reg();
-            appcode_str("pop %s", reg_name(8, reg));
+            appcode(POP(nbyte_reg(8, reg)));
             return reg;
         }
 
@@ -894,8 +1076,8 @@ int generate_register_code_detail(AST *ast)
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
-            appcode_str("mov %s, #rax", reg_name(8, cond_reg));
-            appcode_str("cmp $0, #eax");
+            appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
+            appcode(CMP(value(0), EAX()));
             appcode_str("je %s", false_label);
             generate_register_code_detail(ast->then);
             appcode_str("jmp %s", exit_label);
@@ -912,7 +1094,8 @@ int generate_register_code_detail(AST *ast)
 
             for (int i = 0; i < vector_size(ast->cases); i++) {
                 SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
-                appcode_str("cmp $%d, %s", cas->cond, name);
+                appcode(CMP(value(cas->cond),
+                            nbyte_reg(ast->target->type->nbytes, target_reg)));
                 // case has been already labeled when analyzing.
                 appcode_str("je %s", cas->label_name);
             }
@@ -942,8 +1125,8 @@ int generate_register_code_detail(AST *ast)
             generate_register_code_detail(ast->then);
             appcode_str("%s:", codeenv->continue_label);
             int cond_reg = generate_register_code_detail(ast->cond);
-            appcode_str("cmp $0, %s",
-                        reg_name(ast->cond->type->nbytes, cond_reg));
+            appcode(
+                CMP(value(0), nbyte_reg(ast->cond->type->nbytes, cond_reg)));
             appcode_str("jne %s", start_label);
             appcode_str("%s:", codeenv->break_label);
 
@@ -968,8 +1151,8 @@ int generate_register_code_detail(AST *ast)
             appcode_str("%s:", start_label);
             if (ast->midcond != NULL) {
                 int reg = generate_register_code_detail(ast->midcond);
-                appcode_str("cmp $0, %s",
-                            reg_name(ast->midcond->type->nbytes, reg));
+                appcode(
+                    CMP(value(0), nbyte_reg(ast->midcond->type->nbytes, reg)));
                 appcode_str("je %s", codeenv->break_label);
                 restore_temp_reg(reg);
             }
@@ -1012,7 +1195,7 @@ int generate_register_code_detail(AST *ast)
             assert(offset >= 0);
 
             int reg = generate_register_code_detail(ast->stsrc);
-            appcode_str("add $%d, %s", offset, reg_name(8, reg));
+            appcode(ADD(value(offset), nbyte_reg(8, reg)));
             return reg;
         }
 
@@ -1057,16 +1240,17 @@ int generate_register_code_detail(AST *ast)
 
         case AST_VA_START: {
             int reg = generate_register_code_detail(ast->lhs);
-            char *rname = reg_name(8, reg);
+            Code *reg_code = nbyte_reg(8, reg);
             assert(ast->rhs->kind == AST_INT);
-            appcode_str("movl $%d, (%s)", ast->rhs->ival * 8, rname);
-            appcode_str("movl $48, 4(%s)", rname);
-            appcode_str("leaq %d(#rbp), #rdi",
-                        codeenv->overflow_arg_area_stack_idx, rname);
-            appcode_str("mov #rdi, 8(%s)", rname);
-            appcode_str("leaq %d(#rbp), #rdi", codeenv->reg_save_area_stack_idx,
-                        rname);
-            appcode_str("mov #rdi, 16(%s)", rname);
+            appcode(new_other_code("movl", value(ast->rhs->ival * 8),
+                                   addrof(reg_code, 0)));
+            appcode(new_other_code("movl", value(48), addrof(reg_code, 4)));
+            appcode(LEA(addrof(RBP(), codeenv->overflow_arg_area_stack_idx),
+                        RDI()));
+            appcode(MOV(RDI(), addrof(reg_code, 8)));
+            appcode(
+                LEA(addrof(RBP(), codeenv->reg_save_area_stack_idx), RDI()));
+            appcode(MOV(RDI(), addrof(reg_code, 16)));
             restore_temp_reg(reg);
             return -1;
         }

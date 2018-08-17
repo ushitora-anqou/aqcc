@@ -406,6 +406,8 @@ enum {
     REG_R13B,
     REG_R14B,
     REG_R15B,
+    REG_BPL,
+    REG_SPL,
 
     REG_16 = 1 << 6,
     REG_AX = 0 | REG_16,
@@ -421,6 +423,8 @@ enum {
     REG_R13W,
     REG_R14W,
     REG_R15W,
+    REG_BP,
+    REG_SP,
 
     REG_32 = 1 << 7,
     REG_EAX = 0 | REG_32,
@@ -436,6 +440,8 @@ enum {
     REG_R13D,
     REG_R14D,
     REG_R15D,
+    REG_EBP,
+    REG_ESP,
 
     REG_64 = 1 << 8,
     REG_RAX = 0 | REG_64,
@@ -451,22 +457,49 @@ enum {
     REG_R13,
     REG_R14,
     REG_R15,
+    REG_RBP,
+    REG_RSP,
+
+    REG_RIP,
 
     INST_MOV = 1 << 9,
     INST_MOVSBL,
+    INST_MOVZB,
+    INST_LEA,
+    INST_PUSH,
+    INST_POP,
+    INST_ADD,
+    INST_SUB,
+    INST_IMUL,
+    INST_IDIV,
+    INST_SAR,
+    INST_SAL,
+    INST_NEG,
+    INST_COMPL,
+    INST_CMP,
+    INST_SETL,
+    INST_SETLE,
+    INST_SETE,
+    INST_AND,
+    INST_XOR,
+    INST_OR,
+    INST_RET,
+
     INST_OTHER,
 
     CD_VALUE,
     CD_ADDR_OF,
+    CD_ADDR_OF_LABEL,
 };
 
 typedef struct Code Code;
 struct Code {
     int kind;
 
-    char *other_op;
     Code *lhs, *rhs;
     int ival;
+    char *label;
+    char *other_op;
 };
 
 // utility.c
