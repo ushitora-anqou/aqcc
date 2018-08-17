@@ -4,6 +4,7 @@ Code *new_code(int kind)
 {
     Code *this = safe_malloc(sizeof(Code));
     this->kind = kind;
+    this->read_dep = new_vector();
     return this;
 }
 
@@ -12,6 +13,8 @@ Code *new_binop_code(int kind, Code *lhs, Code *rhs)
     Code *code = new_code(kind);
     code->lhs = lhs;
     code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    vector_push_back(code->read_dep, rhs);
     return code;
 }
 
@@ -19,6 +22,8 @@ Code *new_unary_code(int kind, Code *lhs)
 {
     Code *code = new_code(kind);
     code->lhs = lhs;
+    code->rhs = NULL;
+    vector_push_back(code->read_dep, lhs);
     return code;
 }
 
@@ -28,6 +33,8 @@ Code *new_other_code(char *other_op, Code *lhs, Code *rhs)
     code->other_op = other_op;
     code->lhs = lhs;
     code->rhs = rhs;
+    if (lhs) vector_push_back(code->read_dep, lhs);
+    if (rhs) vector_push_back(code->read_dep, rhs);
     return code;
 }
 
@@ -551,7 +558,17 @@ void dump_code(Code *code, FILE *fh)
 
 Code *last_appended_code()
 {
-    return (Code *)vector_get(codeenv->code, vector_size(codeenv->code) - 1);
+    for (int i = vector_size(codeenv->code) - 1; i >= 0; i--) {
+        Code *str = vector_get(codeenv->code, i);
+        if (str) return str;
+    }
+
+    assert(0);
+}
+
+void add_read_dep(Code *dep)
+{
+    vector_push_back(last_appended_code()->read_dep, dep);
 }
 
 int nbyte_of_reg(int reg)
@@ -561,17 +578,29 @@ int nbyte_of_reg(int reg)
     return ret;
 }
 
+void generate_basic_block_marker_start()
+{
+    appcode_str("/* BLOCK START */");
+    vector_push_back(codeenv->code, NULL);
+}
+
+void generate_basic_block_marker_end()
+{
+    appcode_str("/* BLOCK END */");
+    vector_push_back(codeenv->code, NULL);
+}
+
 int reg_of_nbyte(int nbyte, int reg)
 {
     switch (nbyte) {
         case 1:
-            return (reg & 15) | REG_8;
+            return (reg & 31) | REG_8;
         case 2:
-            return (reg & 15) | REG_16;
+            return (reg & 31) | REG_16;
         case 4:
-            return (reg & 15) | REG_32;
+            return (reg & 31) | REG_32;
         case 8:
-            return (reg & 15) | REG_64;
+            return (reg & 31) | REG_64;
     }
     assert(0);
 }
@@ -608,6 +637,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_RETURN: {
+            assert(temp_reg_table == 0);
             if (ast->lhs) {
                 int reg = generate_register_code_detail(ast->lhs);
                 restore_temp_reg(reg);
@@ -616,6 +646,7 @@ int generate_register_code_detail(AST *ast)
             else {
                 appcode(MOV(value(0), RAX()));
             }
+            assert(temp_reg_table == 0);
             appcode(POP(R13()));
             appcode(POP(R14()));
             appcode(POP(R15()));
@@ -683,6 +714,7 @@ int generate_register_code_detail(AST *ast)
                         nbyte_reg(ast->type->nbytes, 0)));
             appcode_str("cltd");
             appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
+            add_read_dep(RAX());
             appcode(MOV(RAX(), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
@@ -695,6 +727,7 @@ int generate_register_code_detail(AST *ast)
                         nbyte_reg(ast->type->nbytes, 0)));
             appcode_str("cltd");
             appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
+            add_read_dep(RAX());
             appcode(MOV(RDX(), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
@@ -879,7 +912,7 @@ int generate_register_code_detail(AST *ast)
             codeenv->overflow_arg_area_stack_idx =
                 ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
                             : -1;
-            init_temp_reg();
+            assert(temp_reg_table == 0);
             generate_register_code_detail(ast->body);
             assert(temp_reg_table == 0);
             RESTORE_VARIADIC_CXT;
@@ -1205,10 +1238,14 @@ int generate_register_code_detail(AST *ast)
             return -1;
 
         case AST_EXPR_STMT:
+            assert(temp_reg_table == 0);
+            generate_basic_block_marker_start();
             if (ast->lhs != NULL) {
                 int reg = generate_register_code_detail(ast->lhs);
                 if (reg != -1) restore_temp_reg(reg);
             }
+            assert(temp_reg_table == 0);
+            generate_basic_block_marker_end();
             return -1;
 
         case AST_ARY2PTR:

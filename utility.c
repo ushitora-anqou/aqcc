@@ -226,6 +226,7 @@ void erase_backslash_newline(char *src)
 Vector *read_tokens_from_filepath(char *filepath)
 {
     FILE *fh = fopen(filepath, "r");
+    if (fh == NULL) error("no such file: '%s'", filepath);
     char *src = read_entire_file(fh);
     fclose(fh);
     erase_backslash_newline(src);

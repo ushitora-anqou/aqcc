@@ -232,9 +232,152 @@ void optimize_asts_constant(Vector *asts, Env *env)
                    optimize_ast_constant((AST *)vector_get(asts, i), env));
 }
 
+int get_using_register(Code *code)
+{
+    if (code == NULL) return -1;
+    switch (code->kind) {
+        case REG_AL:
+        case REG_DIL:
+        case REG_SIL:
+        case REG_DL:
+        case REG_CL:
+        case REG_R8B:
+        case REG_R9B:
+        case REG_R10B:
+        case REG_R11B:
+        case REG_R12B:
+        case REG_R13B:
+        case REG_R14B:
+        case REG_R15B:
+        case REG_BPL:
+        case REG_SPL:
+        case REG_AX:
+        case REG_DI:
+        case REG_SI:
+        case REG_DX:
+        case REG_CX:
+        case REG_R8W:
+        case REG_R9W:
+        case REG_R10W:
+        case REG_R11W:
+        case REG_R12W:
+        case REG_R13W:
+        case REG_R14W:
+        case REG_R15W:
+        case REG_BP:
+        case REG_SP:
+        case REG_EAX:
+        case REG_EDI:
+        case REG_ESI:
+        case REG_EDX:
+        case REG_ECX:
+        case REG_R8D:
+        case REG_R9D:
+        case REG_R10D:
+        case REG_R11D:
+        case REG_R12D:
+        case REG_R13D:
+        case REG_R14D:
+        case REG_R15D:
+        case REG_EBP:
+        case REG_ESP:
+        case REG_RAX:
+        case REG_RDI:
+        case REG_RSI:
+        case REG_RDX:
+        case REG_RCX:
+        case REG_R8:
+        case REG_R9:
+        case REG_R10:
+        case REG_R11:
+        case REG_R12:
+        case REG_R13:
+        case REG_R14:
+        case REG_R15:
+        case REG_RBP:
+        case REG_RSP:
+        case REG_RIP:
+            return code->kind;
+        case CD_ADDR_OF:
+            return get_using_register(code->lhs);
+        case CD_ADDR_OF_LABEL:
+            return get_using_register(code->lhs);
+    }
+
+    return -1;
+}
+
+int is_register_code(Code *code)
+{
+    if (code == NULL) return 0;
+    return code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
+}
+
+Vector *optimize_code_detail_eliminate(Vector *block)
+{
+    Vector *nblock = new_vector();
+    int used_reg_flag = 0;
+    for (int i = vector_size(block) - 1; i >= 0; i--) {
+        Code *code = (Code *)vector_get(block, i);
+
+        switch (code->kind) {
+            case INST_LEA:
+            case INST_MOV: {
+                if (!is_register_code(code->rhs) ||
+                    used_reg_flag & (1 << (code->rhs->kind & 31)))
+                    vector_push_back(nblock, code);
+                if (is_register_code(code->rhs))
+                    used_reg_flag &= ~(1 << (code->rhs->kind & 31));
+            } break;
+
+            default:
+                vector_push_back(nblock, code);
+                break;
+        }
+
+        for (int i = 0; i < vector_size(code->read_dep); i++) {
+            int reg = get_using_register(vector_get(code->read_dep, i));
+            if (reg != -1) used_reg_flag |= 1 << (reg & 31);
+        }
+    }
+
+    // reverse nblock
+    int size = vector_size(nblock);
+    for (int i = 0; i < size / 2; i++) {
+        Code *lhs = (Code *)vector_get(nblock, i),
+             *rhs = (Code *)vector_get(nblock, size - i - 1);
+        vector_set(nblock, i, rhs);
+        vector_set(nblock, size - i - 1, lhs);
+    }
+
+    return nblock;
+}
+
+Vector *optimize_code_detail(Vector *block)
+{
+    return optimize_code_detail_eliminate(block);
+}
+
 Vector *optimize_code(Vector *code)
 {
     Vector *ncodes = new_vector();
-    vector_push_back_vector(ncodes, code);
+    for (int i = 0; i < vector_size(code); i++) {
+        char *str = vector_get(code, i);
+        if (str != NULL) {  // not marker of basic block
+            vector_push_back(ncodes, str);
+            continue;
+        }
+
+        // create basic block
+        Vector *block = new_vector();
+        for (i++; i < vector_size(code); i++) {
+            char *str = vector_get(code, i);
+            if (str == NULL) break;
+            vector_push_back(block, str);
+        }
+        if (i >= vector_size(code)) error("no marker for basic block's end");
+        // optimize the block
+        vector_push_back_vector(ncodes, optimize_code_detail(block));
+    }
     return ncodes;
 }

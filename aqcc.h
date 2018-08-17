@@ -500,6 +500,7 @@ struct Code {
     int ival;
     char *label;
     char *other_op;
+    Vector *read_dep;
 };
 
 // utility.c
