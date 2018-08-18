@@ -9,6 +9,7 @@ Code *new_code(int kind)
     this->label = NULL;
     this->other_op = NULL;
     this->read_dep = new_vector();
+    this->can_be_eliminated = 1;
     return this;
 }
 
@@ -601,6 +602,8 @@ void add_read_dep(Code *dep)
     vector_push_back(last_appended_code()->read_dep, dep);
 }
 
+void disable_elimination() { last_appended_code()->can_be_eliminated = 0; }
+
 int nbyte_of_reg(int reg)
 {
     int ret = (reg & (REG_8 | REG_16 | REG_32 | REG_64)) >> 5;
@@ -1012,6 +1015,7 @@ int generate_register_code_detail(AST *ast)
             for (int i = 0; i < min(6, vector_size(ast->args)); i++)
                 appcode(POP(nbyte_reg(8, i + 1)));
             appcode(MOV(value(0), EAX()));
+            disable_elimination();
             appcode_str("call %s@PLT", ast->fname);
             appcode(ADD(value(8 * max(0, vector_size(ast->args) - 6)), RSP()));
             appcode(POP(R12()));

@@ -369,7 +369,7 @@ Vector *optimize_code_detail_eliminate(Vector *block)
         switch (code->kind) {
             case INST_LEA:
             case INST_MOV: {
-                if (!is_register_code(code->rhs) ||
+                if (!code->can_be_eliminated || !is_register_code(code->rhs) ||
                     used_reg_flag & (1 << (code->rhs->kind & 31)))
                     vector_push_back(nblock, code);
                 if (is_register_code(code->rhs))

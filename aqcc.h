@@ -501,6 +501,7 @@ struct Code {
     char *label;
     char *other_op;
     Vector *read_dep;
+    int can_be_eliminated;
 };
 
 // utility.c
