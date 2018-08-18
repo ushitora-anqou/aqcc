@@ -409,7 +409,7 @@ int are_different_vectors(Vector *lhs, Vector *rhs)
     return 0;
 }
 
-Vector *optimize_code_detail(Vector *block)
+Vector *optimize_code_detail_basic_block(Vector *block)
 {
     Vector *org_block = block, *nblock = block;
     do {
@@ -423,24 +423,28 @@ Vector *optimize_code_detail(Vector *block)
 
 Vector *optimize_code(Vector *code)
 {
-    Vector *ncodes = new_vector();
+    Vector *ncode = new_vector();
     for (int i = 0; i < vector_size(code); i++) {
-        char *str = vector_get(code, i);
-        if (str != NULL) {  // not marker of basic block
-            vector_push_back(ncodes, str);
-            continue;
-        }
+        Code *code0 = vector_get(code, i);
+        switch (code0->kind) {
+            case MRK_BASIC_BLOCK_START: {
+                // create basic block
+                Vector *block = new_vector();
+                for (i++; i < vector_size(code); i++) {
+                    Code *code2 = vector_get(code, i);
+                    if (code2->kind == MRK_BASIC_BLOCK_END) break;
+                    vector_push_back(block, code2);
+                }
 
-        // create basic block
-        Vector *block = new_vector();
-        for (i++; i < vector_size(code); i++) {
-            char *str = vector_get(code, i);
-            if (str == NULL) break;
-            vector_push_back(block, str);
+                // optimize the block
+                vector_push_back_vector(
+                    ncode, optimize_code_detail_basic_block(block));
+            } break;
+
+            default:
+                vector_push_back(ncode, code0);
+                break;
         }
-        if (i >= vector_size(code)) error("no marker for basic block's end");
-        // optimize the block
-        vector_push_back_vector(ncodes, optimize_code_detail(block));
     }
-    return ncodes;
+    return ncode;
 }

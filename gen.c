@@ -614,12 +614,12 @@ int nbyte_of_reg(int reg)
 void generate_basic_block_marker_start()
 {
     appcode_str("/* BLOCK START */");
-    vector_push_back(codeenv->code, NULL);
+    appcode(new_code(MRK_BASIC_BLOCK_START));
 }
 
 void generate_basic_block_marker_end()
 {
-    vector_push_back(codeenv->code, NULL);
+    appcode(new_code(MRK_BASIC_BLOCK_END));
     appcode_str("/* BLOCK END */");
 }
 

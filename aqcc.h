@@ -490,6 +490,9 @@ enum {
     CD_VALUE,
     CD_ADDR_OF,
     CD_ADDR_OF_LABEL,
+
+    MRK_BASIC_BLOCK_START,
+    MRK_BASIC_BLOCK_END,
 };
 
 typedef struct Code Code;
