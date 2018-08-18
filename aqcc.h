@@ -523,6 +523,7 @@ int max(int a, int b);
 int roundup(int n, int b);
 Vector *read_tokens_from_filepath(char *filepath);
 void assert(int cond);
+int is_register_code(Code *code);
 
 // lex.c
 Vector *read_all_tokens(char *src);

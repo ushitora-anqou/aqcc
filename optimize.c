@@ -307,10 +307,56 @@ int get_using_register(Code *code)
     return -1;
 }
 
-int is_register_code(Code *code)
+int is_addrof_code(Code *code)
 {
     if (code == NULL) return 0;
-    return code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
+    return code->kind == CD_ADDR_OF || code->kind == CD_ADDR_OF_LABEL;
+}
+
+int is_same_code(Code *lhs, Code *rhs)
+{
+    if (lhs == NULL || rhs == NULL) return lhs == rhs;
+    if (lhs->kind != rhs->kind) return 0;
+    if (!is_same_code(lhs->lhs, rhs->lhs) || !is_same_code(lhs->rhs, rhs->rhs))
+        return 0;
+    if (lhs->ival != rhs->ival) return 0;
+    if (lhs->label != rhs->label) return 0;        // TODO: strcmp
+    if (lhs->other_op != rhs->other_op) return 0;  // TODO: strcmp
+    return 1;
+}
+
+Vector *optimize_code_detail_propagation(Vector *block)
+{
+    Vector *nblock = new_vector();
+    int used_reg_flag = 0;
+    for (int i = 0; i < vector_size(block); i++) {
+        Code *code = (Code *)vector_get(block, i);
+
+        switch (code->kind) {
+            case INST_LEA:
+                // lea mem, reg
+                // mov val, (reg)
+                if (is_addrof_code(code->lhs) && is_register_code(code->rhs) &&
+                    i != vector_size(block) - 1) {
+                    Code *next_code = (Code *)vector_get(block, i + 1);
+                    if (next_code->kind == INST_MOV &&
+                        is_addrof_code(next_code->lhs) &&
+                        is_register_code(next_code->rhs)) {
+                        if (is_same_code(code->rhs, next_code->lhs->lhs)) {
+                            next_code->lhs = code->lhs;
+                            vector_set(next_code->read_dep, 0, code->lhs);
+                        }
+                    }
+                }
+                vector_push_back(nblock, code);
+                break;
+
+            default:
+                vector_push_back(nblock, code);
+                break;
+        }
+    }
+    return nblock;
 }
 
 Vector *optimize_code_detail_eliminate(Vector *block)
@@ -353,9 +399,26 @@ Vector *optimize_code_detail_eliminate(Vector *block)
     return nblock;
 }
 
+int are_different_vectors(Vector *lhs, Vector *rhs)
+{
+    if (lhs == NULL || rhs == NULL) return lhs != rhs;
+    int size = vector_size(lhs);
+    if (size != vector_size(rhs)) return 1;
+    for (int i = 0; i < size; i++)
+        if (vector_get(lhs, i) != vector_get(rhs, i)) return 1;
+    return 0;
+}
+
 Vector *optimize_code_detail(Vector *block)
 {
-    return optimize_code_detail_eliminate(block);
+    Vector *org_block = block, *nblock = block;
+    do {
+        org_block = nblock;
+        nblock = optimize_code_detail_propagation(nblock);
+        nblock = optimize_code_detail_eliminate(nblock);
+    } while (are_different_vectors(org_block, nblock));  // do-while
+
+    return nblock;
 }
 
 Vector *optimize_code(Vector *code)

@@ -240,3 +240,9 @@ void assert(int cond)
     fprintf(stderr, "[ASSERT] %d\n", cond);
     exit(EXIT_FAILURE);
 }
+
+int is_register_code(Code *code)
+{
+    if (code == NULL) return 0;
+    return code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
+}

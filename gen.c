@@ -4,6 +4,10 @@ Code *new_code(int kind)
 {
     Code *this = safe_malloc(sizeof(Code));
     this->kind = kind;
+    this->lhs = this->rhs = NULL;
+    this->ival = 0;
+    this->label = NULL;
+    this->other_op = NULL;
     this->read_dep = new_vector();
     return this;
 }
@@ -61,19 +65,45 @@ Code *addrof(Code *reg, int offset)
     return code;
 }
 
-Code *MOV(Code *lhs, Code *rhs) { return new_binop_code(INST_MOV, lhs, rhs); }
+Code *MOV(Code *lhs, Code *rhs)
+{
+    Code *code = new_code(INST_MOV);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
+}
 
 Code *MOVSBL(Code *lhs, Code *rhs)
 {
-    return new_binop_code(INST_MOVSBL, lhs, rhs);
+    Code *code = new_code(INST_MOVSBL);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
 }
 
 Code *MOVZB(Code *lhs, Code *rhs)
 {
-    return new_binop_code(INST_MOVZB, lhs, rhs);
+    Code *code = new_code(INST_MOVZB);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
 }
 
-Code *LEA(Code *lhs, Code *rhs) { return new_binop_code(INST_LEA, lhs, rhs); }
+Code *LEA(Code *lhs, Code *rhs)
+{
+    Code *code = new_code(INST_LEA);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
+}
 
 Code *PUSH(Code *lhs) { return new_unary_code(INST_PUSH, lhs); }
 
@@ -586,8 +616,8 @@ void generate_basic_block_marker_start()
 
 void generate_basic_block_marker_end()
 {
-    appcode_str("/* BLOCK END */");
     vector_push_back(codeenv->code, NULL);
+    appcode_str("/* BLOCK END */");
 }
 
 int reg_of_nbyte(int nbyte, int reg)
