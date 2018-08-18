@@ -611,32 +611,31 @@ int nbyte_of_reg(int reg)
     return ret;
 }
 
-void generate_basic_block_marker_start()
+void generate_basic_block_start_maker()
 {
     appcode_str("/* BLOCK START */");
     appcode(new_code(MRK_BASIC_BLOCK_START));
 }
 
-void generate_basic_block_marker_end()
+void generate_basic_block_end_marker()
 {
     appcode(new_code(MRK_BASIC_BLOCK_END));
     appcode_str("/* BLOCK END */");
 }
 
-int reg_of_nbyte(int nbyte, int reg)
+void generate_funcdef_start_marker()
 {
-    switch (nbyte) {
-        case 1:
-            return (reg & 31) | REG_8;
-        case 2:
-            return (reg & 31) | REG_16;
-        case 4:
-            return (reg & 31) | REG_32;
-        case 8:
-            return (reg & 31) | REG_64;
-    }
-    assert(0);
+    appcode_str("/* FUNCDEF START */");
+    appcode(new_code(MRK_FUNCDEF_START));
 }
+
+void generate_funcdef_end_marker()
+{
+    appcode(new_code(MRK_FUNCDEF_END));
+    appcode_str("/* FUNCDEF END */");
+}
+
+void generate_funcdef_return_marker() { appcode(new_code(MRK_FUNCDEF_RETURN)); }
 
 Code *nbyte_reg(int nbyte, int reg)
 {
@@ -680,9 +679,7 @@ int generate_register_code_detail(AST *ast)
                 appcode(MOV(value(0), RAX()));
             }
             assert(temp_reg_table == 0);
-            appcode(POP(R13()));
-            appcode(POP(R14()));
-            appcode(POP(R15()));
+            generate_funcdef_return_marker();
             appcode(MOV(RBP(), RSP()));
             appcode(POP(RBP()));
             appcode(RET());
@@ -915,9 +912,7 @@ int generate_register_code_detail(AST *ast)
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));
             appcode(SUB(value(roundup(-stack_idx, 16)), RSP()));
-            appcode(PUSH(R15()));
-            appcode(PUSH(R14()));
-            appcode(PUSH(R13()));
+            generate_funcdef_start_marker();
 
             // assign param to localvar
             if (ast->params) {
@@ -956,9 +951,7 @@ int generate_register_code_detail(AST *ast)
                 return -1;
 
             if (ast->type->kind != TY_VOID) appcode(MOV(value(0), RAX()));
-            appcode(POP(R13()));
-            appcode(POP(R14()));
-            appcode(POP(R15()));
+            generate_funcdef_end_marker();
             appcode(MOV(RBP(), RSP()));
             appcode(POP(RBP()));
             appcode(RET());
@@ -1273,13 +1266,13 @@ int generate_register_code_detail(AST *ast)
 
         case AST_EXPR_STMT:
             assert(temp_reg_table == 0);
-            generate_basic_block_marker_start();
+            generate_basic_block_start_maker();
             if (ast->lhs != NULL) {
                 int reg = generate_register_code_detail(ast->lhs);
                 if (reg != -1) restore_temp_reg(reg);
             }
             assert(temp_reg_table == 0);
-            generate_basic_block_marker_end();
+            generate_basic_block_end_marker();
             return -1;
 
         case AST_ARY2PTR:

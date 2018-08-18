@@ -493,6 +493,9 @@ enum {
 
     MRK_BASIC_BLOCK_START,
     MRK_BASIC_BLOCK_END,
+    MRK_FUNCDEF_START,
+    MRK_FUNCDEF_END,
+    MRK_FUNCDEF_RETURN,
 };
 
 typedef struct Code Code;
@@ -528,6 +531,7 @@ int roundup(int n, int b);
 Vector *read_tokens_from_filepath(char *filepath);
 void assert(int cond);
 int is_register_code(Code *code);
+int reg_of_nbyte(int nbyte, int reg);
 
 // lex.c
 Vector *read_all_tokens(char *src);
@@ -541,6 +545,11 @@ Vector *parse_prog(Vector *tokens);
 void dump_code(Code *code, FILE *fh);
 Vector *generate_register_code(Vector *asts);
 Code *new_code(int kind);
+Code *PUSH(Code *lhs);
+Code *POP(Code *lhs);
+Code *R13();
+Code *R14();
+Code *R15();
 
 // type.c
 Type *type_int();

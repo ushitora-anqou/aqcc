@@ -246,3 +246,18 @@ int is_register_code(Code *code)
     if (code == NULL) return 0;
     return code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
 }
+
+int reg_of_nbyte(int nbyte, int reg)
+{
+    switch (nbyte) {
+        case 1:
+            return (reg & 31) | REG_8;
+        case 2:
+            return (reg & 31) | REG_16;
+        case 4:
+            return (reg & 31) | REG_32;
+        case 8:
+            return (reg & 31) | REG_64;
+    }
+    assert(0);
+}
