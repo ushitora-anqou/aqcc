@@ -998,7 +998,6 @@ int generate_register_code_detail(AST *ast)
         case AST_FUNCCALL: {
             appcode(PUSH(R10()));
             appcode(PUSH(R11()));
-            appcode(PUSH(R12()));
             for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
                 int reg = generate_register_code_detail(
                     (AST *)(vector_get(ast->args, i)));
@@ -1011,7 +1010,6 @@ int generate_register_code_detail(AST *ast)
             disable_elimination();
             appcode_str("call %s@PLT", ast->fname);
             appcode(ADD(value(8 * max(0, vector_size(ast->args) - 6)), RSP()));
-            appcode(POP(R12()));
             appcode(POP(R11()));
             appcode(POP(R10()));
             int reg = get_temp_reg();

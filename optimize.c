@@ -422,7 +422,7 @@ Vector *optimize_code_detail_basic_block(Vector *block)
 
 int optimize_code_detail_funcdef(Vector *scode, int index, Vector *ncode)
 {
-    int used = 0, end_index = -1;
+    int used = -1, end_index = -1;
     for (int i = index; i < vector_size(scode); i++) {
         Code *code = vector_get(scode, i);
         if (code->kind == MRK_FUNCDEF_START) continue;
@@ -435,12 +435,14 @@ int optimize_code_detail_funcdef(Vector *scode, int index, Vector *ncode)
         // TODO: magic number
         int reg = get_using_register(code->lhs);
         if (reg != -1) {
+            if (reg_of_nbyte(8, reg) == REG_R12) used = max(used, 0);
             if (reg_of_nbyte(8, reg) == REG_R13) used = max(used, 1);
             if (reg_of_nbyte(8, reg) == REG_R14) used = max(used, 2);
             if (reg_of_nbyte(8, reg) == REG_R15) used = max(used, 3);
         }
         reg = get_using_register(code->rhs);
         if (reg != -1) {
+            if (reg_of_nbyte(8, reg) == REG_R12) used = max(used, 0);
             if (reg_of_nbyte(8, reg) == REG_R13) used = max(used, 1);
             if (reg_of_nbyte(8, reg) == REG_R14) used = max(used, 2);
             if (reg_of_nbyte(8, reg) == REG_R15) used = max(used, 3);
@@ -452,10 +454,12 @@ int optimize_code_detail_funcdef(Vector *scode, int index, Vector *ncode)
     if (used >= 3) vector_push_back(ncode, PUSH(R15()));
     if (used >= 2) vector_push_back(ncode, PUSH(R14()));
     if (used >= 1) vector_push_back(ncode, PUSH(R13()));
+    if (used >= 0) vector_push_back(ncode, PUSH(R12()));
     for (int i = index + 1; i < end_index; i++) {
         Code *code = vector_get(scode, i);
         switch (code->kind) {
             case MRK_FUNCDEF_RETURN:
+                if (used >= 0) vector_push_back(ncode, POP(R12()));
                 if (used >= 1) vector_push_back(ncode, POP(R13()));
                 if (used >= 2) vector_push_back(ncode, POP(R14()));
                 if (used >= 3) vector_push_back(ncode, POP(R15()));
@@ -465,6 +469,7 @@ int optimize_code_detail_funcdef(Vector *scode, int index, Vector *ncode)
                 vector_push_back(ncode, code);
         }
     }
+    if (used >= 0) vector_push_back(ncode, POP(R12()));
     if (used >= 1) vector_push_back(ncode, POP(R13()));
     if (used >= 2) vector_push_back(ncode, POP(R14()));
     if (used >= 3) vector_push_back(ncode, POP(R15()));

@@ -547,6 +547,7 @@ Vector *generate_register_code(Vector *asts);
 Code *new_code(int kind);
 Code *PUSH(Code *lhs);
 Code *POP(Code *lhs);
+Code *R12();
 Code *R13();
 Code *R14();
 Code *R15();
