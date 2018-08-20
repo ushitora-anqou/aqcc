@@ -100,7 +100,7 @@ AST *add_switch_default(AST *default_ast)
 
 Vector *va_start_params;
 
-Vector *set_va_start_params(Vector *params) { va_start_params = params; }
+void set_va_start_params(Vector *params) { va_start_params = params; }
 
 int get_index_in_va_start_params(char *name)
 {

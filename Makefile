@@ -8,7 +8,7 @@ SELF_ASSEMBLES=$(SRC:.c=.self.s)
 SELFSELF_ASSEMBLES=$(SRC:.c=.selfself.s)
 
 $(TARGET): $(SRC) test.inc aqcc.h
-	gcc -o $@ $(SRC) -O0 -g3 -Wall -lm -std=c11
+	gcc -o $@ $(SRC) -O0 -g3 -Wall -lm -std=c11 
 
 test: $(TARGET) testutil.o
 	./test.sh
