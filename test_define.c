@@ -55,4 +55,16 @@ int test001()
 }
 #endif
 
-int main() { test001(); }
+#define test002value
+int test002() {
+#ifndef test002value
+    printf("[ERROR] test002:1: #ifndef guard is out of order\n");
+#endif
+
+// DO NOT define test002unknown
+#ifdef test002unknown
+    printf("[ERROR] test002:2: #ifdef guard is out of order\n");
+#endif
+}
+
+int main() { test001(); test002();}

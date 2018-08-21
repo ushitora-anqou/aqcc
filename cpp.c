@@ -33,25 +33,30 @@ void preprocess_tokens_detail_include()
     insert_tokens(read_tokens_from_filepath(filepath));
 }
 
-void preprocess_tokens_detail_ifndef()
+void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
 {
     char *name = expect_token(tIDENT)->sval;
     expect_token(tNEWLINE);
-    if (!lookup_define(name)) return;
+    if (strcmp("ifdef", keyword) == 0 && lookup_define(name)) return;
+    if (strcmp("ifndef", keyword) == 0 && !lookup_define(name)) return;
 
     // search corresponding #endif
-    // TODO: #ifdef, #if
+    // TODO: #if
     int cnt = 1;
     while (1) {
         Token *token = pop_token();
 
         if (token->kind == tEOF)
-            error_unexpected_token_str("#endif corresponding to #ifndef",
+            if (strcmp("ifdef", keyword) == 0)
+                error_unexpected_token_str("#endif corresponding to #ifdef",
+                                       token);
+            else
+                error_unexpected_token_str("#endif corresponding to #ifndef",
                                        token);
 
         if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
             char *ident = token->sval;
-            if (strcmp("ifndef", ident) == 0)
+            if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
                 cnt++;
             else if (strcmp("endif", ident) == 0 && --cnt == 0)
                 break;
@@ -68,8 +73,8 @@ void preprocess_tokens_detail_number()
         preprocess_tokens_detail_define();
     else if (strcmp(keyword, "include") == 0)
         preprocess_tokens_detail_include();
-    else if (strcmp(keyword, "ifndef") == 0)
-        preprocess_tokens_detail_ifndef();
+    else if ((strcmp(keyword, "ifdef") == 0) || strcmp(keyword, "ifndef") == 0)
+        preprocess_tokens_detail_ifdef_ifndef(keyword);
     else if (strcmp(keyword, "endif") == 0)
         return;
     else
