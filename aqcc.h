@@ -37,6 +37,7 @@ int strcmp(const char *s1, const char *s2);
 char *strcpy(char *dest, const char *src);
 int vsprintf(char *str, const char *format, va_list ap);
 void *memset(void *s, int c, int n);
+int fputc(int c, FILE *stream);
 int fgetc(FILE *stream);
 #define EOF (-1)
 FILE *fopen(const char *pathname, const char *mode);
@@ -510,6 +511,11 @@ struct Code {
     int can_be_eliminated;
 };
 
+typedef struct ObjectImage ObjectImage;
+struct ObjectImage {
+    int a;
+};
+
 // utility.c
 _Noreturn void error(const char *msg, ...);
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
@@ -629,5 +635,9 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 AST *optimize_ast_constant(AST *ast, Env *env);
 void optimize_asts_constant(Vector *asts, Env *env);
 Vector *optimize_code(Vector *code);
+
+// assemble.c
+ObjectImage *assemble_code(Vector *code);
+void dump_object_image(ObjectImage *objimg, FILE *fh);
 
 #endif
