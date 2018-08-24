@@ -472,6 +472,14 @@ const char *token_kind2str(int kind)
             return "tINC";
         case tDEC:
             return "tDEC";
+        case tDOTS:
+            return "tDOTS";
+        case tNUMBER:
+            return "tNUMBER";
+        case tNEWLINE:
+            return "tNEWLINE";
+        case tTILDE:
+            return "tTILDE";
         case tEOF:
             return "tEOF";
         case kIF:
@@ -502,8 +510,24 @@ const char *token_kind2str(int kind)
             return "kGOTO";
         case kSTRUCT:
             return "kSTRUCT";
+        case kUNION:
+            return "kUNION";
         case kTYPEDEF:
             return "kTYPEDEF";
+        case kDO:
+            return "kDO";
+        case kVOID:
+            return "kVOID";
+        case kCONST:
+            return "kCONST";
+        case kENUM:
+            return "kENUM";
+        case kNORETURN:
+            return "kNORETURN";
+        case kSTATIC:
+            return "kSTATIC";
+        case kEXTERN:
+            return "kEXTERN";
         default:
             return "***unknown token***";
     }
