@@ -57,14 +57,66 @@ char getch()
     return *source.src++;
 }
 
-Token *read_next_int_token()
+int read_next_hex_int()
+{
+    // assume that prefix '0x' is already read.
+    int acc = 0;
+    while (1) {
+        int ch = peekch();
+        if (isdigit(ch))
+            acc = 16 * acc + ch - '0';
+        else if ('a' <= ch && ch <= 'f')
+            acc = 16 * acc + 10 + ch - 'a';
+        else if ('A' <= ch && ch <= 'F')
+            acc = 16 * acc + 10 + ch - 'A';
+        else
+            break;
+        getch();
+    }
+
+    return acc;
+}
+
+int read_next_dec_int()
 {
     int acc = 0;
-
     while (isdigit(peekch())) acc = 10 * acc + getch() - '0';
+    return acc;
+}
+
+int read_next_oct_int()
+{
+    // assume that prefix '0' is already read.
+    int acc = 0;
+    while (1) {
+        int ch = peekch();
+        if ('0' <= ch && ch <= '7')
+            acc = 8 * acc + ch - '0';
+        else
+            break;
+        getch();
+    }
+
+    return acc;
+}
+
+Token *read_next_int_token()
+{
+    int ch = peekch(), ival;
+    if (ch == '0') {
+        getch();
+        if (peekch() == 'x') {
+            getch();
+            ival = read_next_hex_int();
+        }
+        else
+            ival = read_next_oct_int();
+    }
+    else
+        ival = read_next_dec_int();
 
     Token *token = make_token(tINT);
-    token->ival = acc;
+    token->ival = ival;
     return token;
 }
 
