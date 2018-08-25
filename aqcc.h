@@ -513,7 +513,7 @@ struct Code {
 
 typedef struct ObjectImage ObjectImage;
 struct ObjectImage {
-    int a;
+    Vector *text;
 };
 
 // utility.c
@@ -557,6 +557,7 @@ Code *R12();
 Code *R13();
 Code *R14();
 Code *R15();
+Vector *create_simple_code();
 
 // type.c
 Type *type_int();
