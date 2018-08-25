@@ -1370,18 +1370,3 @@ Vector *generate_register_code(Vector *asts)
 
     return clone_vector(codeenv->code);
 }
-
-// for now
-Vector *create_simple_code()
-{
-    init_code_env();
-
-    appcode_str(".text");
-    appcode_str(".global main");
-    appcode_str("main:");
-    appcode(MOV(value(100), RAX()));
-    appcode(RET());
-    appcode_str(".data");
-
-    return clone_vector(codeenv->code);
-}

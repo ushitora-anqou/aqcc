@@ -463,7 +463,8 @@ enum {
 
     REG_RIP,
 
-    INST_MOV = 1 << 9,
+    INST_ = 1 << 9,
+    INST_MOV = 0 | INST_,
     INST_MOVSBL,
     INST_MOVZB,
     INST_LEA,
@@ -557,7 +558,6 @@ Code *R12();
 Code *R13();
 Code *R14();
 Code *R15();
-Vector *create_simple_code();
 
 // type.c
 Type *type_int();
