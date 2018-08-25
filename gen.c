@@ -911,7 +911,9 @@ int generate_register_code_detail(AST *ast)
             appcode_str("%s:", ast->fname);
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));
-            appcode(SUB(value(roundup(-stack_idx, 16)), RSP()));
+            int needed_stack_size = roundup(-stack_idx, 16);
+            if (needed_stack_size > 0)
+                appcode(SUB(value(needed_stack_size), RSP()));
             generate_funcdef_start_marker();
 
             // assign param to localvar
