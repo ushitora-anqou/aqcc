@@ -155,11 +155,27 @@ Vector *assemble_code_detail(Vector *code_list)
                     if (is_reg_ext(code->rhs->kind)) rex_pre |= 1;
                     append_byte(dumped, rex_pre);
                     append_byte(dumped, 0xc7);
+                    append_byte(dumped,
+                                modrm(3, 0, reg_field(code->rhs->kind)));
                     append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 
-                break;
+                goto not_implemented_error;
+
+            case INST_SUB:
+                if (is_imm(code->lhs->kind) && is_reg64(code->rhs->kind)) {
+                    int rex_pre = 0x48;
+                    if (is_reg_ext(code->rhs->kind)) rex_pre |= 1;
+                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, 0x81);
+                    append_byte(dumped,
+                                modrm(3, 5, reg_field(code->rhs->kind)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
+                goto not_implemented_error;
 
             case INST_PUSH:
                 // push %rbp
@@ -174,7 +190,18 @@ Vector *assemble_code_detail(Vector *code_list)
             case INST_RET:
                 append_byte(dumped, 0xc3);
                 break;
+
+            case INST_OTHER:
+                break;
+
+            default:
+                goto not_implemented_error;
         }
+
+        continue;
+
+    not_implemented_error:
+        error("not implemented code: %d", code->kind);
     }
 
     return dumped;

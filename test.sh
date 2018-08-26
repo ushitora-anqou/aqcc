@@ -38,3 +38,4 @@ function test_aqcc_experiment() {
 
 test_aqcc_experiment "int main() { return 100; }" 100
 test_aqcc_experiment "int main() { return 10; }" 10
+test_aqcc_experiment "int main() { int a; return 10; }" 10
