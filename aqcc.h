@@ -52,11 +52,11 @@ void *memcpy(void *dest, const void *src, int n);
 typedef struct Vector Vector;
 Vector *new_vector();
 Vector *new_vector_from_scalar(void *scalar);
-void vector_push_back(Vector *this, void *item);
-void *vector_get(Vector *this, int i);
-int vector_size(Vector *this);
-void *vector_set(Vector *this, int i, void *item);
-void vector_push_back_vector(Vector *this, Vector *src);
+void vector_push_back(Vector *vec, void *item);
+void *vector_get(Vector *vec, int i);
+int vector_size(Vector *vec);
+void *vector_set(Vector *vec, int i, void *item);
+void vector_push_back_vector(Vector *vec, Vector *src);
 Vector *clone_vector(Vector *src);
 
 // map.c
@@ -64,17 +64,17 @@ typedef struct KeyValue KeyValue;
 typedef struct Map Map;
 Map *new_map();
 int map_size(Map *map);
-KeyValue *map_insert(Map *this, const char *key, void *item);
-KeyValue *map_lookup(Map *this, const char *key);
+KeyValue *map_insert(Map *map, const char *key, void *item);
+KeyValue *map_lookup(Map *map, const char *key);
 const char *kv_key(KeyValue *kv);
 void *kv_value(KeyValue *kv);
 
 // string_builder.c
 typedef struct StringBuilder StringBuilder;
 StringBuilder *new_string_builder();
-char string_builder_append(StringBuilder *this, char ch);
-char *string_builder_get(StringBuilder *this);
-int string_builder_size(StringBuilder *this);
+char string_builder_append(StringBuilder *sb, char ch);
+char *string_builder_get(StringBuilder *sb);
+int string_builder_size(StringBuilder *sb);
 
 enum {
     tINT,

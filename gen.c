@@ -2,15 +2,15 @@
 
 Code *new_code(int kind)
 {
-    Code *this = safe_malloc(sizeof(Code));
-    this->kind = kind;
-    this->lhs = this->rhs = NULL;
-    this->ival = 0;
-    this->label = NULL;
-    this->other_op = NULL;
-    this->read_dep = new_vector();
-    this->can_be_eliminated = 1;
-    return this;
+    Code *code = safe_malloc(sizeof(Code));
+    code->kind = kind;
+    code->lhs = code->rhs = NULL;
+    code->ival = 0;
+    code->label = NULL;
+    code->other_op = NULL;
+    code->read_dep = new_vector();
+    code->can_be_eliminated = 1;
+    return code;
 }
 
 Code *new_binop_code(int kind, Code *lhs, Code *rhs)

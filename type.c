@@ -2,13 +2,11 @@
 
 Type *new_type(int kind, int nbytes)
 {
-    Type *this;
-
-    this = safe_malloc(sizeof(Type));
-    this->kind = kind;
-    this->nbytes = nbytes;
-    this->is_static = this->is_extern = 0;
-    return this;
+    Type *type = safe_malloc(sizeof(Type));
+    type->kind = kind;
+    type->nbytes = nbytes;
+    type->is_static = type->is_extern = 0;
+    return type;
 }
 
 void move_static_extern_specifier(Type *src, Type *dst)
@@ -49,55 +47,55 @@ Type *type_void()
 
 Type *new_pointer_type(Type *src)
 {
-    Type *this = new_type(TY_PTR, 8);
-    this->ptr_of = src;
-    return this;
+    Type *type = new_type(TY_PTR, 8);
+    type->ptr_of = src;
+    return type;
 }
 
 Type *new_array_type(Type *src, int len)
 {
-    Type *this = new_type(TY_ARY, src->nbytes * len);
-    this->ary_of = src;
-    this->len = len;
-    return this;
+    Type *type = new_type(TY_ARY, src->nbytes * len);
+    type->ary_of = src;
+    type->len = len;
+    return type;
 }
 
 Type *new_struct_or_union_type(int kind, char *stname, Vector *decls)
 {
-    Type *this = new_type(kind, -1);
-    this->stname = stname;
-    this->members = NULL;
-    this->decls = decls;
-    return this;
+    Type *type = new_type(kind, -1);
+    type->stname = stname;
+    type->members = NULL;
+    type->decls = decls;
+    return type;
 }
 
 Type *new_typedef_type(char *typedef_name)
 {
-    Type *this = new_type(TY_TYPEDEF, -1);
-    this->typedef_name = typedef_name;
-    return this;
+    Type *type = new_type(TY_TYPEDEF, -1);
+    type->typedef_name = typedef_name;
+    return type;
 }
 
 Type *new_enum_type(char *name, Vector *list)
 {
-    Type *this = new_type(TY_ENUM, -1);
-    this->enname = name;
-    this->enum_list = list;
-    return this;
+    Type *type = new_type(TY_ENUM, -1);
+    type->enname = name;
+    type->enum_list = list;
+    return type;
 }
 
-Type *new_static_type(Type *type)
+Type *new_static_type(Type *src)
 {
-    Type *this = safe_malloc(sizeof(Type));
-    memcpy(this, type, sizeof(Type));
-    this->is_static = 1;
-    return this;
+    Type *type = safe_malloc(sizeof(Type));
+    memcpy(type, src, sizeof(Type));
+    type->is_static = 1;
+    return type;
 }
 
-Type *new_extern_type(Type *type)
+Type *new_extern_type(Type *src)
 {
-    Type *this = safe_malloc(sizeof(Type));
-    memcpy(this, type, sizeof(Type));
-    this->is_extern = 1;
-    return this;
+    Type *type = safe_malloc(sizeof(Type));
+    memcpy(type, src, sizeof(Type));
+    type->is_extern = 1;
+    return type;
 }

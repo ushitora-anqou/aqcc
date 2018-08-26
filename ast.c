@@ -12,10 +12,10 @@ int match_type2(AST *lhs, AST *rhs, int lkind, int rkind)
 
 AST *new_ast(int kind)
 {
-    AST *this = safe_malloc(sizeof(AST));
-    this->kind = kind;
-    this->type = NULL;
-    return this;
+    AST *ast = safe_malloc(sizeof(AST));
+    ast->kind = kind;
+    ast->type = NULL;
+    return ast;
 }
 
 AST *new_binop_ast(int kind, AST *lhs, AST *rhs)
@@ -172,16 +172,16 @@ AST *new_label_ast(char *name, AST *stmt)
 
 AST *new_lvalue2rvalue_ast(AST *lvalue)
 {
-    AST *this = new_ast(AST_LVALUE2RVALUE);
-    this->lhs = lvalue;
-    this->type = lvalue->type;
-    return this;
+    AST *ast = new_ast(AST_LVALUE2RVALUE);
+    ast->lhs = lvalue;
+    ast->type = lvalue->type;
+    return ast;
 }
 
 AST *new_int_ast(int ival)
 {
-    AST *this = new_ast(AST_INT);
-    this->ival = ival;
-    this->type = type_int();
-    return this;
+    AST *ast = new_ast(AST_INT);
+    ast->ival = ival;
+    ast->type = type_int();
+    return ast;
 }

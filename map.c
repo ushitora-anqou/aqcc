@@ -11,30 +11,28 @@ struct Map {
 
 Map *new_map()
 {
-    Map *this;
-
-    this = safe_malloc(sizeof(Map));
-    this->data = new_vector();
-    return this;
+    Map *map = safe_malloc(sizeof(Map));
+    map->data = new_vector();
+    return map;
 }
 
-int map_size(Map *this) { return vector_size(this->data); }
+int map_size(Map *map) { return vector_size(map->data); }
 
-KeyValue *map_insert(Map *this, const char *key, void *item)
+KeyValue *map_insert(Map *map, const char *key, void *item)
 {
     KeyValue *kv = safe_malloc(sizeof(KeyValue));
     kv->key = key;
     kv->value = item;
-    vector_push_back(this->data, kv);
+    vector_push_back(map->data, kv);
     return kv;
 }
 
-KeyValue *map_lookup(Map *this, const char *key)
+KeyValue *map_lookup(Map *map, const char *key)
 {
     int i;
 
-    for (i = 0; i < vector_size(this->data); i++) {
-        KeyValue *kv = (KeyValue *)vector_get(this->data, i);
+    for (i = 0; i < vector_size(map->data); i++) {
+        KeyValue *kv = (KeyValue *)vector_get(map->data, i);
         if (strcmp(kv->key, key) == 0) return kv;
     }
 

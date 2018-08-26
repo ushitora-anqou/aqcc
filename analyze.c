@@ -17,23 +17,21 @@ GVar *new_gvar_from_decl(AST *ast)
 {
     assert(ast->kind == AST_GVAR_DECL);
 
-    GVar *this;
-    this = (GVar *)safe_malloc(sizeof(GVar));
-    this->name = ast->varname;
-    this->type = ast->type;
-    this->ival = 0;
-    this->sval = NULL;
-    return this;
+    GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
+    gvar->name = ast->varname;
+    gvar->type = ast->type;
+    gvar->ival = 0;
+    gvar->sval = NULL;
+    return gvar;
 }
 
 GVar *new_gvar_from_string_literal(char *sval, int ssize)
 {
-    GVar *this;
-    this = (GVar *)safe_malloc(sizeof(GVar));
-    this->name = format(".LC%d", gvar_string_literal_label++);
-    this->type = new_array_type(type_char(), ssize);
-    this->sval = sval;
-    return this;
+    GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
+    gvar->name = format(".LC%d", gvar_string_literal_label++);
+    gvar->type = new_array_type(type_char(), ssize);
+    gvar->sval = sval;
+    return gvar;
 }
 
 GVar *new_gvar_from_static_lvar(AST *lvar)
@@ -43,12 +41,12 @@ GVar *new_gvar_from_static_lvar(AST *lvar)
     char *gen_varname = make_label_string();
     lvar->gen_varname = gen_varname;
 
-    GVar *this = (GVar *)safe_malloc(sizeof(GVar));
-    this->name = gen_varname;
-    this->type = lvar->type;
-    this->ival = 0;
-    this->sval = NULL;
-    return this;
+    GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
+    gvar->name = gen_varname;
+    gvar->type = lvar->type;
+    gvar->ival = 0;
+    gvar->sval = NULL;
+    return gvar;
 }
 
 Vector *switch_cases = NULL;

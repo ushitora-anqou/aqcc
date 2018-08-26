@@ -2,22 +2,18 @@
 
 Env *new_env(Env *parent)
 {
-    Env *this;
-
-    this = safe_malloc(sizeof(Env));
-    this->parent = parent;
-    this->symbols = new_map();
-    this->scoped_vars = parent == NULL ? new_vector() : parent->scoped_vars;
-    this->types = new_map();
-    this->enum_values = new_map();
-    return this;
+    Env *env = safe_malloc(sizeof(Env));
+    env->parent = parent;
+    env->symbols = new_map();
+    env->scoped_vars = parent == NULL ? new_vector() : parent->scoped_vars;
+    env->types = new_map();
+    env->enum_values = new_map();
+    return env;
 }
 
 AST *add_symbol(Env *env, const char *name, AST *ast)
 {
-    KeyValue *kv;
-
-    kv = map_lookup(env->symbols, name);
+    KeyValue *kv = map_lookup(env->symbols, name);
     if (kv != NULL) error("same symbol already exists: '%s'", name);
     map_insert(env->symbols, name, ast);
     return ast;

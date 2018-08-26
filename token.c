@@ -11,11 +11,10 @@ Token *new_token(int kind, int line, int column)
 
 TokenSeq *new_token_seq(Vector *tokens)
 {
-    TokenSeq *this = safe_malloc(sizeof(TokenSeq));
-
-    this->tokens = tokens;
-    this->idx = 0;
-    return this;
+    TokenSeq *tokseq = safe_malloc(sizeof(TokenSeq));
+    tokseq->tokens = tokens;
+    tokseq->idx = 0;
+    return tokseq;
 }
 
 TokenSeq *tokenseq;
@@ -83,12 +82,10 @@ int match_token2(int kind0, int kind1)
 
 TokenSeqSaved *new_token_seq_saved()
 {
-    TokenSeqSaved *this;
-
-    this = (TokenSeqSaved *)safe_malloc(sizeof(TokenSeqSaved));
-    this->idx = tokenseq->idx;
-
-    return this;
+    TokenSeqSaved *tokseqsav;
+    tokseqsav = (TokenSeqSaved *)safe_malloc(sizeof(TokenSeqSaved));
+    tokseqsav->idx = tokenseq->idx;
+    return tokseqsav;
 }
 
 void restore_token_seq_saved(TokenSeqSaved *saved)
