@@ -123,6 +123,8 @@ int is_reg_ext(int kind)
     return REG_R8 <= reg && reg <= REG_R15;
 }
 
+int is_addrof(int kind) { return kind == CD_ADDR_OF; }
+
 Vector *assemble_code_detail(Vector *code_list)
 {
     Vector *dumped = new_vector();
@@ -161,6 +163,30 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_addrof(code->lhs->kind) && is_reg32(code->rhs->kind)) {
+                    int rex_pre = 0x40;
+                    if (is_reg_ext(code->lhs->kind)) rex_pre |= 4;
+                    if (is_reg_ext(code->rhs->kind)) rex_pre |= 1;
+                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, 0x8b);
+                    append_byte(dumped, modrm(1, reg_field(code->rhs->kind),
+                                              reg_field(code->lhs->lhs->kind)));
+                    append_byte(dumped, code->lhs->ival);
+                    break;
+                }
+
+                if (is_reg32(code->lhs->kind) && is_addrof(code->rhs->kind)) {
+                    int rex_pre = 0x40;
+                    if (is_reg_ext(code->lhs->kind)) rex_pre |= 4;
+                    if (is_reg_ext(code->rhs->kind)) rex_pre |= 1;
+                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, 0x89);
+                    append_byte(dumped, modrm(1, reg_field(code->lhs->kind),
+                                              reg_field(code->rhs->lhs->kind)));
+                    append_byte(dumped, code->rhs->ival);
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_SUB:
@@ -172,6 +198,20 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_byte(dumped,
                                 modrm(3, 5, reg_field(code->rhs->kind)));
                     append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_LEA:
+                if (is_addrof(code->lhs->kind) && is_reg64(code->rhs->kind)) {
+                    int rex_pre = 0x48;
+                    if (is_reg_ext(code->rhs->kind)) rex_pre |= 4;
+                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, 0x8d);
+                    append_byte(dumped, modrm(1, reg_field(code->rhs->kind),
+                                              reg_field(code->lhs->lhs->kind)));
+                    append_byte(dumped, code->lhs->ival);
                     break;
                 }
 
