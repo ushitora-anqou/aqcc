@@ -27,6 +27,7 @@ function fail(){
 
 function test_aqcc_experiment() {
     echo "$1" > _test.in
+    ./aqcc _test.in > _test.s
     ./aqcc _test.in _test_main.o experiment
     [ $? -eq 0 ] || fail "test_aqcc \"$1\": ./aqcc"
     gcc _test_main.o testutil.o -o _test.o
@@ -41,4 +42,6 @@ test_aqcc_experiment "int main() { return 10; }" 10
 test_aqcc_experiment "int main() { int a; return 10; }" 10
 test_aqcc_experiment "int main() { int a = 10; return a; }" 10
 test_aqcc_experiment "int main() { int a = 10; int b = 5; return b; }" 5
+test_aqcc_experiment "int main() { int a = 10; int b = 7; return a - b; }" 3
+test_aqcc_experiment "int main() { int a = 10; return a - 7; }" 3
 
