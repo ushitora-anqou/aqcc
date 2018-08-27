@@ -75,6 +75,8 @@ int is_reg64(Code *code) { return is_reg(code) && (code->kind & REG_64); }
 
 int is_reg32(Code *code) { return is_reg(code) && (code->kind & REG_32); }
 
+int is_reg8(Code *code) { return is_reg(code) && (code->kind & REG_8); }
+
 int is_imm(Code *code) { return code->kind == CD_VALUE; }
 
 int is_reg_ext(Code *code)
@@ -166,6 +168,14 @@ Vector *assemble_code_detail(Vector *code_list)
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
                     append_rex_prefix(dumped, 0, code->lhs, code->rhs);
                     append_byte(dumped, 0x89);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                if (is_reg8(code->lhs) && is_reg8(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x88);
                     append_byte(dumped, modrm(3, reg_field(code->lhs),
                                               reg_field(code->rhs)));
                     break;
@@ -339,6 +349,44 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_rex_prefix(dumped, 1, NULL, code->lhs);
                     append_byte(dumped, 0xf7);
                     append_byte(dumped, modrm(3, 2, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_SAL:
+                if (is_reg32(code->rhs)) {
+                    // TODO: assume that code->lhs is CL.
+                    append_rex_prefix(dumped, 0, NULL, code->rhs);
+                    append_byte(dumped, 0xd3);
+                    append_byte(dumped, modrm(3, 4, reg_field(code->rhs)));
+                    break;
+                }
+
+                if (is_reg64(code->rhs)) {
+                    // TODO: assume that code->lhs is CL.
+                    append_rex_prefix(dumped, 1, NULL, code->rhs);
+                    append_byte(dumped, 0xd3);
+                    append_byte(dumped, modrm(3, 4, reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_SAR:
+                if (is_reg32(code->rhs)) {
+                    // TODO: assume that code->lhs is CL.
+                    append_rex_prefix(dumped, 0, NULL, code->rhs);
+                    append_byte(dumped, 0xd3);
+                    append_byte(dumped, modrm(3, 7, reg_field(code->rhs)));
+                    break;
+                }
+
+                if (is_reg64(code->rhs)) {
+                    // TODO: assume that code->lhs is CL.
+                    append_rex_prefix(dumped, 1, NULL, code->rhs);
+                    append_byte(dumped, 0xd3);
+                    append_byte(dumped, modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
