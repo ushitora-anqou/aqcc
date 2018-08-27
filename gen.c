@@ -152,6 +152,8 @@ Code *OR(Code *lhs, Code *rhs) { return new_binop_code(INST_OR, lhs, rhs); }
 
 Code *RET() { return new_code(INST_RET); }
 
+Code *CLTD() { return new_code(INST_CLTD); }
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -401,6 +403,9 @@ char *code2str(Code *code)
 
         case INST_RET:
             return "ret";
+
+        case INST_CLTD:
+            return "cltd";
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
@@ -753,7 +758,7 @@ int generate_register_code_detail(AST *ast)
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
             int nbytes = 4;  // TODO: long
-            appcode(IMUL(nbyte_reg(8, lreg), nbyte_reg(8, rreg)));
+            appcode(IMUL(nbyte_reg(nbytes, lreg), nbyte_reg(nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -763,7 +768,7 @@ int generate_register_code_detail(AST *ast)
                 rreg = generate_register_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, 0)));
-            appcode_str("cltd");
+            appcode(CLTD());  // TODO: assume EAX
             appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
             add_read_dep(RAX());
             appcode(MOV(RAX(), nbyte_reg(8, rreg)));
@@ -776,7 +781,7 @@ int generate_register_code_detail(AST *ast)
                 rreg = generate_register_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, 0)));
-            appcode_str("cltd");
+            appcode(CLTD());  // TODO: assume EAX
             appcode(IDIV(nbyte_reg(ast->type->nbytes, rreg)));
             add_read_dep(RAX());
             appcode(MOV(RDX(), nbyte_reg(8, rreg)));

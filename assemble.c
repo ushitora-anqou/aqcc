@@ -163,6 +163,14 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x89);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
                     if (is_reg_ext(code->rhs)) append_byte(dumped, 0x41);
                     append_byte(dumped, 0xb8 + reg_field(code->rhs));
@@ -292,6 +300,16 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_IDIV:
+                if (is_reg32(code->lhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->lhs);
+                    append_byte(dumped, 0xf7);
+                    append_byte(dumped, modrm(3, 7, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
@@ -324,6 +342,10 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_RET:
                 append_byte(dumped, 0xc3);
+                break;
+
+            case INST_CLTD:
+                append_byte(dumped, 0x99);
                 break;
 
             case INST_OTHER:
