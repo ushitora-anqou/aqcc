@@ -310,6 +310,23 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_NEG:
+                if (is_reg32(code->lhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->lhs);
+                    append_byte(dumped, 0xf7);
+                    append_byte(dumped, modrm(3, 3, reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_reg64(code->lhs)) {
+                    append_rex_prefix(dumped, 1, NULL, code->lhs);
+                    append_byte(dumped, 0xf7);
+                    append_byte(dumped, modrm(3, 3, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
@@ -410,7 +427,8 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     // addr of program header table
     write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     // addr of section header table
-    int text_size = roundup(vector_size(objimg->text), 8);
+    // .text SHALL HAVE some 0x00 at the end, so roundup(..., 8) can't be used.
+    int text_size = (vector_size(objimg->text) / 8 + 1) * 8;
     int sht_addr = 0x40 + text_size + 0x78 + 0x38;
     write_dword_int(fh, sht_addr);
     write_dword_int(fh, 0);
