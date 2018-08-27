@@ -200,9 +200,9 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_byte(dumped, rex_prefix_reg_ext(0, code->lhs->lhs,
                                                            code->rhs));
                     append_byte(dumped, 0x8b);
-                    append_byte(dumped, modrm(1, reg_field(code->rhs),
+                    append_byte(dumped, modrm(2, reg_field(code->rhs),
                                               reg_field(code->lhs->lhs)));
-                    append_byte(dumped, code->lhs->ival);
+                    append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 
@@ -210,9 +210,28 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_byte(dumped, rex_prefix_reg_ext(0, code->lhs,
                                                            code->rhs->lhs));
                     append_byte(dumped, 0x89);
-                    append_byte(dumped, modrm(1, reg_field(code->lhs),
+                    append_byte(dumped, modrm(2, reg_field(code->lhs),
                                               reg_field(code->rhs->lhs)));
-                    append_byte(dumped, code->rhs->ival);
+                    append_dword_int(dumped, code->rhs->ival);
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_MOVZB:
+                if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->rhs, code->lhs);
+                    append_word(dumped, 0x0f, 0xb6);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
+                    append_rex_prefix(dumped, 1, code->rhs, code->lhs);
+                    append_word(dumped, 0x0f, 0xb6);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
                     break;
                 }
 
@@ -392,13 +411,59 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_CMP:
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x39);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
+                    append_rex_prefix(dumped, 1, code->lhs, code->rhs);
+                    append_byte(dumped, 0x39);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_SETL:
+                if (is_reg8(code->lhs)) {
+                    append_word(dumped, 0x0f, 0x9c);
+                    append_byte(dumped, modrm(3, 0, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_SETLE:
+                if (is_reg8(code->lhs)) {
+                    append_word(dumped, 0x0f, 0x9e);
+                    append_byte(dumped, modrm(3, 0, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_SETE:
+                if (is_reg8(code->lhs)) {
+                    append_word(dumped, 0x0f, 0x94);
+                    append_byte(dumped, modrm(3, 0, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
                     append_byte(dumped, 0x8d);
-                    append_byte(dumped, modrm(1, reg_field(code->rhs),
+                    append_byte(dumped, modrm(2, reg_field(code->rhs),
                                               reg_field(code->lhs->lhs)));
-                    append_byte(dumped, code->lhs->ival);
+                    append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 

@@ -56,4 +56,11 @@ test_aqcc_experiment "int main() { int a = -10; return -a; }" 10
 test_aqcc_experiment "int main() { int a = -1; return ~a; }" 0
 test_aqcc_experiment "int main() { int a = 3; return (a << 3); }" 24
 test_aqcc_experiment "int main() { int a = 11; return (a >> 3); }" 1
+test_aqcc_experiment "int main() { int a = 1, b = 2; return a < b; }" 1
+test_aqcc_experiment "int main() { int b = 2; return 3 < b; }" 0
+test_aqcc_experiment "int main() { int a = 1, b = 2; return a <= b; }" 1
+test_aqcc_experiment "int main() { int a = 2, b = 2; return a <= b; }" 1
+test_aqcc_experiment "int main() { int b = 2; return 3 <= b; }" 0
+test_aqcc_experiment "int main() { int a = 1, b = 2; return a == b; }" 0
+test_aqcc_experiment "int main() { int b = 3; return 3 == b; }" 1
 
