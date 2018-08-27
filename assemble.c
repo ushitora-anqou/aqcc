@@ -238,6 +238,20 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_IMUL:
+                if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
+                    int rex_pre = 0x48;
+                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
+                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
+                    append_byte(dumped, rex_pre);
+                    append_word(dumped, 0x0f, 0xaf);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     int rex_pre = 0x48;

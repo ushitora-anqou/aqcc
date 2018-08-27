@@ -731,8 +731,7 @@ int generate_register_code_detail(AST *ast)
         case AST_MUL: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
-            appcode(IMUL(nbyte_reg(ast->type->nbytes, lreg),
-                         nbyte_reg(ast->type->nbytes, rreg)));
+            appcode(IMUL(nbyte_reg(8, lreg), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
