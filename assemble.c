@@ -127,6 +127,17 @@ int modrm(int mod, int reg, int rm)
     return ((mod & 3) << 6) | ((reg & 7) << 3) | (rm & 7);
 }
 
+int rex_prefix(int w, int r, int x, int b)
+{
+    // assume that w, r, x, b are either 0 or 1.
+    return 0x40 | (w << 3) | (r << 2) | (x << 1) | b;
+}
+
+int rex_prefix_reg_ext(int is64, Code *reg, Code *rm)
+{
+    return rex_prefix(is64, is_reg_ext(reg), 0, is_reg_ext(rm));
+}
+
 Vector *assemble_code_detail(Vector *code_list)
 {
     Vector *dumped = new_vector();
@@ -137,10 +148,8 @@ Vector *assemble_code_detail(Vector *code_list)
         switch (code->kind) {
             case INST_MOV:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->lhs, code->rhs));
                     append_byte(dumped, 0x89);
                     append_byte(dumped, modrm(3, reg_field(code->lhs),
                                               reg_field(code->rhs)));
@@ -155,9 +164,7 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(1, NULL, code->rhs));
                     append_byte(dumped, 0xc7);
                     append_byte(dumped, modrm(3, 0, reg_field(code->rhs)));
                     append_dword_int(dumped, code->lhs->ival);
@@ -165,10 +172,8 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    int rex_pre = 0x40;
-                    if (is_reg_ext(code->lhs->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(0, code->lhs->lhs,
+                                                           code->rhs));
                     append_byte(dumped, 0x8b);
                     append_byte(dumped, modrm(1, reg_field(code->rhs),
                                               reg_field(code->lhs->lhs)));
@@ -177,10 +182,8 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
-                    int rex_pre = 0x40;
-                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs->lhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(0, code->lhs,
+                                                           code->rhs->lhs));
                     append_byte(dumped, 0x89);
                     append_byte(dumped, modrm(1, reg_field(code->lhs),
                                               reg_field(code->rhs->lhs)));
@@ -192,9 +195,7 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_ADD:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(1, NULL, code->rhs));
                     append_byte(dumped, 0x81);
                     append_byte(dumped, modrm(3, 0, reg_field(code->rhs)));
                     append_dword_int(dumped, code->lhs->ival);
@@ -202,10 +203,8 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->lhs, code->rhs));
                     append_byte(dumped, 0x01);
                     append_byte(dumped, modrm(3, reg_field(code->lhs),
                                               reg_field(code->rhs)));
@@ -216,9 +215,7 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_SUB:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(1, NULL, code->rhs));
                     append_byte(dumped, 0x81);
                     append_byte(dumped, modrm(3, 5, reg_field(code->rhs)));
                     append_dword_int(dumped, code->lhs->ival);
@@ -226,10 +223,8 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->lhs, code->rhs));
                     append_byte(dumped, 0x29);
                     append_byte(dumped, modrm(3, reg_field(code->lhs),
                                               reg_field(code->rhs)));
@@ -240,10 +235,8 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_IMUL:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->lhs)) rex_pre |= 4;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 1;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->lhs, code->rhs));
                     append_word(dumped, 0x0f, 0xaf);
                     append_byte(dumped, modrm(3, reg_field(code->rhs),
                                               reg_field(code->lhs)));
@@ -254,9 +247,7 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    int rex_pre = 0x48;
-                    if (is_reg_ext(code->rhs)) rex_pre |= 4;
-                    append_byte(dumped, rex_pre);
+                    append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
                     append_byte(dumped, 0x8d);
                     append_byte(dumped, modrm(1, reg_field(code->rhs),
                                               reg_field(code->lhs->lhs)));
