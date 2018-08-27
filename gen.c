@@ -699,7 +699,8 @@ int generate_register_code_detail(AST *ast)
                              nbyte_reg(4, lreg)));
             }
 
-            appcode(ADD(nbyte_reg(8, lreg), nbyte_reg(8, rreg)));
+            int nbytes = ast->type->nbytes;
+            appcode(ADD(nbyte_reg(nbytes, lreg), nbyte_reg(nbytes, rreg)));
             restore_temp_reg(lreg);
             return rreg;
         }
@@ -714,15 +715,19 @@ int generate_register_code_detail(AST *ast)
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
                 appcode_str("cltq");
                 appcode(IMUL(value(ast->lhs->type->ptr_of->nbytes),
-                             nbyte_reg(4, rreg)));
+                             nbyte_reg(8, rreg)));
             }
 
-            appcode(SUB(nbyte_reg(8, rreg), nbyte_reg(8, lreg)));
-
             // ptr - ptr
-            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR))
+            if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR)) {
                 // assume pointer size is 8.
+                appcode(SUB(nbyte_reg(8, rreg), nbyte_reg(8, lreg)));
                 appcode(SAR(value(2), nbyte_reg(8, lreg)));
+            }
+            else {
+                int nbytes = ast->type->nbytes;
+                appcode(SUB(nbyte_reg(nbytes, rreg), nbyte_reg(nbytes, lreg)));
+            }
 
             restore_temp_reg(rreg);
             return lreg;
@@ -731,6 +736,7 @@ int generate_register_code_detail(AST *ast)
         case AST_MUL: {
             int lreg = generate_register_code_detail(ast->lhs),
                 rreg = generate_register_code_detail(ast->rhs);
+            int nbytes = 4;  // TODO: long
             appcode(IMUL(nbyte_reg(8, lreg), nbyte_reg(8, rreg)));
             restore_temp_reg(lreg);
             return rreg;

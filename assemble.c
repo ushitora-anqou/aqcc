@@ -138,6 +138,13 @@ int rex_prefix_reg_ext(int is64, Code *reg, Code *rm)
     return rex_prefix(is64, is_reg_ext(reg), 0, is_reg_ext(rm));
 }
 
+void append_rex_prefix(Vector *dumped, int is64, Code *reg, Code *rm)
+{
+    int pre = rex_prefix_reg_ext(is64, reg, rm);
+    if (pre == 0x40) return;  // no info
+    append_byte(dumped, pre);
+}
+
 Vector *assemble_code_detail(Vector *code_list)
 {
     Vector *dumped = new_vector();
@@ -211,6 +218,22 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_imm(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->rhs);
+                    append_byte(dumped, 0x81);
+                    append_byte(dumped, modrm(3, 0, reg_field(code->rhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x01);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_SUB:
@@ -231,12 +254,36 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_imm(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->rhs);
+                    append_byte(dumped, 0x81);
+                    append_byte(dumped, modrm(3, 5, reg_field(code->rhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 1, code->lhs, code->rhs);
+                    append_byte(dumped, 0x29);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_IMUL:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped,
                                 rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    append_word(dumped, 0x0f, 0xaf);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
                     append_word(dumped, 0x0f, 0xaf);
                     append_byte(dumped, modrm(3, reg_field(code->rhs),
                                               reg_field(code->lhs)));
