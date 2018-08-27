@@ -472,6 +472,11 @@ void test166()
     int ary[10];
     ary[5] = 10;
     EXPECT_INT(ary[5], 10);
+
+    *(&ary[5] - (-1)) = 10;
+    EXPECT_INT(ary[6], 10);
+    *(&ary[5] + (-1)) = 1;
+    EXPECT_INT(ary[4], 1);
 }
 void test167()
 {

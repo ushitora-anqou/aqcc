@@ -86,6 +86,16 @@ Code *MOVSBL(Code *lhs, Code *rhs)
     return code;
 }
 
+Code *MOVSLQ(Code *lhs, Code *rhs)
+{
+    Code *code = new_code(INST_MOVSLQ);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
+}
+
 Code *MOVZB(Code *lhs, Code *rhs)
 {
     Code *code = new_code(INST_MOVZB);
@@ -315,6 +325,10 @@ char *code2str(Code *code)
 
         case INST_MOVSBL:
             return format("movsbl %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_MOVSLQ:
+            return format("movslq %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
 
         case INST_MOVZB:
@@ -694,9 +708,10 @@ int generate_register_code_detail(AST *ast)
             // TODO: shift
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
+                appcode(MOVSLQ(nbyte_reg(4, lreg), nbyte_reg(8, lreg)));
                 appcode_str("cltq");
                 appcode(IMUL(value(ast->rhs->type->ptr_of->nbytes),
-                             nbyte_reg(4, lreg)));
+                             nbyte_reg(8, lreg)));
             }
 
             int nbytes = ast->type->nbytes;
@@ -713,6 +728,7 @@ int generate_register_code_detail(AST *ast)
             // TODO: shift
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
+                appcode(MOVSLQ(nbyte_reg(4, rreg), nbyte_reg(8, rreg)));
                 appcode_str("cltq");
                 appcode(IMUL(value(ast->lhs->type->ptr_of->nbytes),
                              nbyte_reg(8, rreg)));
