@@ -53,4 +53,5 @@ test_aqcc_experiment "int main() { int a = 10; return a / 7; }" 1
 test_aqcc_experiment "int main() { int a = 10; int b = 7; return a % b; }" 3
 test_aqcc_experiment "int main() { int a = 10; return a % 7; }" 3
 test_aqcc_experiment "int main() { int a = -10; return -a; }" 10
+test_aqcc_experiment "int main() { int a = -1; return ~a; }" 0
 

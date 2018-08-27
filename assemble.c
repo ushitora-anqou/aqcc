@@ -327,6 +327,23 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_NOT:
+                if (is_reg32(code->lhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->lhs);
+                    append_byte(dumped, 0xf7);
+                    append_byte(dumped, modrm(3, 2, reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_reg64(code->lhs)) {
+                    append_rex_prefix(dumped, 1, NULL, code->lhs);
+                    append_byte(dumped, 0xf7);
+                    append_byte(dumped, modrm(3, 2, reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));

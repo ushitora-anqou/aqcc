@@ -478,7 +478,7 @@ enum {
     INST_SAR,
     INST_SAL,
     INST_NEG,
-    INST_COMPL,
+    INST_NOT,
     INST_CMP,
     INST_SETL,
     INST_SETLE,

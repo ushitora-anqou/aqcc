@@ -134,7 +134,7 @@ Code *SAL(Code *lhs, Code *rhs) { return new_binop_code(INST_SAL, lhs, rhs); }
 
 Code *NEG(Code *lhs) { return new_unary_code(INST_NEG, lhs); }
 
-Code *COMPL(Code *lhs) { return new_unary_code(INST_COMPL, lhs); }
+Code *NOT(Code *lhs) { return new_unary_code(INST_NOT, lhs); }
 
 Code *CMP(Code *lhs, Code *rhs) { return new_binop_code(INST_CMP, lhs, rhs); }
 
@@ -373,7 +373,7 @@ char *code2str(Code *code)
         case INST_NEG:
             return format("neg %s", code2str(code->lhs));
 
-        case INST_COMPL:
+        case INST_NOT:
             return format("not %s", code2str(code->lhs));
 
         case INST_CMP:
@@ -797,7 +797,7 @@ int generate_register_code_detail(AST *ast)
 
         case AST_COMPL: {
             int reg = generate_register_code_detail(ast->lhs);
-            appcode(COMPL(nbyte_reg(ast->type->nbytes, reg)));
+            appcode(NOT(nbyte_reg(ast->type->nbytes, reg)));
             return reg;
         }
 
