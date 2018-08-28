@@ -67,4 +67,5 @@ test_aqcc_experiment "int main() { int a = 2, b = 3; return a & b; }" 2
 test_aqcc_experiment "int main() { int a = 2, b = 3; return a | b; }" 3
 test_aqcc_experiment "int main() { int a = 2, b = 3; return a ^ b; }" 1
 test_aqcc_experiment "int main() { int a[2]; a[1] = 5; return a[1]; }" 5
-
+test_aqcc_experiment "int main() { int ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
+test_aqcc_experiment "int main() { int ary[10][10]; ary[4][5] = ary[3][2] = 4; return ary[4][5] + 2 * ary[3][2]; }" 12
