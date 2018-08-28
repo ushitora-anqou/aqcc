@@ -154,6 +154,8 @@ Code *RET() { return new_code(INST_RET); }
 
 Code *CLTD() { return new_code(INST_CLTD); }
 
+Code *CLTQ() { return new_code(INST_CLTQ); }
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -406,6 +408,9 @@ char *code2str(Code *code)
 
         case INST_CLTD:
             return "cltd";
+
+        case INST_CLTQ:
+            return "cltq";
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
@@ -714,7 +719,7 @@ int generate_register_code_detail(AST *ast)
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_INT, TY_PTR)) {
                 appcode(MOVSLQ(nbyte_reg(4, lreg), nbyte_reg(8, lreg)));
-                appcode_str("cltq");
+                appcode(CLTQ());
                 appcode(IMUL(value(ast->rhs->type->ptr_of->nbytes),
                              nbyte_reg(8, lreg)));
             }
@@ -734,7 +739,7 @@ int generate_register_code_detail(AST *ast)
             // TODO: long
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_INT)) {
                 appcode(MOVSLQ(nbyte_reg(4, rreg), nbyte_reg(8, rreg)));
-                appcode_str("cltq");
+                appcode(CLTQ());
                 appcode(IMUL(value(ast->lhs->type->ptr_of->nbytes),
                              nbyte_reg(8, rreg)));
             }

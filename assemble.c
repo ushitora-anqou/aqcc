@@ -218,6 +218,30 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_MOVSBL:
+                if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(0, code->rhs, code->lhs));
+                    append_word(dumped, 0x0f, 0xbe);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_MOVSLQ:
+                if (is_reg32(code->lhs) && is_reg64(code->rhs)) {
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->rhs, code->lhs));
+                    append_byte(dumped, 0x63);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->lhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_MOVZB:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     append_rex_prefix(dumped, 0, code->rhs, code->lhs);
@@ -324,6 +348,16 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_word(dumped, 0x0f, 0xaf);
                     append_byte(dumped, modrm(3, reg_field(code->rhs),
                                               reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_imm(code->lhs) && is_reg64(code->rhs)) {
+                    append_byte(dumped,
+                                rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    append_byte(dumped, 0x69);
+                    append_byte(dumped, modrm(3, reg_field(code->rhs),
+                                              reg_field(code->rhs)));
+                    append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 
@@ -526,6 +560,10 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_CLTD:
                 append_byte(dumped, 0x99);
+                break;
+
+            case INST_CLTQ:
+                append_word(dumped, 0x48, 0x99);
                 break;
 
             case INST_OTHER:
