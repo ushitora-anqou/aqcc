@@ -457,6 +457,39 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_AND:
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x21);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_XOR:
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x31);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_OR:
+                if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, code->lhs, code->rhs);
+                    append_byte(dumped, 0x09);
+                    append_byte(dumped, modrm(3, reg_field(code->lhs),
+                                              reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
