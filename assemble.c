@@ -162,6 +162,12 @@ void append_rex_prefix(Vector *dumped, int is64, Code *reg, Code *rm)
 Vector *assemble_code_detail(Vector *code_list)
 {
     Vector *dumped = new_vector();
+    Map *label2offset = new_map();
+    Vector *label_placeholders = new_vector();
+    typedef struct {
+        char *label;
+        int offset, size;
+    } LabelPlaceholder;
 
     for (int i = 0; i < vector_size(code_list); i++) {
         Code *code = vector_get(code_list, i);
@@ -209,8 +215,8 @@ Vector *assemble_code_detail(Vector *code_list)
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    append_byte(dumped, rex_prefix_reg_ext(0, code->lhs->lhs,
-                                                           code->rhs));
+                    append_byte(dumped, rex_prefix_reg_ext(0, code->rhs,
+                                                           code->lhs->lhs));
                     append_byte(dumped, 0x8b);
                     append_modrm(dumped, 2, reg_field(code->rhs),
                                  reg_field(code->lhs->lhs));
@@ -474,6 +480,14 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_imm(code->lhs) && is_reg32(code->rhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->rhs);
+                    append_byte(dumped, 0x81);
+                    append_byte(dumped, modrm(3, 7, reg_field(code->rhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_SETL:
@@ -578,7 +592,42 @@ Vector *assemble_code_detail(Vector *code_list)
                 append_word(dumped, 0x48, 0x98);
                 break;
 
+            case INST_JMP: {
+                append_byte(dumped, 0xe9);
+                append_dword_int(dumped, 0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = vector_size(dumped);
+                lph->size = 4;
+                vector_push_back(label_placeholders, lph);
+            } break;
+
+            case INST_JE: {
+                append_byte(dumped, 0x74);
+                append_byte(dumped, 0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = vector_size(dumped);
+                lph->size = 1;
+                vector_push_back(label_placeholders, lph);
+            } break;
+
+            case INST_JNE: {
+                append_byte(dumped, 0x75);
+                append_byte(dumped, 0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = vector_size(dumped);
+                lph->size = 1;
+                vector_push_back(label_placeholders, lph);
+            } break;
+
             case INST_LABEL:
+                map_insert(label2offset, code->label,
+                           (void *)vector_size(dumped));
                 break;
 
             case INST_OTHER:
@@ -592,6 +641,33 @@ Vector *assemble_code_detail(Vector *code_list)
 
     not_implemented_error:
         error("not implemented code: %d", code->kind);
+    }
+
+    // write offset to label placeholders
+    for (int i = 0; i < vector_size(label_placeholders); i++) {
+        LabelPlaceholder *lph =
+            (LabelPlaceholder *)vector_get(label_placeholders, i);
+        KeyValue *kv = map_lookup(label2offset, lph->label);
+        assert(kv != NULL);
+        int v = (int)kv_value(kv);
+        v -= lph->offset;
+
+        switch (lph->size) {
+            case 4:
+                vector_set(dumped, lph->offset - 4, v & 0xff);
+                vector_set(dumped, lph->offset - 3, (v >> 8) & 0xff);
+                vector_set(dumped, lph->offset - 2, (v >> 16) & 0xff);
+                vector_set(dumped, lph->offset - 1, (v >> 24) & 0xff);
+                break;
+
+            case 1:
+                assert(-128 <= v && v <= 127);
+                vector_set(dumped, lph->offset - 1, v & 0xff);
+                break;
+
+            default:
+                assert(0);
+        }
     }
 
     return dumped;
