@@ -74,3 +74,7 @@ test_aqcc_experiment "int main() { int c = 0; for(;c > 0;) ; return c; }" 0
 test_aqcc_experiment "int main() { int c = 0; for(;c < 2;c+=1) ; return c; }" 2
 test_aqcc_experiment "int main() { int c = 0; for(int i = 0;i < 2;i+=1) ; return c; }" 0
 test_aqcc_experiment "int main() { int c = 0; for(int i = 0;i < 2;i+=1) c+=1; return c; }" 2
+test_aqcc_experiment "int main() { int ary[5], *p; ary[1] = 10; p = ary; p++; return *p; }" 10
+test_aqcc_experiment "int main() { int ary[5], *p; ary[1] = 10; p = ary; ++p; return *p; }" 10
+test_aqcc_experiment "int main() { int ary[5], *p; ary[1] = 10; p = &ary[2]; p--; return *p; }" 10
+test_aqcc_experiment "int main() { int ary[5], *p; ary[1] = 10; p = &ary[2]; --p; return *p; }" 10

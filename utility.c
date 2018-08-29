@@ -244,7 +244,8 @@ void assert(int cond)
 int is_register_code(Code *code)
 {
     if (code == NULL) return 0;
-    return code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
+    return !(code->kind & INST_) &&
+           code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
 }
 
 int reg_of_nbyte(int nbyte, int reg)

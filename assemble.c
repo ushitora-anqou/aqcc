@@ -214,6 +214,16 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
+                    append_byte(dumped, rex_prefix_reg_ext(1, code->rhs,
+                                                           code->lhs->lhs));
+                    append_byte(dumped, 0x8b);
+                    append_modrm(dumped, 2, reg_field(code->rhs),
+                                 reg_field(code->lhs->lhs));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(0, code->rhs,
                                                            code->lhs->lhs));
@@ -226,6 +236,16 @@ Vector *assemble_code_detail(Vector *code_list)
 
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(0, code->lhs,
+                                                           code->rhs->lhs));
+                    append_byte(dumped, 0x89);
+                    append_modrm(dumped, 2, reg_field(code->lhs),
+                                 reg_field(code->rhs->lhs));
+                    append_dword_int(dumped, code->rhs->ival);
+                    break;
+                }
+
+                if (is_reg64(code->lhs) && is_addrof(code->rhs)) {
+                    append_byte(dumped, rex_prefix_reg_ext(1, code->lhs,
                                                            code->rhs->lhs));
                     append_byte(dumped, 0x89);
                     append_modrm(dumped, 2, reg_field(code->lhs),
@@ -310,6 +330,18 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_byte(dumped, 0x01);
                     append_byte(dumped, modrm(3, reg_field(code->lhs),
                                               reg_field(code->rhs)));
+                    break;
+                }
+
+                goto not_implemented_error;
+
+            case INST_ADDQ:
+                if (is_imm(code->lhs) && is_addrof(code->rhs)) {
+                    append_rex_prefix(dumped, 1, NULL, code->rhs->lhs);
+                    append_byte(dumped, 0x81);
+                    append_modrm(dumped, 2, 0, reg_field(code->rhs->lhs));
+                    append_dword_int(dumped, code->rhs->ival);
+                    append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 
@@ -653,15 +685,15 @@ Vector *assemble_code_detail(Vector *code_list)
 
         switch (lph->size) {
             case 4:
-                vector_set(dumped, lph->offset - 4, v & 0xff);
-                vector_set(dumped, lph->offset - 3, (v >> 8) & 0xff);
-                vector_set(dumped, lph->offset - 2, (v >> 16) & 0xff);
-                vector_set(dumped, lph->offset - 1, (v >> 24) & 0xff);
+                vector_set(dumped, lph->offset - 4, (void *)(v & 0xff));
+                vector_set(dumped, lph->offset - 3, (void *)((v >> 8) & 0xff));
+                vector_set(dumped, lph->offset - 2, (void *)((v >> 16) & 0xff));
+                vector_set(dumped, lph->offset - 1, (void *)((v >> 24) & 0xff));
                 break;
 
             case 1:
                 assert(-128 <= v && v <= 127);
-                vector_set(dumped, lph->offset - 1, v & 0xff);
+                vector_set(dumped, lph->offset - 1, (void *)(v & 0xff));
                 break;
 
             default:

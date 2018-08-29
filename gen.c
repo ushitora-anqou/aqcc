@@ -122,6 +122,8 @@ Code *POP(Code *lhs) { return new_unary_code(INST_POP, lhs); }
 
 Code *ADD(Code *lhs, Code *rhs) { return new_binop_code(INST_ADD, lhs, rhs); }
 
+Code *ADDQ(Code *lhs, Code *rhs) { return new_binop_code(INST_ADDQ, lhs, rhs); }
+
 Code *SUB(Code *lhs, Code *rhs) { return new_binop_code(INST_SUB, lhs, rhs); }
 
 Code *IMUL(Code *lhs, Code *rhs) { return new_binop_code(INST_IMUL, lhs, rhs); }
@@ -379,6 +381,10 @@ char *code2str(Code *code)
 
         case INST_ADD:
             return format("add %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_ADDQ:
+            return format("addq %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
 
         case INST_SUB:
@@ -1091,39 +1097,39 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_POSTINC: {
-            char suf = byte2suffix(ast->lhs->type->nbytes);
-
             int lreg = generate_register_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
-            if (match_type(ast->lhs, TY_PTR))
-                appcode(new_other_code(format("add%c", suf),
-                                       value(ast->lhs->type->ptr_of->nbytes),
-                                       addrof(lreg_code, 0)));
-            else
+            if (match_type(ast->lhs, TY_PTR)) {
+                appcode(ADDQ(value(ast->lhs->type->ptr_of->nbytes),
+                             addrof(lreg_code, 0)));
+            }
+            else {
+                char suf = byte2suffix(ast->lhs->type->nbytes);
                 appcode(new_other_code(format("inc%c", suf),
                                        addrof(lreg_code, 0), NULL));
+            }
 
             restore_temp_reg(lreg);
             return reg;
         }
 
         case AST_PREINC: {
-            char suf = byte2suffix(ast->lhs->type->nbytes);
-
             int lreg = generate_register_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
-            if (match_type(ast->lhs, TY_PTR))
-                appcode(new_other_code(format("add%c", suf),
-                                       value(ast->lhs->type->ptr_of->nbytes),
-                                       addrof(lreg_code, 0)));
-            else
+            if (match_type(ast->lhs, TY_PTR)) {
+                appcode(ADDQ(value(ast->lhs->type->ptr_of->nbytes),
+                             addrof(lreg_code, 0)));
+            }
+            else {
+                char suf = byte2suffix(ast->lhs->type->nbytes);
                 appcode(new_other_code(format("inc%c", suf),
                                        addrof(lreg_code, 0), NULL));
+            }
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
@@ -1140,9 +1146,8 @@ int generate_register_code_detail(AST *ast)
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode(new_other_code(format("sub%c", suf),
-                                       value(ast->lhs->type->ptr_of->nbytes),
-                                       addrof(lreg_code, 0)));
+                appcode(ADDQ(value(-ast->lhs->type->ptr_of->nbytes),
+                             addrof(lreg_code, 0)));
             else
                 appcode(new_other_code(format("dec%c", suf),
                                        addrof(lreg_code, 0), NULL));
@@ -1159,9 +1164,8 @@ int generate_register_code_detail(AST *ast)
             int reg = get_temp_reg();
 
             if (match_type(ast->lhs, TY_PTR))
-                appcode(new_other_code(format("sub%c", suf),
-                                       value(ast->lhs->type->ptr_of->nbytes),
-                                       addrof(lreg_code, 0)));
+                appcode(ADDQ(value(-ast->lhs->type->ptr_of->nbytes),
+                             addrof(lreg_code, 0)));
             else
                 appcode(new_other_code(format("dec%c", suf),
                                        addrof(lreg_code, 0), NULL));

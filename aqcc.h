@@ -472,6 +472,7 @@ enum {
     INST_PUSH,
     INST_POP,
     INST_ADD,
+    INST_ADDQ,
     INST_SUB,
     INST_IMUL,
     INST_IDIV,
