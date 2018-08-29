@@ -163,6 +163,20 @@ Code *JMP(char *label)
     return code;
 }
 
+Code *JE(char *label)
+{
+    Code *code = new_code(INST_JE);
+    code->label = label;
+    return code;
+}
+
+Code *JNE(char *label)
+{
+    Code *code = new_code(INST_JNE);
+    code->label = label;
+    return code;
+}
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -421,6 +435,12 @@ char *code2str(Code *code)
 
         case INST_JMP:
             return format("jmp %s", code->label);
+
+        case INST_JE:
+            return format("je %s", code->label);
+
+        case INST_JNE:
+            return format("jne %s", code->label);
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
@@ -900,12 +920,12 @@ int generate_register_code_detail(AST *ast)
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
-            appcode_str("je %s", false_label);
+            appcode(JE(false_label));
             // don't execute rhs expression if lhs is false.
             int rreg = generate_register_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
-            appcode_str("je %s", false_label);
+            appcode(JE(false_label));
             appcode(MOV(value(1), rreg_code));
             appcode(JMP(exit_label));
             appcode_str("%s:", false_label);
@@ -920,12 +940,12 @@ int generate_register_code_detail(AST *ast)
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
-            appcode_str("jne %s", true_label);
+            appcode(JNE(true_label));
             // don't execute rhs expression if lhs is true.
             int rreg = generate_register_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
-            appcode_str("jne %s", true_label);
+            appcode(JNE(true_label));
             appcode(CMP(value(0), rreg_code));
             appcode(JMP(exit_label));
             appcode_str("%s:", true_label);
@@ -1154,7 +1174,7 @@ int generate_register_code_detail(AST *ast)
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
-            appcode_str("je %s", false_label);
+            appcode(JE(false_label));
             int then_reg = generate_register_code_detail(ast->then);
             restore_temp_reg(then_reg);
             appcode(PUSH(nbyte_reg(8, then_reg)));
@@ -1179,7 +1199,7 @@ int generate_register_code_detail(AST *ast)
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
-            appcode_str("je %s", false_label);
+            appcode(JE(false_label));
             generate_register_code_detail(ast->then);
             appcode(JMP(exit_label));
             appcode_str("%s:", false_label);
@@ -1198,7 +1218,7 @@ int generate_register_code_detail(AST *ast)
                 appcode(CMP(value(cas->cond),
                             nbyte_reg(ast->target->type->nbytes, target_reg)));
                 // case has been already labeled when analyzing.
-                appcode_str("je %s", cas->label_name);
+                appcode(JE(cas->label_name));
             }
             char *exit_label = make_label_string();
             if (ast->default_label)
@@ -1228,7 +1248,7 @@ int generate_register_code_detail(AST *ast)
             int cond_reg = generate_register_code_detail(ast->cond);
             appcode(
                 CMP(value(0), nbyte_reg(ast->cond->type->nbytes, cond_reg)));
-            appcode_str("jne %s", start_label);
+            appcode(JNE(start_label));
             appcode_str("%s:", codeenv->break_label);
 
             restore_temp_reg(cond_reg);
@@ -1254,7 +1274,7 @@ int generate_register_code_detail(AST *ast)
                 int reg = generate_register_code_detail(ast->midcond);
                 appcode(
                     CMP(value(0), nbyte_reg(ast->midcond->type->nbytes, reg)));
-                appcode_str("je %s", codeenv->break_label);
+                appcode(JE(codeenv->break_label));
                 restore_temp_reg(reg);
             }
             generate_register_code_detail(ast->for_body);

@@ -490,6 +490,8 @@ enum {
     INST_CLTD,
     INST_CLTQ,
     INST_JMP,
+    INST_JE,
+    INST_JNE,
 
     INST_OTHER,
 
