@@ -649,8 +649,7 @@ Vector *assemble_code_detail(Vector *code_list)
             (LabelPlaceholder *)vector_get(label_placeholders, i);
         KeyValue *kv = map_lookup(label2offset, lph->label);
         assert(kv != NULL);
-        int v = (int)kv_value(kv);
-        v -= lph->offset;
+        int v = (int)kv_value(kv) - lph->offset;
 
         switch (lph->size) {
             case 4:

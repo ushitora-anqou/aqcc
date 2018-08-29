@@ -2021,6 +2021,13 @@ int test348()
     EXPECT_INT(c, 4);
 }
 
+int test349()
+{
+    int a = 5;
+    int b = (int)a + 4;
+    EXPECT_INT(b, 9);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);

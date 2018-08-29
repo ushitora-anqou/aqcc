@@ -283,7 +283,6 @@ AST *parse_additive_expr()
         Token *token = peek_token();
         switch (token->kind) {
             case tPLUS:
-
                 pop_token();
                 rhs = parse_multiplicative_expr();
                 lhs = new_binop_ast(AST_ADD, lhs, rhs);
@@ -473,7 +472,9 @@ AST *parse_assignment_expr()
         tok2ast[tRSHIFTEQ] = AST_RSHIFT;
     }
 
-    if (match_cast_expr()) return parse_cast_expr();
+    // If match_cast_expr() is true then the following expression is definitely
+    // not assignment expr. BUT MAY BE CONDITIONAL EXPR.
+    if (match_cast_expr()) return parse_conditional_expr();
 
     SAVE_TOKENSEQ;
     last = parse_unary_expr();
