@@ -234,6 +234,16 @@ Vector *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_reg8(code->lhs) && is_addrof(code->rhs)) {
+                    append_byte(dumped, rex_prefix_reg_ext(0, code->lhs,
+                                                           code->rhs->lhs));
+                    append_byte(dumped, 0x88);
+                    append_modrm(dumped, 2, reg_field(code->lhs),
+                                 reg_field(code->rhs->lhs));
+                    append_dword_int(dumped, code->rhs->ival);
+                    break;
+                }
+
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
                     append_byte(dumped, rex_prefix_reg_ext(0, code->lhs,
                                                            code->rhs->lhs));
@@ -263,6 +273,16 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_word(dumped, 0x0f, 0xbe);
                     append_byte(dumped, modrm(3, reg_field(code->rhs),
                                               reg_field(code->lhs)));
+                    break;
+                }
+
+                if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
+                    append_byte(dumped, rex_prefix_reg_ext(0, code->rhs,
+                                                           code->lhs->lhs));
+                    append_word(dumped, 0x0f, 0xbe);
+                    append_modrm(dumped, 2, reg_field(code->rhs),
+                                 reg_field(code->lhs->lhs));
+                    append_dword_int(dumped, code->lhs->ival);
                     break;
                 }
 
