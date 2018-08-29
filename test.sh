@@ -205,18 +205,18 @@ test_aqcc_experiment "int main(){int a=0;int b;b=(++a)+1;return b;}" 2
 test_aqcc_experiment "int main(){int a=0;int i;for(i=0;i<=10;++i){a=a+i;}return a;}" 55
 test_aqcc_experiment "int main(){int a=0;if(a==0){int a;a=1;}return a;}" 0
 test_aqcc_experiment "int main(){int a=0;int i;for(i=0;i<10;i++){int a;a=1;}return a;}" 0
-#test_aqcc_experiment "int main(){int a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){a=a+1;}}return a;}" 100
+test_aqcc_experiment "int main(){int a=0;int i;for(i=0;i<10;i++){int i;for(i=0;i<10;i++){a=a+1;}}return a;}" 100
 test_aqcc_experiment "int main() { int n = n++; return n; }" 0
 test_aqcc_experiment "int main() { int n = 0; return *&n; }" 0
 test_aqcc_experiment "int main() { int n = 0; int i; int j; for(i = 0; i < 10; i++) for (j = 0; j < 10; j++) n++; return n; }" 100
 test_aqcc_experiment "int main() { int ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
 test_aqcc_experiment "int main() { int ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
 test_aqcc_experiment "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
-#test_aqcc_experiment "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
+test_aqcc_experiment "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
 test_aqcc_experiment "int main() { int ary[10]; ary[5] = 10; return ary[5]; }" 10
 test_aqcc_experiment "int main() { int ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
 test_aqcc_experiment "int main() { int ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i; return ary[5]; }" 5
-#test_aqcc_experiment "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
+test_aqcc_experiment "int main() { int ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
 test_aqcc_experiment "int main() { int ary[10]; 3[ary] = 4; return 3[ary]; }" 4
 test_aqcc_experiment "int main() { int a = 2; a += 5; return a; }" 7
 test_aqcc_experiment "int main() { int a = 8; a -= 5; return a; }" 3
@@ -250,11 +250,11 @@ test_aqcc_experiment "int main() { char a = 4; a >>= 2; return a; }" 1
 test_aqcc_experiment "int main() { char ary[10]; *(ary + 5) = 4; return *(ary + 5); }" 4
 test_aqcc_experiment "int main() { char ary[10][10]; *(*(ary + 4) + 5) = 9; return *(*(ary + 4) + 5); }" 9
 test_aqcc_experiment "int main() { char ary[10]; int i; for (i = 0; i < 10; i++) *(i + ary) = i; return *(ary + 5); }" 5
-#test_aqcc_experiment "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
+test_aqcc_experiment "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) *(*(ary + i) + j) = i - j; return *(*(ary + 6) + 4); }" 2
 test_aqcc_experiment "int main() { char ary[10]; ary[5] = 10; return ary[5]; }" 10
 test_aqcc_experiment "int main() { char ary[10][10]; ary[4][5] = 9; return ary[4][5]; }" 9
 test_aqcc_experiment "int main() { char ary[10]; int i; for (i = 0; i < 10; i++) ary[i] = i; return ary[5]; }" 5
-#test_aqcc_experiment "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
+test_aqcc_experiment "int main() { char ary[10][10]; int i; int j; for (i = 0; i < 10; i++) for (j = 0; j < 10; j++) ary[i][j] = i - j; return ary[6][4]; }" 2
 test_aqcc_experiment "int main() { char ary[10]; 3[ary] = 4; return 3[ary]; }" 4
 test_aqcc_experiment "int main() { return sizeof(int); }" 4
 test_aqcc_experiment "int main() { return sizeof(char); }" 1

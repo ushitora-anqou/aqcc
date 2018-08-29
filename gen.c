@@ -940,16 +940,28 @@ int generate_register_code_detail(AST *ast)
 
         case AST_LAND: {
             char *false_label = make_label_string(),
-                 *exit_label = make_label_string();
+                 *exit_label = make_label_string(),
+                 *beyond_label0 = make_label_string(),
+                 *beyond_label1 = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
-            appcode(JE(false_label));
+
+            // JE(false_label)
+            appcode(JNE(beyond_label0));
+            appcode(JMP(false_label));
+            appcode(LABEL(beyond_label0));
+
             // don't execute rhs expression if lhs is false.
             int rreg = generate_register_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
-            appcode(JE(false_label));
+
+            // JE(false_label)
+            appcode(JNE(beyond_label1));
+            appcode(JMP(false_label));
+            appcode(LABEL(beyond_label1));
+
             appcode(MOV(value(1), rreg_code));
             appcode(JMP(exit_label));
             appcode(LABEL(false_label));
@@ -960,16 +972,28 @@ int generate_register_code_detail(AST *ast)
 
         case AST_LOR: {
             char *true_label = make_label_string(),
-                 *exit_label = make_label_string();
+                 *exit_label = make_label_string(),
+                 *beyond_label0 = make_label_string(),
+                 *beyond_label1 = make_label_string();
             int lreg = generate_register_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
-            appcode(JNE(true_label));
+
+            // JNE(true_label);
+            appcode(JE(beyond_label0));
+            appcode(JMP(true_label));
+            appcode(LABEL(beyond_label0));
+
             // don't execute rhs expression if lhs is true.
             int rreg = generate_register_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
-            appcode(JNE(true_label));
+
+            // JNE(true_label);
+            appcode(JE(beyond_label1));
+            appcode(JMP(true_label));
+            appcode(LABEL(beyond_label1));
+
             appcode(CMP(value(0), rreg_code));
             appcode(JMP(exit_label));
             appcode(LABEL(true_label));
@@ -1220,13 +1244,19 @@ int generate_register_code_detail(AST *ast)
 
         case AST_COND: {
             char *false_label = make_label_string(),
-                 *exit_label = make_label_string();
+                 *exit_label = make_label_string(),
+                 *beyond_label = make_label_string();
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
-            appcode(JE(false_label));
+
+            // JE(false_label);
+            appcode(JNE(beyond_label));
+            appcode(JMP(false_label));
+            appcode(LABEL(beyond_label));
+
             int then_reg = generate_register_code_detail(ast->then);
             restore_temp_reg(then_reg);
             appcode(PUSH(nbyte_reg(8, then_reg)));
@@ -1245,13 +1275,19 @@ int generate_register_code_detail(AST *ast)
 
         case AST_IF: {
             char *false_label = make_label_string(),
-                 *exit_label = make_label_string();
+                 *exit_label = make_label_string(),
+                 *beyond_label = make_label_string();
 
             int cond_reg = generate_register_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
-            appcode(JE(false_label));
+
+            // JE(false_label)
+            appcode(JNE(beyond_label));
+            appcode(JMP(false_label));
+            appcode(LABEL(beyond_label));
+
             generate_register_code_detail(ast->then);
             appcode(JMP(exit_label));
             appcode(LABEL(false_label));
@@ -1270,7 +1306,11 @@ int generate_register_code_detail(AST *ast)
                 appcode(CMP(value(cas->cond),
                             nbyte_reg(ast->target->type->nbytes, target_reg)));
                 // case has been already labeled when analyzing.
-                appcode(JE(cas->label_name));
+                // JE(cas->label_name)
+                char *beyond_label = make_label_string();
+                appcode(JNE(beyond_label));
+                appcode(JMP(cas->label_name));
+                appcode(LABEL(beyond_label));
             }
             char *exit_label = make_label_string();
             if (ast->default_label)
@@ -1300,7 +1340,12 @@ int generate_register_code_detail(AST *ast)
             int cond_reg = generate_register_code_detail(ast->cond);
             appcode(
                 CMP(value(0), nbyte_reg(ast->cond->type->nbytes, cond_reg)));
-            appcode(JNE(start_label));
+            // JNE(start_label)
+            char *beyond_label = make_label_string();
+            appcode(JE(beyond_label));
+            appcode(JMP(start_label));
+            appcode(LABEL(beyond_label));
+
             appcode(LABEL(codeenv->break_label));
 
             restore_temp_reg(cond_reg);
@@ -1326,7 +1371,11 @@ int generate_register_code_detail(AST *ast)
                 int reg = generate_register_code_detail(ast->midcond);
                 appcode(
                     CMP(value(0), nbyte_reg(ast->midcond->type->nbytes, reg)));
-                appcode(JE(codeenv->break_label));
+                // JE(codeenv->break_label)
+                char *beyond_label = make_label_string();
+                appcode(JNE(beyond_label));
+                appcode(JMP(codeenv->break_label));
+                appcode(LABEL(beyond_label));
                 restore_temp_reg(reg);
             }
             generate_register_code_detail(ast->for_body);
