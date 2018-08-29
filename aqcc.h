@@ -492,6 +492,7 @@ enum {
     INST_JMP,
     INST_JE,
     INST_JNE,
+    INST_LABEL,
 
     INST_OTHER,
 

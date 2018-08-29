@@ -578,6 +578,9 @@ Vector *assemble_code_detail(Vector *code_list)
                 append_word(dumped, 0x48, 0x98);
                 break;
 
+            case INST_LABEL:
+                break;
+
             case INST_OTHER:
                 break;
 

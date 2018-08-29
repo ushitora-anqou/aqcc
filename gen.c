@@ -177,6 +177,13 @@ Code *JNE(char *label)
     return code;
 }
 
+Code *LABEL(char *label)
+{
+    Code *code = new_code(INST_LABEL);
+    code->label = label;
+    return code;
+}
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -441,6 +448,9 @@ char *code2str(Code *code)
 
         case INST_JNE:
             return format("jne %s", code->label);
+
+        case INST_LABEL:
+            return format("%s:", code->label);
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
@@ -928,9 +938,9 @@ int generate_register_code_detail(AST *ast)
             appcode(JE(false_label));
             appcode(MOV(value(1), rreg_code));
             appcode(JMP(exit_label));
-            appcode_str("%s:", false_label);
+            appcode(LABEL(false_label));
             appcode(MOV(value(0), rreg_code));
-            appcode_str("%s:", exit_label);
+            appcode(LABEL(exit_label));
             return rreg;
         }
 
@@ -948,9 +958,9 @@ int generate_register_code_detail(AST *ast)
             appcode(JNE(true_label));
             appcode(CMP(value(0), rreg_code));
             appcode(JMP(exit_label));
-            appcode_str("%s:", true_label);
+            appcode(LABEL(true_label));
             appcode(MOV(value(1), rreg_code));
-            appcode_str("%s:", exit_label);
+            appcode(LABEL(exit_label));
             return rreg;
         }
 
@@ -969,7 +979,7 @@ int generate_register_code_detail(AST *ast)
 
             // generate code
             appcode_str(".global %s", ast->fname);
-            appcode_str("%s:", ast->fname);
+            appcode(LABEL(ast->fname));
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));
             int needed_stack_size = roundup(-stack_idx, 16);
@@ -1179,13 +1189,13 @@ int generate_register_code_detail(AST *ast)
             restore_temp_reg(then_reg);
             appcode(PUSH(nbyte_reg(8, then_reg)));
             appcode(JMP(exit_label));
-            appcode_str("%s:", false_label);
+            appcode(LABEL(false_label));
             if (ast->els != NULL) {
                 int els_reg = generate_register_code_detail(ast->els);
                 restore_temp_reg(els_reg);
                 appcode(PUSH(nbyte_reg(8, els_reg)));
             }
-            appcode_str("%s:", exit_label);
+            appcode(LABEL(exit_label));
             int reg = get_temp_reg();
             appcode(POP(nbyte_reg(8, reg)));
             return reg;
@@ -1202,9 +1212,9 @@ int generate_register_code_detail(AST *ast)
             appcode(JE(false_label));
             generate_register_code_detail(ast->then);
             appcode(JMP(exit_label));
-            appcode_str("%s:", false_label);
+            appcode(LABEL(false_label));
             if (ast->els != NULL) generate_register_code_detail(ast->els);
-            appcode_str("%s:", exit_label);
+            appcode(LABEL(exit_label));
             return -1;
         }
 
@@ -1229,7 +1239,7 @@ int generate_register_code_detail(AST *ast)
             SAVE_BREAK_CXT;
             codeenv->break_label = exit_label;
             generate_register_code_detail(ast->switch_body);
-            appcode_str("%s:", exit_label);
+            appcode(LABEL(exit_label));
             RESTORE_BREAK_CXT;
 
             return -1;
@@ -1242,14 +1252,14 @@ int generate_register_code_detail(AST *ast)
             codeenv->continue_label = make_label_string();
             char *start_label = make_label_string();
 
-            appcode_str("%s:", start_label);
+            appcode(LABEL(start_label));
             generate_register_code_detail(ast->then);
-            appcode_str("%s:", codeenv->continue_label);
+            appcode(LABEL(codeenv->continue_label));
             int cond_reg = generate_register_code_detail(ast->cond);
             appcode(
                 CMP(value(0), nbyte_reg(ast->cond->type->nbytes, cond_reg)));
             appcode(JNE(start_label));
-            appcode_str("%s:", codeenv->break_label);
+            appcode(LABEL(codeenv->break_label));
 
             restore_temp_reg(cond_reg);
             RESTORE_BREAK_CXT;
@@ -1269,7 +1279,7 @@ int generate_register_code_detail(AST *ast)
                 int reg = generate_register_code_detail(ast->initer);
                 if (reg != -1) restore_temp_reg(reg);  // if expr
             }
-            appcode_str("%s:", start_label);
+            appcode(LABEL(start_label));
             if (ast->midcond != NULL) {
                 int reg = generate_register_code_detail(ast->midcond);
                 appcode(
@@ -1278,13 +1288,13 @@ int generate_register_code_detail(AST *ast)
                 restore_temp_reg(reg);
             }
             generate_register_code_detail(ast->for_body);
-            appcode_str("%s:", codeenv->continue_label);
+            appcode(LABEL(codeenv->continue_label));
             if (ast->iterer != NULL) {
                 int reg = generate_register_code_detail(ast->iterer);
                 if (reg != -1) restore_temp_reg(reg);  // if nop
             }
             appcode(JMP(start_label));
-            appcode_str("%s:", codeenv->break_label);
+            appcode(LABEL(codeenv->break_label));
 
             RESTORE_BREAK_CXT;
             RESTORE_CONTINUE_CXT;
@@ -1293,7 +1303,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_LABEL:
-            appcode_str("%s:", ast->label_name);
+            appcode(LABEL(ast->label_name));
             generate_register_code_detail(ast->label_stmt);
             return -1;
 
@@ -1406,7 +1416,7 @@ Vector *generate_register_code(Vector *asts)
     for (int i = 0; i < vector_size(gvar_list); i++) {
         GVar *gvar = (GVar *)vector_get(gvar_list, i);
 
-        appcode_str("%s:", gvar->name);
+        appcode(LABEL(gvar->name));
         if (gvar->sval) {
             assert(gvar->type->kind == TY_ARY &&
                    gvar->type->ptr_of->kind == TY_CHAR);
