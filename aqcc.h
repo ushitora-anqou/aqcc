@@ -489,6 +489,7 @@ enum {
     INST_RET,
     INST_CLTD,
     INST_CLTQ,
+    INST_JMP,
 
     INST_OTHER,
 

@@ -156,6 +156,13 @@ Code *CLTD() { return new_code(INST_CLTD); }
 
 Code *CLTQ() { return new_code(INST_CLTQ); }
 
+Code *JMP(char *label)
+{
+    Code *code = new_code(INST_JMP);
+    code->label = label;
+    return code;
+}
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -411,6 +418,9 @@ char *code2str(Code *code)
 
         case INST_CLTQ:
             return "cltq";
+
+        case INST_JMP:
+            return format("jmp %s", code->label);
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
@@ -897,7 +907,7 @@ int generate_register_code_detail(AST *ast)
             appcode(CMP(value(0), rreg_code));
             appcode_str("je %s", false_label);
             appcode(MOV(value(1), rreg_code));
-            appcode_str("jmp %s", exit_label);
+            appcode(JMP(exit_label));
             appcode_str("%s:", false_label);
             appcode(MOV(value(0), rreg_code));
             appcode_str("%s:", exit_label);
@@ -917,7 +927,7 @@ int generate_register_code_detail(AST *ast)
             appcode(CMP(value(0), rreg_code));
             appcode_str("jne %s", true_label);
             appcode(CMP(value(0), rreg_code));
-            appcode_str("jmp %s", exit_label);
+            appcode(JMP(exit_label));
             appcode_str("%s:", true_label);
             appcode(MOV(value(1), rreg_code));
             appcode_str("%s:", exit_label);
@@ -1148,7 +1158,7 @@ int generate_register_code_detail(AST *ast)
             int then_reg = generate_register_code_detail(ast->then);
             restore_temp_reg(then_reg);
             appcode(PUSH(nbyte_reg(8, then_reg)));
-            appcode_str("jmp %s", exit_label);
+            appcode(JMP(exit_label));
             appcode_str("%s:", false_label);
             if (ast->els != NULL) {
                 int els_reg = generate_register_code_detail(ast->els);
@@ -1171,7 +1181,7 @@ int generate_register_code_detail(AST *ast)
             appcode(CMP(value(0), EAX()));
             appcode_str("je %s", false_label);
             generate_register_code_detail(ast->then);
-            appcode_str("jmp %s", exit_label);
+            appcode(JMP(exit_label));
             appcode_str("%s:", false_label);
             if (ast->els != NULL) generate_register_code_detail(ast->els);
             appcode_str("%s:", exit_label);
@@ -1192,9 +1202,9 @@ int generate_register_code_detail(AST *ast)
             }
             char *exit_label = make_label_string();
             if (ast->default_label)
-                appcode_str("jmp %s", ast->default_label);
+                appcode(JMP(ast->default_label));
             else
-                appcode_str("jmp %s", exit_label);
+                appcode(JMP(exit_label));
 
             SAVE_BREAK_CXT;
             codeenv->break_label = exit_label;
@@ -1253,7 +1263,7 @@ int generate_register_code_detail(AST *ast)
                 int reg = generate_register_code_detail(ast->iterer);
                 if (reg != -1) restore_temp_reg(reg);  // if nop
             }
-            appcode_str("jmp %s", start_label);
+            appcode(JMP(start_label));
             appcode_str("%s:", codeenv->break_label);
 
             RESTORE_BREAK_CXT;
@@ -1268,15 +1278,15 @@ int generate_register_code_detail(AST *ast)
             return -1;
 
         case AST_BREAK:
-            appcode_str("jmp %s", codeenv->break_label);
+            appcode(JMP(codeenv->break_label));
             return -1;
 
         case AST_CONTINUE:
-            appcode_str("jmp %s", codeenv->continue_label);
+            appcode(JMP(codeenv->continue_label));
             return -1;
 
         case AST_GOTO:
-            appcode_str("jmp %s", ast->label_name);
+            appcode(JMP(ast->label_name));
             return -1;
 
         case AST_MEMBER_REF: {
