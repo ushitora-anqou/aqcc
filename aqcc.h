@@ -494,6 +494,10 @@ enum {
     INST_JE,
     INST_JNE,
     INST_LABEL,
+    INST_INCL,
+    INST_INCQ,
+    INST_DECL,
+    INST_DECQ,
 
     INST_OTHER,
 

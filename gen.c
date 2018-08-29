@@ -186,6 +186,14 @@ Code *LABEL(char *label)
     return code;
 }
 
+Code *INCL(Code *lhs) { return new_unary_code(INST_INCL, lhs); }
+
+Code *INCQ(Code *lhs) { return new_unary_code(INST_INCQ, lhs); }
+
+Code *DECL(Code *lhs) { return new_unary_code(INST_DECL, lhs); }
+
+Code *DECQ(Code *lhs) { return new_unary_code(INST_DECQ, lhs); }
+
 Code *EAX() { return new_code(REG_EAX); }
 
 Code *RAX() { return new_code(REG_RAX); }
@@ -458,6 +466,18 @@ char *code2str(Code *code)
         case INST_LABEL:
             return format("%s:", code->label);
 
+        case INST_INCL:
+            return format("incl %s", code2str(code->lhs));
+
+        case INST_INCQ:
+            return format("incq %s", code2str(code->lhs));
+
+        case INST_DECL:
+            return format("decl %s", code2str(code->lhs));
+
+        case INST_DECQ:
+            return format("decq %s", code2str(code->lhs));
+
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
             char *ret = code->other_op;
@@ -550,18 +570,6 @@ const char *reg_name(int byte, int i)
             return ereg[i];
         case 8:
             return rreg[i];
-        default:
-            assert(0);
-    }
-}
-
-char byte2suffix(int byte)
-{
-    switch (byte) {
-        case 8:
-            return 'q';
-        case 4:
-            return 'l';
         default:
             assert(0);
     }
@@ -1107,9 +1115,16 @@ int generate_register_code_detail(AST *ast)
                              addrof(lreg_code, 0)));
             }
             else {
-                char suf = byte2suffix(ast->lhs->type->nbytes);
-                appcode(new_other_code(format("inc%c", suf),
-                                       addrof(lreg_code, 0), NULL));
+                switch (ast->lhs->type->nbytes) {
+                    case 4:
+                        appcode(INCL(addrof(lreg_code, 0)));
+                        break;
+                    case 8:
+                        appcode(INCQ(addrof(lreg_code, 0)));
+                        break;
+                    default:
+                        assert(0);
+                }
             }
 
             restore_temp_reg(lreg);
@@ -1126,9 +1141,16 @@ int generate_register_code_detail(AST *ast)
                              addrof(lreg_code, 0)));
             }
             else {
-                char suf = byte2suffix(ast->lhs->type->nbytes);
-                appcode(new_other_code(format("inc%c", suf),
-                                       addrof(lreg_code, 0), NULL));
+                switch (ast->lhs->type->nbytes) {
+                    case 4:
+                        appcode(INCL(addrof(lreg_code, 0)));
+                        break;
+                    case 8:
+                        appcode(INCQ(addrof(lreg_code, 0)));
+                        break;
+                    default:
+                        assert(0);
+                }
             }
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
@@ -1138,37 +1160,53 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_POSTDEC: {
-            char suf = byte2suffix(ast->lhs->type->nbytes);
-
             int lreg = generate_register_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 
-            if (match_type(ast->lhs, TY_PTR))
+            if (match_type(ast->lhs, TY_PTR)) {
                 appcode(ADDQ(value(-ast->lhs->type->ptr_of->nbytes),
                              addrof(lreg_code, 0)));
-            else
-                appcode(new_other_code(format("dec%c", suf),
-                                       addrof(lreg_code, 0), NULL));
+            }
+            else {
+                switch (ast->lhs->type->nbytes) {
+                    case 4:
+                        appcode(DECL(addrof(lreg_code, 0)));
+                        break;
+                    case 8:
+                        appcode(DECQ(addrof(lreg_code, 0)));
+                        break;
+                    default:
+                        assert(0);
+                }
+            }
 
             restore_temp_reg(lreg);
             return reg;
         }
 
         case AST_PREDEC: {
-            char suf = byte2suffix(ast->lhs->type->nbytes);
-
             int lreg = generate_register_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
-            if (match_type(ast->lhs, TY_PTR))
+            if (match_type(ast->lhs, TY_PTR)) {
                 appcode(ADDQ(value(-ast->lhs->type->ptr_of->nbytes),
                              addrof(lreg_code, 0)));
-            else
-                appcode(new_other_code(format("dec%c", suf),
-                                       addrof(lreg_code, 0), NULL));
+            }
+            else {
+                switch (ast->lhs->type->nbytes) {
+                    case 4:
+                        appcode(DECL(addrof(lreg_code, 0)));
+                        break;
+                    case 8:
+                        appcode(DECQ(addrof(lreg_code, 0)));
+                        break;
+                    default:
+                        assert(0);
+                }
+            }
 
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
 

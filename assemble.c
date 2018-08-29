@@ -584,7 +584,8 @@ Vector *assemble_code_detail(Vector *code_list)
 
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(dumped, rex_prefix_reg_ext(1, code->rhs, NULL));
+                    append_byte(dumped, rex_prefix_reg_ext(1, code->rhs,
+                                                           code->lhs->lhs));
                     append_byte(dumped, 0x8d);
                     append_modrm(dumped, 2, reg_field(code->rhs),
                                  reg_field(code->lhs->lhs));
@@ -656,6 +657,46 @@ Vector *assemble_code_detail(Vector *code_list)
                 lph->size = 1;
                 vector_push_back(label_placeholders, lph);
             } break;
+
+            case INST_INCL:
+                if (is_addrof(code->lhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->lhs->lhs);
+                    append_byte(dumped, 0xff);
+                    append_byte(dumped, modrm(2, 0, reg_field(code->lhs->lhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+                goto not_implemented_error;
+
+            case INST_INCQ:
+                if (is_addrof(code->lhs)) {
+                    append_rex_prefix(dumped, 1, NULL, code->lhs->lhs);
+                    append_byte(dumped, 0xff);
+                    append_byte(dumped, modrm(2, 0, reg_field(code->lhs->lhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+                goto not_implemented_error;
+
+            case INST_DECL:
+                if (is_addrof(code->lhs)) {
+                    append_rex_prefix(dumped, 0, NULL, code->lhs->lhs);
+                    append_byte(dumped, 0xff);
+                    append_byte(dumped, modrm(2, 1, reg_field(code->lhs->lhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+                goto not_implemented_error;
+
+            case INST_DECQ:
+                if (is_addrof(code->lhs)) {
+                    append_rex_prefix(dumped, 1, NULL, code->lhs->lhs);
+                    append_byte(dumped, 0xff);
+                    append_byte(dumped, modrm(2, 1, reg_field(code->lhs->lhs)));
+                    append_dword_int(dumped, code->lhs->ival);
+                    break;
+                }
+                goto not_implemented_error;
 
             case INST_LABEL:
                 map_insert(label2offset, code->label,
