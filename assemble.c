@@ -88,13 +88,6 @@ int is_reg_ext(Code *code)
 
 int is_addrof(Code *code) { return code->kind == CD_ADDR_OF; }
 
-void append_addrof(Vector *dumped, int reg, Code *mem)
-{
-    assert(is_addrof(mem));
-    append_modrm(dumped, 2, reg, reg_field(mem->lhs));
-    append_dword_int(dumped, mem->ival);
-}
-
 int reg_field(Code *code)
 {
     assert(is_reg(code));
@@ -166,7 +159,14 @@ void append_rex_prefix(Vector *dumped, int is64, Code *reg, Code *rm)
     append_byte(dumped, pre);
 }
 
-Vector *assemble_code_detail(Vector *code_list)
+void append_addrof(Vector *dumped, int reg, Code *mem)
+{
+    assert(is_addrof(mem));
+    append_modrm(dumped, 2, reg, reg_field(mem->lhs));
+    append_dword_int(dumped, mem->ival);
+}
+
+ObjectImage *assemble_code_detail(Vector *code_list)
 {
     Vector *dumped = new_vector();
     Map *label2offset = new_map();
@@ -763,15 +763,12 @@ Vector *assemble_code_detail(Vector *code_list)
         }
     }
 
-    return dumped;
-}
-
-ObjectImage *assemble_code(Vector *code)
-{
     ObjectImage *objimg = (ObjectImage *)safe_malloc(sizeof(ObjectImage));
-    objimg->text = assemble_code_detail(code);
+    objimg->text = dumped;
     return objimg;
 }
+
+ObjectImage *assemble_code(Vector *code) { return assemble_code_detail(code); }
 
 void dump_object_image(ObjectImage *objimg, FILE *fh)
 {
