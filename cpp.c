@@ -46,13 +46,14 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
     while (1) {
         Token *token = pop_token();
 
-        if (token->kind == tEOF)
+        if (token->kind == tEOF) {
             if (strcmp("ifdef", keyword) == 0)
                 error_unexpected_token_str("#endif corresponding to #ifdef",
-                                       token);
+                                           token);
             else
                 error_unexpected_token_str("#endif corresponding to #ifndef",
-                                       token);
+                                           token);
+        }
 
         if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
             char *ident = token->sval;
