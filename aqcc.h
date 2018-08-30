@@ -527,6 +527,9 @@ struct Code {
 typedef struct ObjectImage ObjectImage;
 struct ObjectImage {
     Vector *text;
+    Vector *rela;
+    Vector *data;
+    Vector *symtab;
 };
 
 // utility.c

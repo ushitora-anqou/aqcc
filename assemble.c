@@ -1,37 +1,50 @@
 #include "aqcc.h"
 
-void write_byte(FILE *fh, int val0) { fputc(val0, fh); }
+void add_byte(Vector *vec, int val) { vector_push_back(vec, (void *)val); }
 
-void write_word(FILE *fh, int val0, int val1)
+void set_byte(Vector *vec, int index, int val)
 {
-    write_byte(fh, val0);
-    write_byte(fh, val1);
+    vector_set(vec, index, (void *)val);
 }
 
-void write_dword(FILE *fh, int val0, int val1, int val2, int val3)
+void add_word(Vector *vec, int val0, int val1)
 {
-    write_word(fh, val0, val1);
-    write_word(fh, val2, val3);
+    add_byte(vec, val0);
+    add_byte(vec, val1);
 }
 
-void write_dword_int(FILE *fh, int ival)
+void add_dword(Vector *vec, int val0, int val1, int val2, int val3)
 {
-    write_dword(fh, ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
-                (ival >> 24) & 0xff);
+    add_word(vec, val0, val1);
+    add_word(vec, val2, val3);
 }
 
-void write_qword(FILE *fh, int val0, int val1, int val2, int val3, int val4,
-                 int val5, int val6, int val7)
+void add_dword_int(Vector *vec, int ival)
 {
-    write_dword(fh, val0, val1, val2, val3);
-    write_dword(fh, val4, val5, val6, val7);
+    add_dword(vec, ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
+              (ival >> 24) & 0xff);
 }
 
-void write_string(FILE *fh, char *src, int len)
+void add_qword_int(Vector *vec, int low, int high)
+{
+    add_dword_int(vec, low);
+    add_dword_int(vec, high);
+}
+
+void add_string(Vector *vec, char *src, int len)
 {
     if (len == -1) len = strlen(src);
-    for (int i = 0; i < len; i++) write_byte(fh, src[i]);
+    for (int i = 0; i < len; i++) add_byte(vec, src[i]);
 }
+
+void add_qword(Vector *vec, int val0, int val1, int val2, int val3, int val4,
+               int val5, int val6, int val7)
+{
+    add_dword(vec, val0, val1, val2, val3);
+    add_dword(vec, val4, val5, val6, val7);
+}
+
+void write_byte(FILE *fh, int val0) { fputc(val0, fh); }
 
 ObjectImage *target_objimg = NULL;
 
@@ -39,45 +52,57 @@ void init_target_objimg(ObjectImage *objimg) { target_objimg = objimg; }
 
 int get_target_text_size() { return vector_size(target_objimg->text); }
 
-void rewrite_byte(int index, int val0)
+typedef struct {
+    int offset, symtabidx, type;
+    char *label;
+} RelaEntry;
+
+void add_rela_entry(int offset, int symtabidx, int type, char *label)
+{
+    RelaEntry *entry = (RelaEntry *)safe_malloc(sizeof(RelaEntry));
+    entry->offset = offset;
+    entry->symtabidx = symtabidx;
+    entry->type = type;
+    entry->label = label;
+
+    vector_push_back(target_objimg->rela, entry);
+}
+
+void retext_byte(int index, int val0)
 {
     vector_set(target_objimg->text, index, (void *)val0);
 }
 
-void append_byte(int val0)
+void text_byte(int val0) { add_byte(target_objimg->text, val0); }
+
+void text_word(int val0, int val1)
 {
-    vector_push_back(target_objimg->text, (void *)val0);
+    text_byte(val0);
+    text_byte(val1);
 }
 
-void append_word(int val0, int val1)
+void text_dword(int val0, int val1, int val2, int val3)
 {
-    append_byte(val0);
-    append_byte(val1);
+    text_word(val0, val1);
+    text_word(val2, val3);
 }
 
-void append_dword(int val0, int val1, int val2, int val3)
+void text_dword_int(int ival)
 {
-    append_word(val0, val1);
-    append_word(val2, val3);
+    text_dword(ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
+               (ival >> 24) & 0xff);
 }
 
-void append_dword_int(int ival)
+void text_qword(int val0, int val1, int val2, int val3, int val4, int val5,
+                int val6, int val7)
 {
-    append_dword(ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
-                 (ival >> 24) & 0xff);
+    text_dword(val0, val1, val2, val3);
+    text_dword(val4, val5, val6, val7);
 }
 
-void append_qword(int val0, int val1, int val2, int val3, int val4, int val5,
-                  int val6, int val7)
+void text_string(char *src, int len)
 {
-    append_dword(val0, val1, val2, val3);
-    append_dword(val4, val5, val6, val7);
-}
-
-void append_string(char *src, int len)
-{
-    if (len == -1) len = strlen(src);
-    for (int i = 0; i < len; i++) append_byte(src[i]);
+    add_string(target_objimg->text, src, len);
 }
 
 int is_reg(Code *code) { return is_register_code(code); }
@@ -97,7 +122,10 @@ int is_reg_ext(Code *code)
     return REG_R8 <= reg && reg <= REG_R15;
 }
 
-int is_addrof(Code *code) { return code->kind == CD_ADDR_OF; }
+int is_addrof(Code *code)
+{
+    return code->kind == CD_ADDR_OF || code->kind == CD_ADDR_OF_LABEL;
+}
 
 int reg_field(Code *code)
 {
@@ -140,16 +168,16 @@ int modrm(int mod, int reg, int rm)
     return ((mod & 3) << 6) | ((reg & 7) << 3) | (rm & 7);
 }
 
-int append_modrm(int mod, int reg, int rm)
+int text_modrm(int mod, int reg, int rm)
 {
-    append_byte(modrm(mod, reg, rm));
+    text_byte(modrm(mod, reg, rm));
 
     // If mod == 2 and rm == 4 then SIB byte is enabled.
     // If I == 0 in SIB then index is disabled.
     // That's why this line is needed.
     // NOT CARGO CULT PROGRAMMING!!
     // But this spec is awful, isn't it :thinking_face:
-    if (mod == 2 && rm == 4) append_byte(modrm(0, 4, 4));
+    if (mod == 2 && rm == 4) text_byte(modrm(0, 4, 4));
 }
 
 int rex_prefix(int w, int r, int x, int b)
@@ -163,18 +191,28 @@ int rex_prefix_reg_ext(int is64, Code *reg, Code *rm)
     return rex_prefix(is64, is_reg_ext(reg), 0, is_reg_ext(rm));
 }
 
-void append_rex_prefix(int is64, Code *reg, Code *rm)
+void text_rex_prefix(int is64, Code *reg, Code *rm)
 {
     int pre = rex_prefix_reg_ext(is64, reg, rm);
     if (pre == 0x40) return;  // no info
-    append_byte(pre);
+    text_byte(pre);
 }
 
-void append_addrof(int reg, Code *mem)
+void text_addrof(int reg, Code *mem)
 {
     assert(is_addrof(mem));
-    append_modrm(2, reg, reg_field(mem->lhs));
-    append_dword_int(mem->ival);
+    text_modrm(2, reg, reg_field(mem->lhs));
+
+    switch (mem->kind) {
+        case CD_ADDR_OF:
+            text_dword_int(mem->ival);
+            break;
+
+        case CD_ADDR_OF_LABEL:
+            add_rela_entry(get_target_text_size(), 2, 2, mem->label);
+            text_dword_int(0);
+            break;
+    }
 }
 
 ObjectImage *assemble_code_detail(Vector *code_list)
@@ -182,6 +220,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     // all data are stored in this variable.
     ObjectImage *objimg = (ObjectImage *)safe_malloc(sizeof(ObjectImage));
     objimg->text = new_vector();
+    objimg->rela = new_vector();
     init_target_objimg(objimg);
 
     Map *label2offset = new_map();
@@ -197,91 +236,86 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         switch (code->kind) {
             case INST_MOV:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    append_byte(0x89);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    text_byte(0x89);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x89);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x89);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg8(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x88);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x88);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    if (is_reg_ext(code->rhs)) append_byte(0x41);
-                    append_byte(0xb8 + reg_field(code->rhs));
-                    append_dword_int(code->lhs->ival);
+                    if (is_reg_ext(code->rhs)) text_byte(0x41);
+                    text_byte(0xb8 + reg_field(code->rhs));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    append_byte(0xc7);
-                    append_byte(modrm(3, 0, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    text_byte(0xc7);
+                    text_byte(modrm(3, 0, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
-                    append_byte(0x8b);
-                    append_modrm(2, reg_field(code->rhs),
-                                 reg_field(code->lhs->lhs));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    text_byte(0x8b);
+                    text_modrm(2, reg_field(code->rhs),
+                               reg_field(code->lhs->lhs));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
-                    append_byte(0x8b);
-                    append_modrm(2, reg_field(code->rhs),
-                                 reg_field(code->lhs->lhs));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
+                    text_byte(0x8b);
+                    text_modrm(2, reg_field(code->rhs),
+                               reg_field(code->lhs->lhs));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_addrof(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
-                    append_byte(0x88);
-                    append_modrm(2, reg_field(code->lhs),
-                                 reg_field(code->rhs->lhs));
-                    append_dword_int(code->rhs->ival);
+                    text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
+                    text_byte(0x88);
+                    text_modrm(2, reg_field(code->lhs),
+                               reg_field(code->rhs->lhs));
+                    text_dword_int(code->rhs->ival);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
-                    append_byte(0x89);
-                    append_modrm(2, reg_field(code->lhs),
-                                 reg_field(code->rhs->lhs));
-                    append_dword_int(code->rhs->ival);
+                    text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
+                    text_byte(0x89);
+                    text_modrm(2, reg_field(code->lhs),
+                               reg_field(code->rhs->lhs));
+                    text_dword_int(code->rhs->ival);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_addrof(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(1, code->lhs, code->rhs->lhs));
-                    append_byte(0x89);
-                    append_modrm(2, reg_field(code->lhs),
-                                 reg_field(code->rhs->lhs));
-                    append_dword_int(code->rhs->ival);
+                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs->lhs));
+                    text_byte(0x89);
+                    text_modrm(2, reg_field(code->lhs),
+                               reg_field(code->rhs->lhs));
+                    text_dword_int(code->rhs->ival);
                     break;
                 }
 
@@ -289,20 +323,19 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVSBL:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs));
-                    append_word(0x0f, 0xbe);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs));
+                    text_word(0x0f, 0xbe);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
-                    append_word(0x0f, 0xbe);
-                    append_modrm(2, reg_field(code->rhs),
-                                 reg_field(code->lhs->lhs));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
+                    text_word(0x0f, 0xbe);
+                    text_modrm(2, reg_field(code->rhs),
+                               reg_field(code->lhs->lhs));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -310,9 +343,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVSLQ:
                 if (is_reg32(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs));
-                    append_byte(0x63);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs));
+                    text_byte(0x63);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
@@ -321,17 +354,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVZB:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->rhs, code->lhs);
-                    append_word(0x0f, 0xb6);
-                    append_byte(
+                    text_rex_prefix(0, code->rhs, code->lhs);
+                    text_word(0x0f, 0xb6);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
-                    append_rex_prefix(1, code->rhs, code->lhs);
-                    append_word(0x0f, 0xb6);
-                    append_byte(
+                    text_rex_prefix(1, code->rhs, code->lhs);
+                    text_word(0x0f, 0xb6);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
@@ -340,33 +373,33 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_ADD:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    append_byte(0x81);
-                    append_byte(modrm(3, 0, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    text_byte(0x81);
+                    text_byte(modrm(3, 0, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    append_byte(0x01);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    text_byte(0x01);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, NULL, code->rhs);
-                    append_byte(0x81);
-                    append_byte(modrm(3, 0, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_rex_prefix(0, NULL, code->rhs);
+                    text_byte(0x81);
+                    text_byte(modrm(3, 0, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x01);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x01);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -375,11 +408,11 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_ADDQ:
                 if (is_imm(code->lhs) && is_addrof(code->rhs)) {
-                    append_rex_prefix(1, NULL, code->rhs->lhs);
-                    append_byte(0x81);
-                    append_modrm(2, 0, reg_field(code->rhs->lhs));
-                    append_dword_int(code->rhs->ival);
-                    append_dword_int(code->lhs->ival);
+                    text_rex_prefix(1, NULL, code->rhs->lhs);
+                    text_byte(0x81);
+                    text_modrm(2, 0, reg_field(code->rhs->lhs));
+                    text_dword_int(code->rhs->ival);
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -387,33 +420,33 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SUB:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    append_byte(0x81);
-                    append_byte(modrm(3, 5, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    text_byte(0x81);
+                    text_byte(modrm(3, 5, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    append_byte(0x29);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    text_byte(0x29);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, NULL, code->rhs);
-                    append_byte(0x81);
-                    append_byte(modrm(3, 5, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_rex_prefix(0, NULL, code->rhs);
+                    text_byte(0x81);
+                    text_byte(modrm(3, 5, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(1, code->lhs, code->rhs);
-                    append_byte(0x29);
-                    append_byte(
+                    text_rex_prefix(1, code->lhs, code->rhs);
+                    text_byte(0x29);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -422,27 +455,27 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_IMUL:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    append_word(0x0f, 0xaf);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    text_word(0x0f, 0xaf);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_word(0x0f, 0xaf);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_word(0x0f, 0xaf);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(rex_prefix_reg_ext(1, code->rhs, code->rhs));
-                    append_byte(0x69);
-                    append_byte(
+                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->rhs));
+                    text_byte(0x69);
+                    text_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -450,9 +483,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_IDIV:
                 if (is_reg32(code->lhs)) {
-                    append_rex_prefix(0, NULL, code->lhs);
-                    append_byte(0xf7);
-                    append_byte(modrm(3, 7, reg_field(code->lhs)));
+                    text_rex_prefix(0, NULL, code->lhs);
+                    text_byte(0xf7);
+                    text_byte(modrm(3, 7, reg_field(code->lhs)));
                     break;
                 }
 
@@ -460,16 +493,16 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_NEG:
                 if (is_reg32(code->lhs)) {
-                    append_rex_prefix(0, NULL, code->lhs);
-                    append_byte(0xf7);
-                    append_byte(modrm(3, 3, reg_field(code->lhs)));
+                    text_rex_prefix(0, NULL, code->lhs);
+                    text_byte(0xf7);
+                    text_byte(modrm(3, 3, reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs)) {
-                    append_rex_prefix(1, NULL, code->lhs);
-                    append_byte(0xf7);
-                    append_byte(modrm(3, 3, reg_field(code->lhs)));
+                    text_rex_prefix(1, NULL, code->lhs);
+                    text_byte(0xf7);
+                    text_byte(modrm(3, 3, reg_field(code->lhs)));
                     break;
                 }
 
@@ -477,16 +510,16 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_NOT:
                 if (is_reg32(code->lhs)) {
-                    append_rex_prefix(0, NULL, code->lhs);
-                    append_byte(0xf7);
-                    append_byte(modrm(3, 2, reg_field(code->lhs)));
+                    text_rex_prefix(0, NULL, code->lhs);
+                    text_byte(0xf7);
+                    text_byte(modrm(3, 2, reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs)) {
-                    append_rex_prefix(1, NULL, code->lhs);
-                    append_byte(0xf7);
-                    append_byte(modrm(3, 2, reg_field(code->lhs)));
+                    text_rex_prefix(1, NULL, code->lhs);
+                    text_byte(0xf7);
+                    text_byte(modrm(3, 2, reg_field(code->lhs)));
                     break;
                 }
 
@@ -495,17 +528,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             case INST_SAL:
                 if (is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
-                    append_rex_prefix(0, NULL, code->rhs);
-                    append_byte(0xd3);
-                    append_byte(modrm(3, 4, reg_field(code->rhs)));
+                    text_rex_prefix(0, NULL, code->rhs);
+                    text_byte(0xd3);
+                    text_byte(modrm(3, 4, reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
-                    append_rex_prefix(1, NULL, code->rhs);
-                    append_byte(0xd3);
-                    append_byte(modrm(3, 4, reg_field(code->rhs)));
+                    text_rex_prefix(1, NULL, code->rhs);
+                    text_byte(0xd3);
+                    text_byte(modrm(3, 4, reg_field(code->rhs)));
                     break;
                 }
 
@@ -514,17 +547,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             case INST_SAR:
                 if (is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
-                    append_rex_prefix(0, NULL, code->rhs);
-                    append_byte(0xd3);
-                    append_byte(modrm(3, 7, reg_field(code->rhs)));
+                    text_rex_prefix(0, NULL, code->rhs);
+                    text_byte(0xd3);
+                    text_byte(modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
-                    append_rex_prefix(1, NULL, code->rhs);
-                    append_byte(0xd3);
-                    append_byte(modrm(3, 7, reg_field(code->rhs)));
+                    text_rex_prefix(1, NULL, code->rhs);
+                    text_byte(0xd3);
+                    text_byte(modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
@@ -532,26 +565,26 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_CMP:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x39);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x39);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    append_rex_prefix(1, code->lhs, code->rhs);
-                    append_byte(0x39);
-                    append_byte(
+                    text_rex_prefix(1, code->lhs, code->rhs);
+                    text_byte(0x39);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, NULL, code->rhs);
-                    append_byte(0x81);
-                    append_byte(modrm(3, 7, reg_field(code->rhs)));
-                    append_dword_int(code->lhs->ival);
+                    text_rex_prefix(0, NULL, code->rhs);
+                    text_byte(0x81);
+                    text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -559,8 +592,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETL:
                 if (is_reg8(code->lhs)) {
-                    append_word(0x0f, 0x9c);
-                    append_byte(modrm(3, 0, reg_field(code->lhs)));
+                    text_word(0x0f, 0x9c);
+                    text_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -568,8 +601,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETLE:
                 if (is_reg8(code->lhs)) {
-                    append_word(0x0f, 0x9e);
-                    append_byte(modrm(3, 0, reg_field(code->lhs)));
+                    text_word(0x0f, 0x9e);
+                    text_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -577,8 +610,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETE:
                 if (is_reg8(code->lhs)) {
-                    append_word(0x0f, 0x94);
-                    append_byte(modrm(3, 0, reg_field(code->lhs)));
+                    text_word(0x0f, 0x94);
+                    text_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -586,9 +619,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_AND:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x21);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x21);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -597,9 +630,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_XOR:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x31);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x31);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -608,9 +641,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_OR:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    append_rex_prefix(0, code->lhs, code->rhs);
-                    append_byte(0x09);
-                    append_byte(
+                    text_rex_prefix(0, code->lhs, code->rhs);
+                    text_byte(0x09);
+                    text_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -619,10 +652,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    append_byte(
-                        rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
-                    append_byte(0x8d);
-                    append_addrof(reg_field(code->rhs), code->lhs);
+                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    text_byte(0x8d);
+                    text_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -630,8 +662,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_PUSH:
                 if (is_reg64(code->lhs)) {
-                    if (is_reg_ext(code->lhs)) append_byte(0x41);
-                    append_byte(0x50 + reg_field(code->lhs));
+                    if (is_reg_ext(code->lhs)) text_byte(0x41);
+                    text_byte(0x50 + reg_field(code->lhs));
                     break;
                 }
 
@@ -639,28 +671,28 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_POP:
                 if (is_reg64(code->lhs)) {
-                    if (is_reg_ext(code->lhs)) append_byte(0x41);
-                    append_byte(0x58 + reg_field(code->lhs));
+                    if (is_reg_ext(code->lhs)) text_byte(0x41);
+                    text_byte(0x58 + reg_field(code->lhs));
                     break;
                 }
 
                 goto not_implemented_error;
 
             case INST_RET:
-                append_byte(0xc3);
+                text_byte(0xc3);
                 break;
 
             case INST_CLTD:
-                append_byte(0x99);
+                text_byte(0x99);
                 break;
 
             case INST_CLTQ:
-                append_word(0x48, 0x98);
+                text_word(0x48, 0x98);
                 break;
 
             case INST_JMP: {
-                append_byte(0xe9);
-                append_dword_int(0);  // placeholder
+                text_byte(0xe9);
+                text_dword_int(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -670,8 +702,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_JE: {
-                append_byte(0x74);
-                append_byte(0);  // placeholder
+                text_byte(0x74);
+                text_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -681,8 +713,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_JNE: {
-                append_byte(0x75);
-                append_byte(0);  // placeholder
+                text_byte(0x75);
+                text_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -693,36 +725,36 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_INCL:
                 if (is_addrof(code->lhs)) {
-                    append_rex_prefix(0, NULL, code->lhs->lhs);
-                    append_byte(0xff);
-                    append_addrof(0, code->lhs);
+                    text_rex_prefix(0, NULL, code->lhs->lhs);
+                    text_byte(0xff);
+                    text_addrof(0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_INCQ:
                 if (is_addrof(code->lhs)) {
-                    append_rex_prefix(1, NULL, code->lhs->lhs);
-                    append_byte(0xff);
-                    append_addrof(0, code->lhs);
+                    text_rex_prefix(1, NULL, code->lhs->lhs);
+                    text_byte(0xff);
+                    text_addrof(0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_DECL:
                 if (is_addrof(code->lhs)) {
-                    append_rex_prefix(0, NULL, code->lhs->lhs);
-                    append_byte(0xff);
-                    append_addrof(1, code->lhs);
+                    text_rex_prefix(0, NULL, code->lhs->lhs);
+                    text_byte(0xff);
+                    text_addrof(1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_DECQ:
                 if (is_addrof(code->lhs)) {
-                    append_rex_prefix(1, NULL, code->lhs->lhs);
-                    append_byte(0xff);
-                    append_addrof(1, code->lhs);
+                    text_rex_prefix(1, NULL, code->lhs->lhs);
+                    text_byte(0xff);
+                    text_addrof(1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
@@ -755,15 +787,15 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
         switch (lph->size) {
             case 4:
-                rewrite_byte(lph->offset - 4, v & 0xff);
-                rewrite_byte(lph->offset - 3, (v >> 8) & 0xff);
-                rewrite_byte(lph->offset - 2, (v >> 16) & 0xff);
-                rewrite_byte(lph->offset - 1, (v >> 24) & 0xff);
+                retext_byte(lph->offset - 4, v & 0xff);
+                retext_byte(lph->offset - 3, (v >> 8) & 0xff);
+                retext_byte(lph->offset - 2, (v >> 16) & 0xff);
+                retext_byte(lph->offset - 1, (v >> 24) & 0xff);
                 break;
 
             case 1:
                 assert(-128 <= v && v <= 127);
-                rewrite_byte(lph->offset - 1, v & 0xff);
+                retext_byte(lph->offset - 1, v & 0xff);
                 break;
 
             default:
@@ -778,223 +810,245 @@ ObjectImage *assemble_code(Vector *code) { return assemble_code_detail(code); }
 
 void dump_object_image(ObjectImage *objimg, FILE *fh)
 {
-    /*
-        .text
-        .global main
-        main:
-            mov $100, %rax
-            ret
-        .data
-    */
+    Vector *dumped = new_vector();
 
     //
     // *** ELF HEADRE ***
     //
 
+    int header_offset = 0;
+
     // ELF magic number
-    write_dword(fh, 0x7f, 0x45, 0x4c, 0x46);
+    add_dword(dumped, 0x7f, 0x45, 0x4c, 0x46);
     // 64bit
-    write_byte(fh, 0x02);
+    add_byte(dumped, 0x02);
     // little endian
-    write_byte(fh, 0x01);
+    add_byte(dumped, 0x01);
     // original version of ELF
-    write_byte(fh, 0x01);
+    add_byte(dumped, 0x01);
     // System V
-    write_byte(fh, 0x00);
+    add_byte(dumped, 0x00);
     // padding
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     // ET_REL
-    write_word(fh, 0x01, 0x00);
+    add_word(dumped, 0x01, 0x00);
     // x86-64
-    write_word(fh, 0x3e, 0x00);
+    add_word(dumped, 0x3e, 0x00);
     // original version of ELF
-    write_dword(fh, 0x01, 0x00, 0x00, 0x00);
+    add_dword(dumped, 0x01, 0x00, 0x00, 0x00);
 
     // addr of entry point
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     // addr of program header table
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    // addr of section header table
-    // .text SHALL HAVE some 0x00 at the end, so roundup(..., 8) can't be used.
-    int text_size = (vector_size(objimg->text) / 8 + 1) * 8;
-    int sht_addr = 0x40 + text_size + 0x78 + 0x38;
-    write_dword_int(fh, sht_addr);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    // addr of section header table (placeholder)
+    int sht_addr = vector_size(dumped);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // flag
-    write_dword(fh, 0x00, 0x00, 0x00, 0x00);
+    add_dword(dumped, 0x00, 0x00, 0x00, 0x00);
 
     // size of this header
-    write_word(fh, 0x40, 0x00);
+    add_word(dumped, 0x40, 0x00);
 
     // size of program header table entry
-    write_word(fh, 0x00, 0x00);
+    add_word(dumped, 0x00, 0x00);
     // number of entries in program header table
-    write_word(fh, 0x00, 0x00);
+    add_word(dumped, 0x00, 0x00);
 
     // size of section header table entry
-    write_word(fh, 0x40, 0x00);
+    add_word(dumped, 0x40, 0x00);
     // number of entries in section header table
-    write_word(fh, 0x07, 0x00);
+    add_word(dumped, 0x07, 0x00);
     // index of section header entry containing section names
-    write_word(fh, 0x06, 0x00);
+    add_word(dumped, 0x06, 0x00);
+
+    int header_size = vector_size(dumped) - header_offset;
 
     //
     // *** PROGRAM ***
     //
 
+    int text_offset = vector_size(dumped);
+
     // .text
     for (int i = 0; i < vector_size(objimg->text); i++)
-        write_byte(fh, (int)vector_get(objimg->text, i));
+        add_byte(dumped, (int)vector_get(objimg->text, i));
+    // padding
+    // NOTE: .text SHALL HAVE some 0x00 at the end.
     for (int i = 0; i < 8 - vector_size(objimg->text) % 8; i++)
-        write_byte(fh, 0x00);
+        add_byte(dumped, 0x00);
+    int text_size = vector_size(dumped) - text_offset;
+    assert(text_size % 8 == 0);
 
     // .data
+    int data_offset = vector_size(dumped);
+    int data_size = vector_size(dumped) - data_offset;
+
     // .bss
+    int bss_offset = vector_size(dumped);
+    int bss_size = vector_size(dumped) - bss_offset;
+
     // .symtab
-    write_dword(fh, 0x00, 0x00, 0x00, 0x00);  // st_name
-    write_byte(fh, 0x00);                     // st_info
-    write_byte(fh, 0x00);                     // st_other
-    write_word(fh, 0x00, 0x00);               // st_shndx
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00);  // st_value
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // st_size
+    int symtab_offset = vector_size(dumped);
 
-    write_dword(fh, 0x00, 0x00, 0x00, 0x00);  // st_name
-    write_byte(fh, 0x03);                     // st_info
-    write_byte(fh, 0x00);                     // st_other
-    write_word(fh, 0x01, 0x00);               // st_shndx
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00);  // st_value
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // st_size
+    add_dword(dumped, 0x00, 0x00, 0x00, 0x00);  // st_name
+    add_byte(dumped, 0x00);                     // st_info
+    add_byte(dumped, 0x00);                     // st_other
+    add_word(dumped, 0x00, 0x00);               // st_shndx
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_value
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_size
 
-    write_dword(fh, 0x00, 0x00, 0x00, 0x00);  // st_name
-    write_byte(fh, 0x03);                     // st_info
-    write_byte(fh, 0x00);                     // st_other
-    write_word(fh, 0x02, 0x00);               // st_shndx
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00);  // st_value
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // st_size
+    add_dword(dumped, 0x00, 0x00, 0x00, 0x00);  // st_name
+    add_byte(dumped, 0x03);                     // st_info
+    add_byte(dumped, 0x00);                     // st_other
+    add_word(dumped, 0x01, 0x00);               // st_shndx
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_value
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_size
 
-    write_dword(fh, 0x00, 0x00, 0x00, 0x00);  // st_name
-    write_byte(fh, 0x03);                     // st_info
-    write_byte(fh, 0x00);                     // st_other
-    write_word(fh, 0x03, 0x00);               // st_shndx
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00);  // st_value
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // st_size
+    add_dword(dumped, 0x00, 0x00, 0x00, 0x00);  // st_name
+    add_byte(dumped, 0x03);                     // st_info
+    add_byte(dumped, 0x00);                     // st_other
+    add_word(dumped, 0x02, 0x00);               // st_shndx
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_value
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_size
 
-    write_dword(fh, 0x01, 0x00, 0x00, 0x00);  // st_name
-    write_byte(fh, 0x10);                     // st_info
-    write_byte(fh, 0x00);                     // st_other
-    write_word(fh, 0x01, 0x00);               // st_shndx
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00);  // st_value
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // st_size
+    add_dword(dumped, 0x00, 0x00, 0x00, 0x00);  // st_name
+    add_byte(dumped, 0x03);                     // st_info
+    add_byte(dumped, 0x00);                     // st_other
+    add_word(dumped, 0x03, 0x00);               // st_shndx
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_value
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_size
+
+    add_dword(dumped, 0x01, 0x00, 0x00, 0x00);  // st_name
+    add_byte(dumped, 0x10);                     // st_info
+    add_byte(dumped, 0x00);                     // st_other
+    add_word(dumped, 0x01, 0x00);               // st_shndx
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_value
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+              0x00);  // st_size
+
+    int symtab_size = vector_size(dumped) - symtab_offset;
 
     // .strtab
-    write_string(fh, "\0main\0", 6);
+    int strtab0_offset = vector_size(dumped);
+
+    add_string(dumped, "\0main\0", 6);
+
+    int strtab0_size = vector_size(dumped) - strtab0_offset;
 
     // .strtab
-    write_byte(fh, 0x00);
-    write_string(fh, ".symtab\0", 8);
-    write_string(fh, ".strtab\0", 8);
-    write_string(fh, ".shstrtab\0", 10);
-    write_string(fh, ".text\0", 6);
-    write_string(fh, ".data\0", 6);
-    write_string(fh, ".bss\0", 5);
-    write_string(fh, "\0\0\0\0\0\0", 6);
+    int strtab1_offset = vector_size(dumped);
+
+    add_byte(dumped, 0x00);
+    add_string(dumped, ".symtab\0", 8);
+    add_string(dumped, ".strtab\0", 8);
+    add_string(dumped, ".shstrtab\0", 10);
+    add_string(dumped, ".text\0", 6);
+    add_string(dumped, ".data\0", 6);
+    add_string(dumped, ".bss\0", 5);
+    add_string(dumped, "\0\0\0\0\0\0", 6);
+
+    int strtab1_size = vector_size(dumped) - strtab1_offset;
 
     //
     // *** SECTION HEADER ***
     //
 
+    int sht_offset = vector_size(dumped);
+
+    // write sht_offset to header
+    set_byte(dumped, sht_addr + 0, (sht_offset >> 0) & 0xff);
+    set_byte(dumped, sht_addr + 1, (sht_offset >> 8) & 0xff);
+    set_byte(dumped, sht_addr + 2, (sht_offset >> 16) & 0xff);
+    set_byte(dumped, sht_addr + 3, (sht_offset >> 24) & 0xff);
+    set_byte(dumped, sht_addr + 4, 0);
+    set_byte(dumped, sht_addr + 5, 0);
+    set_byte(dumped, sht_addr + 6, 0);
+    set_byte(dumped, sht_addr + 7, 0);
+
     // NULL
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .text
-    write_qword(fh, 0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // offset
-    write_dword_int(fh, text_size);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);  // size
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    int offset = 0x40 + text_size;
+    add_qword(dumped, 0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, text_offset, 0);
+    add_qword_int(dumped, text_size, 0);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .data
-    write_qword(fh, 0x21, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_dword_int(fh, offset);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0x5e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x21, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, text_offset, 0);
+    add_qword_int(dumped, text_size, 0);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .bss
-    write_qword(fh, 0x27, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_dword_int(fh, offset);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0x5e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x27, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, bss_offset, 0);
+    add_qword_int(dumped, bss_size, 0);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .symtab
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_dword_int(fh, offset);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x05, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    offset += 0x78;
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, symtab_offset, 0);
+    add_qword_int(dumped, symtab_size, 0);
+    add_qword(dumped, 0x05, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .strtab
-    write_qword(fh, 0x09, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_dword_int(fh, offset);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0xd8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-    offset += 0x06;
+    add_qword(dumped, 0x09, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, strtab0_offset, 0);
+    add_qword_int(dumped, strtab0_size, 0);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     // .strtab
-    write_qword(fh, 0x11, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_dword_int(fh, offset);
-    write_dword_int(fh, 0);
-    // write_qword(fh, 0xde, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    write_qword(fh, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x11, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword_int(dumped, strtab1_offset, 0);
+    add_qword_int(dumped, strtab1_size, 0);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+    int sht_size = vector_size(dumped) - sht_offset;
+
+    // write dumped to file
+    for (int i = 0; i < vector_size(dumped); i++)
+        write_byte(fh, (int)vector_get(dumped, i));
 }
