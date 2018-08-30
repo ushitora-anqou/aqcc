@@ -526,10 +526,12 @@ struct Code {
 
 typedef struct ObjectImage ObjectImage;
 struct ObjectImage {
-    Vector *text;
-    Vector *rela;
-    Vector *data;
-    Vector *symtab;
+    Vector *text;    // vector<int>
+    Vector *rela;    // vector<RelaEntry *>
+    Vector *strtab;  // vecotr<int>
+    Vector *symtab;  // vector<SymbolInfo *>
+
+    Map *symbol_map;  // map<char *, SymbolInfo *>
 };
 
 // utility.c

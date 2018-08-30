@@ -13,6 +13,11 @@ void add_word(Vector *vec, int val0, int val1)
     add_byte(vec, val1);
 }
 
+void add_word_int(Vector *vec, int ival)
+{
+    add_word(vec, ival & 0xff, (ival >> 8) & 0xff);
+}
+
 void add_dword(Vector *vec, int val0, int val1, int val2, int val3)
 {
     add_word(vec, val0, val1);
@@ -53,17 +58,44 @@ void init_target_objimg(ObjectImage *objimg) { target_objimg = objimg; }
 int get_target_text_size() { return vector_size(target_objimg->text); }
 
 typedef struct {
+    int st_name;
+    int st_info;
+    int st_shndx;
+    int st_value;
+} SymbolInfo;
+
+SymbolInfo *get_symbol_info(char *label)
+{
+    KeyValue *kv = map_lookup(target_objimg->symbol_map, label);
+    if (kv != NULL) return (SymbolInfo *)kv_value(kv);
+
+    SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
+    symbol->st_name = vector_size(target_objimg->strtab);
+    symbol->st_info = symbol->st_shndx = symbol->st_value = -1;
+
+    add_string(target_objimg->strtab, label, strlen(label) + 1);
+    map_insert(target_objimg->symbol_map, label, symbol);
+
+    return symbol;
+}
+
+void add_symtab_entry(SymbolInfo *sym)
+{
+    vector_push_back(target_objimg->symtab, sym);
+}
+
+typedef struct {
     int offset, symtabidx, type;
-    char *label;
+    SymbolInfo *symbol;
 } RelaEntry;
 
-void add_rela_entry(int offset, int symtabidx, int type, char *label)
+void add_rela_entry(int offset, int symtabidx, int type, SymbolInfo *symbol)
 {
     RelaEntry *entry = (RelaEntry *)safe_malloc(sizeof(RelaEntry));
     entry->offset = offset;
     entry->symtabidx = symtabidx;
     entry->type = type;
-    entry->label = label;
+    entry->symbol = symbol;
 
     vector_push_back(target_objimg->rela, entry);
 }
@@ -144,6 +176,7 @@ int reg_field(Code *code)
         case REG_RSP:
             return 4;
         case REG_RBP:
+        case REG_RIP:
             return 5;
         case REG_RSI:
             return 6;
@@ -209,7 +242,8 @@ void text_addrof(int reg, Code *mem)
             break;
 
         case CD_ADDR_OF_LABEL:
-            add_rela_entry(get_target_text_size(), 2, 2, mem->label);
+            add_rela_entry(get_target_text_size(), 2, 2,
+                           get_symbol_info(mem->label));
             text_dword_int(0);
             break;
     }
@@ -221,7 +255,20 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     ObjectImage *objimg = (ObjectImage *)safe_malloc(sizeof(ObjectImage));
     objimg->text = new_vector();
     objimg->rela = new_vector();
+    objimg->strtab = new_vector();
+    vector_push_back(objimg->strtab, 0x00);
+    objimg->symtab = new_vector();
+    objimg->symbol_map = new_map();
     init_target_objimg(objimg);
+
+    // TODO: for now
+    {
+        SymbolInfo *sym = get_symbol_info("main");
+        sym->st_info = 0x10;
+        sym->st_shndx = 0x01;
+        sym->st_value = 0x00;
+        add_symtab_entry(sym);
+    }
 
     Map *label2offset = new_map();
     Vector *label_placeholders = new_vector();
@@ -928,21 +975,24 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
               0x00);  // st_size
 
-    add_dword(dumped, 0x01, 0x00, 0x00, 0x00);  // st_name
-    add_byte(dumped, 0x10);                     // st_info
-    add_byte(dumped, 0x00);                     // st_other
-    add_word(dumped, 0x01, 0x00);               // st_shndx
-    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00);  // st_value
-    add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-              0x00);  // st_size
+    for (int i = 0; i < vector_size(target_objimg->symtab); i++) {
+        SymbolInfo *sym = (SymbolInfo *)vector_get(target_objimg->symtab, i);
+
+        add_dword_int(dumped, sym->st_name);
+        add_byte(dumped, sym->st_info);
+        add_byte(dumped, 0x00);
+        add_word_int(dumped, sym->st_shndx);
+        add_qword_int(dumped, sym->st_value, 0);
+        add_qword_int(dumped, 0, 0);
+    }
 
     int symtab_size = vector_size(dumped) - symtab_offset;
 
     // .strtab
     int strtab0_offset = vector_size(dumped);
 
-    add_string(dumped, "\0main\0", 6);
+    for (int i = 0; i < vector_size(objimg->strtab); i++)
+        add_byte(dumped, (int)vector_get(objimg->strtab, i));
 
     int strtab0_size = vector_size(dumped) - strtab0_offset;
 
