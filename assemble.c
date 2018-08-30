@@ -88,6 +88,13 @@ int is_reg_ext(Code *code)
 
 int is_addrof(Code *code) { return code->kind == CD_ADDR_OF; }
 
+void append_addrof(Vector *dumped, int reg, Code *mem)
+{
+    assert(is_addrof(mem));
+    append_modrm(dumped, 2, reg, reg_field(mem->lhs));
+    append_dword_int(dumped, mem->ival);
+}
+
 int reg_field(Code *code)
 {
     assert(is_reg(code));
@@ -607,9 +614,7 @@ Vector *assemble_code_detail(Vector *code_list)
                     append_byte(dumped, rex_prefix_reg_ext(1, code->rhs,
                                                            code->lhs->lhs));
                     append_byte(dumped, 0x8d);
-                    append_modrm(dumped, 2, reg_field(code->rhs),
-                                 reg_field(code->lhs->lhs));
-                    append_dword_int(dumped, code->lhs->ival);
+                    append_addrof(dumped, reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -682,8 +687,7 @@ Vector *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs)) {
                     append_rex_prefix(dumped, 0, NULL, code->lhs->lhs);
                     append_byte(dumped, 0xff);
-                    append_byte(dumped, modrm(2, 0, reg_field(code->lhs->lhs)));
-                    append_dword_int(dumped, code->lhs->ival);
+                    append_addrof(dumped, 0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
@@ -692,8 +696,7 @@ Vector *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs)) {
                     append_rex_prefix(dumped, 1, NULL, code->lhs->lhs);
                     append_byte(dumped, 0xff);
-                    append_byte(dumped, modrm(2, 0, reg_field(code->lhs->lhs)));
-                    append_dword_int(dumped, code->lhs->ival);
+                    append_addrof(dumped, 0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
@@ -702,8 +705,7 @@ Vector *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs)) {
                     append_rex_prefix(dumped, 0, NULL, code->lhs->lhs);
                     append_byte(dumped, 0xff);
-                    append_byte(dumped, modrm(2, 1, reg_field(code->lhs->lhs)));
-                    append_dword_int(dumped, code->lhs->ival);
+                    append_addrof(dumped, 1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
@@ -712,8 +714,7 @@ Vector *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs)) {
                     append_rex_prefix(dumped, 1, NULL, code->lhs->lhs);
                     append_byte(dumped, 0xff);
-                    append_byte(dumped, modrm(2, 1, reg_field(code->lhs->lhs)));
-                    append_dword_int(dumped, code->lhs->ival);
+                    append_addrof(dumped, 1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
