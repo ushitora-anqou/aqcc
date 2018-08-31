@@ -814,6 +814,11 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             case INST_OTHER:
                 break;
 
+            case CD_TEXT:
+            case CD_DATA:
+                // TODO: nothing to do for now.
+                break;
+
             default:
                 goto not_implemented_error;
         }

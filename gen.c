@@ -495,6 +495,12 @@ char *code2str(Code *code)
 
         case CD_ADDR_OF_LABEL:
             return format("%s(%s)", code->label, code2str(code->lhs));
+
+        case CD_TEXT:
+            return ".text";
+
+        case CD_DATA:
+            return ".data";
     }
     warn(format("%d", code->kind));
     assert(0);
@@ -1496,12 +1502,12 @@ Vector *generate_register_code(Vector *asts)
 {
     init_code_env();
 
-    appcode_str(".text");
+    appcode(new_code(CD_TEXT));
 
     for (int i = 0; i < vector_size(asts); i++)
         generate_register_code_detail((AST *)vector_get(asts, i));
 
-    appcode_str(".data");
+    appcode(new_code(CD_DATA));
 
     Vector *gvar_list = get_gvar_list();
     for (int i = 0; i < vector_size(gvar_list); i++) {
