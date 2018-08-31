@@ -511,6 +511,7 @@ enum {
     CD_LONG,
     CD_BYTE,
     CD_QUAD,
+    CD_ASCII,
 
     MRK_BASIC_BLOCK_START,
     MRK_BASIC_BLOCK_END,
@@ -525,6 +526,7 @@ struct Code {
 
     Code *lhs, *rhs;
     int ival;
+    char *sval;  // size is ival
     char *label;
     char *other_op;
     Vector *read_dep;

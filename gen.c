@@ -6,6 +6,7 @@ Code *new_code(int kind)
     code->kind = kind;
     code->lhs = code->rhs = NULL;
     code->ival = 0;
+    code->sval = NULL;
     code->label = NULL;
     code->other_op = NULL;
     code->read_dep = new_vector();
@@ -513,6 +514,10 @@ char *code2str(Code *code)
 
         case CD_QUAD:
             return format(".quad %d", code->ival);
+
+        case CD_ASCII:
+            return format(".ascii \"%s\"",
+                          escape_string(code->sval, code->ival));
     }
     warn(format("%d", code->kind));
     assert(0);
@@ -1529,8 +1534,10 @@ Vector *generate_register_code(Vector *asts)
         if (gvar->sval) {
             assert(gvar->type->kind == TY_ARY &&
                    gvar->type->ptr_of->kind == TY_CHAR);
-            appcode_str(".ascii \"%s\"",
-                        escape_string(gvar->sval, gvar->type->nbytes));
+            Code *code = new_code(CD_ASCII);
+            code->sval = gvar->sval;
+            code->ival = gvar->type->nbytes;
+            appcode(code);
             continue;
         }
 

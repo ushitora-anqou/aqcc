@@ -860,6 +860,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 text_nbytes(8, code->ival);
                 break;
 
+            case CD_ASCII:
+                for (int i = 0; i < code->ival; i++) text_byte(code->sval[i]);
+                break;
+
             default:
                 goto not_implemented_error;
         }
