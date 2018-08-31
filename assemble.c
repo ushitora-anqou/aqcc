@@ -58,6 +58,7 @@ void init_target_objimg(ObjectImage *objimg) { target_objimg = objimg; }
 int get_target_text_size() { return vector_size(target_objimg->text); }
 
 typedef struct {
+    char *label;
     int st_name;
     int st_info;
     int st_shndx;
@@ -70,6 +71,7 @@ SymbolInfo *get_symbol_info(char *label)
     if (kv != NULL) return (SymbolInfo *)kv_value(kv);
 
     SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
+    symbol->label = label;
     symbol->st_name = vector_size(target_objimg->strtab);
     symbol->st_info = 0x10;
     symbol->st_shndx = symbol->st_value = 0;
@@ -351,45 +353,35 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
                     text_byte(0x8b);
-                    text_modrm(2, reg_field(code->rhs),
-                               reg_field(code->lhs->lhs));
-                    text_dword_int(code->lhs->ival);
+                    text_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
                     text_byte(0x8b);
-                    text_modrm(2, reg_field(code->rhs),
-                               reg_field(code->lhs->lhs));
-                    text_dword_int(code->lhs->ival);
+                    text_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_addrof(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
                     text_byte(0x88);
-                    text_modrm(2, reg_field(code->lhs),
-                               reg_field(code->rhs->lhs));
-                    text_dword_int(code->rhs->ival);
+                    text_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
                     text_byte(0x89);
-                    text_modrm(2, reg_field(code->lhs),
-                               reg_field(code->rhs->lhs));
-                    text_dword_int(code->rhs->ival);
+                    text_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_addrof(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs->lhs));
                     text_byte(0x89);
-                    text_modrm(2, reg_field(code->lhs),
-                               reg_field(code->rhs->lhs));
-                    text_dword_int(code->rhs->ival);
+                    text_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
@@ -407,9 +399,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
                     text_word(0x0f, 0xbe);
-                    text_modrm(2, reg_field(code->rhs),
-                               reg_field(code->lhs->lhs));
-                    text_dword_int(code->lhs->ival);
+                    text_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -484,8 +474,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 if (is_imm(code->lhs) && is_addrof(code->rhs)) {
                     text_rex_prefix(1, NULL, code->rhs->lhs);
                     text_byte(0x81);
-                    text_modrm(2, 0, reg_field(code->rhs->lhs));
-                    text_dword_int(code->rhs->ival);
+                    text_addrof(0, code->rhs);
                     text_dword_int(code->lhs->ival);
                     break;
                 }
@@ -1071,8 +1060,11 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     for (int i = 0; i < vector_size(objimg->rela); i++) {
         RelaEntry *ent = vector_get(objimg->rela, i);
         add_qword_int(dumped, ent->offset, 0);
-        add_qword_int(dumped, 2, 2);
-        add_qword_int(dumped, -4, -1);  // TODO: addend
+        add_qword_int(dumped, ent->symtabidx, ent->type);
+        int addend = (int)kv_value(
+                         map_lookup(objimg->label2offset, ent->symbol->label)) -
+                     4;
+        add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
     }
 
     int rela_text_size = vector_size(dumped) - rela_text_offset;

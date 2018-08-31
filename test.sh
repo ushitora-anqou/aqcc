@@ -37,7 +37,6 @@ function test_aqcc_experiment() {
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
 }
 
-test_aqcc_experiment "int a; int main() { return a; }" 0
 test_aqcc_experiment "int a = 10; int main() { return a; }" 10
 test_aqcc_experiment "int a; int main() { a = 10; return a; }" 10
 test_aqcc_experiment "int main() { return 100; }" 100
@@ -277,3 +276,30 @@ test_aqcc_experiment "int main() { char a[5][6]; return sizeof(a); }" 30
 test_aqcc_experiment "int main() { char a[5][6][4]; return sizeof(a); }" 120
 test_aqcc_experiment "int main() { char a[2][4][3][5]; return sizeof(a); }" 120
 
+test_aqcc_experiment "int a; int main() { return a; }" 0
+test_aqcc_experiment "int a; int main() { a = 4; return a; }" 4
+test_aqcc_experiment "int a; int *p; int main() { p = &a; return a; }" 0
+test_aqcc_experiment "int a; int *p; int main() { p = &a; *p = 3; return a; }" 3
+test_aqcc_experiment "int a[20]; int main() { a[5] = 5; return a[5]; }" 5
+test_aqcc_experiment "int a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
+test_aqcc_experiment "char a; int main() { return a; }" 0
+test_aqcc_experiment "char a; int main() { a = 4; return a; }" 4
+test_aqcc_experiment "char a; int *p; int main() { p = &a; return a; }" 0
+test_aqcc_experiment "char a; int *p; int main() { p = &a; *p = 3; return a; }" 3
+test_aqcc_experiment "char a[20]; int main() { a[5] = 5; return a[5]; }" 5
+test_aqcc_experiment "char a[20][10]; int main() { a[3][5] = 10; return a[3][5]; }" 10
+test_aqcc_experiment "int a; int main() { return sizeof(a); }" 4
+test_aqcc_experiment "char a; int main() { return sizeof(a); }" 1
+test_aqcc_experiment "int *a; int main() { return sizeof(a); }" 8
+test_aqcc_experiment "char *a; int main() { return sizeof(a); }" 8
+test_aqcc_experiment "int a[20]; int main() { return sizeof(a); }" 80
+test_aqcc_experiment "int a[5][6]; int main() { return sizeof(a); }" 120
+test_aqcc_experiment "int a[5][3][2]; int main() { return sizeof(a); }" 120
+test_aqcc_experiment "char a[20]; int main() { return sizeof(a); }" 20
+test_aqcc_experiment "char a[5][6]; int main() { return sizeof(a); }" 30
+test_aqcc_experiment "char a[5][6][4]; int main() { return sizeof(a); }" 120
+test_aqcc_experiment "int a = 4; int main() { return a; }" 4
+test_aqcc_experiment "char a = 4; int main() { return a; }" 4
+test_aqcc_experiment "int *a = 0; int main() { return a; }" 0
+test_aqcc_experiment "char *a = 0; int main() { return a; }" 0
+test_aqcc_experiment "char c, d; int a, b; char e; int main() { c = 4; d = 2; e = 10; a = 1; b = 2; return c * d - e + b; }" 0
