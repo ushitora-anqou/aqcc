@@ -71,17 +71,14 @@ SymbolInfo *get_symbol_info(char *label)
 
     SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
     symbol->st_name = vector_size(target_objimg->strtab);
-    symbol->st_info = symbol->st_shndx = symbol->st_value = -1;
+    symbol->st_info = 0x10;
+    symbol->st_shndx = symbol->st_value = 0;
 
     add_string(target_objimg->strtab, label, strlen(label) + 1);
     map_insert(target_objimg->symbol_map, label, symbol);
+    vector_push_back(target_objimg->symtab, symbol);
 
     return symbol;
-}
-
-void add_symtab_entry(SymbolInfo *sym)
-{
-    vector_push_back(target_objimg->symtab, sym);
 }
 
 typedef struct {
@@ -100,12 +97,42 @@ void add_rela_entry(int offset, int symtabidx, int type, SymbolInfo *symbol)
     vector_push_back(target_objimg->rela, entry);
 }
 
-void retext_byte(int index, int val0)
+void add_label_offset(char *label, int offset)
 {
-    vector_set(target_objimg->text, index, (void *)val0);
+    map_insert(target_objimg->label2offset, label, (void *)offset);
 }
 
-void text_byte(int val0) { add_byte(target_objimg->text, val0); }
+int lookup_label_offset(char *label)
+{
+    KeyValue *kv = map_lookup(target_objimg->label2offset, label);
+    assert(kv != NULL);
+    return (int)kv_value(kv);
+}
+
+enum { TEXT_SECTION, DATA_SECTION };
+int current_section = TEXT_SECTION;
+
+int get_current_section() { return current_section; }
+
+void set_current_section(int section) { current_section = section; }
+
+Vector *get_current_section_buffer()
+{
+    return current_section == TEXT_SECTION ? target_objimg->text
+                                           : target_objimg->data;
+}
+
+int get_current_section_buffer_size()
+{
+    return vector_size(get_current_section_buffer());
+}
+
+void retext_byte(int index, int val0)
+{
+    vector_set(get_current_section_buffer(), index, (void *)val0);
+}
+
+void text_byte(int val0) { add_byte(get_current_section_buffer(), val0); }
 
 void text_word(int val0, int val1)
 {
@@ -134,7 +161,12 @@ void text_qword(int val0, int val1, int val2, int val3, int val4, int val5,
 
 void text_string(char *src, int len)
 {
-    add_string(target_objimg->text, src, len);
+    add_string(get_current_section_buffer(), src, len);
+}
+
+void text_nbytes(int nbytes, int val)
+{
+    for (int i = 0; i < nbytes; i++) text_byte((val >> (i << 3)) & 0xff);
 }
 
 int is_reg(Code *code) { return is_register_code(code); }
@@ -234,43 +266,38 @@ void text_rex_prefix(int is64, Code *reg, Code *rm)
 void text_addrof(int reg, Code *mem)
 {
     assert(is_addrof(mem));
-    text_modrm(2, reg, reg_field(mem->lhs));
 
     switch (mem->kind) {
         case CD_ADDR_OF:
+            text_modrm(2, reg, reg_field(mem->lhs));
             text_dword_int(mem->ival);
             break;
 
-        case CD_ADDR_OF_LABEL:
-            add_rela_entry(get_target_text_size(), 2, 2,
-                           get_symbol_info(mem->label));
+        case CD_ADDR_OF_LABEL: {
+            SymbolInfo *sym = get_symbol_info(mem->label);
+            text_modrm(0, reg, reg_field(mem->lhs));
+            add_rela_entry(get_target_text_size(), 2, 2, sym);
             text_dword_int(0);
-            break;
+        } break;
     }
 }
+
+void assemble_code_detail_data(Vector *code_list, int index) {}
 
 ObjectImage *assemble_code_detail(Vector *code_list)
 {
     // all data are stored in this variable.
     ObjectImage *objimg = (ObjectImage *)safe_malloc(sizeof(ObjectImage));
     objimg->text = new_vector();
+    objimg->data = new_vector();
     objimg->rela = new_vector();
     objimg->strtab = new_vector();
     vector_push_back(objimg->strtab, 0x00);
     objimg->symtab = new_vector();
     objimg->symbol_map = new_map();
+    objimg->label2offset = new_map();
     init_target_objimg(objimg);
 
-    // TODO: for now
-    {
-        SymbolInfo *sym = get_symbol_info("main");
-        sym->st_info = 0x10;
-        sym->st_shndx = 0x01;
-        sym->st_value = 0x00;
-        add_symtab_entry(sym);
-    }
-
-    Map *label2offset = new_map();
     Vector *label_placeholders = new_vector();
     typedef struct {
         char *label;
@@ -806,17 +833,42 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 }
                 goto not_implemented_error;
 
-            case INST_LABEL:
-                map_insert(label2offset, code->label,
-                           (void *)get_target_text_size());
-                break;
+            case INST_LABEL: {
+                int offset = get_current_section_buffer_size();
+                add_label_offset(code->label, offset);
+                if (get_current_section() == DATA_SECTION) {
+                    SymbolInfo *sym = get_symbol_info(code->label);
+                    sym->st_info = 0x00;  // TODO: is this right?
+                    sym->st_shndx = 0x03;
+                    sym->st_value = offset;
+                }
+            } break;
 
             case INST_OTHER:
                 break;
 
             case CD_TEXT:
+                set_current_section(TEXT_SECTION);
+                break;
+
             case CD_DATA:
-                // TODO: nothing to do for now.
+                set_current_section(DATA_SECTION);
+                break;
+
+            case CD_ZERO:
+                text_nbytes(code->ival, 0);
+                break;
+
+            case CD_LONG:
+                text_nbytes(4, code->ival);
+                break;
+
+            case CD_BYTE:
+                text_nbytes(1, code->ival);
+                break;
+
+            case CD_QUAD:
+                text_nbytes(8, code->ival);
                 break;
 
             default:
@@ -829,13 +881,20 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         error("not implemented code: %d", code->kind);
     }
 
+    // TODO: for now
+    {
+        SymbolInfo *sym = get_symbol_info("main");
+        sym->st_info = 0x10;
+        sym->st_shndx = 0x01;
+        sym->st_value = 0x00;
+    }
+
     // write offset to label placeholders
+    set_current_section(TEXT_SECTION);  // TODO: DATA_SECTION?
     for (int i = 0; i < vector_size(label_placeholders); i++) {
         LabelPlaceholder *lph =
             (LabelPlaceholder *)vector_get(label_placeholders, i);
-        KeyValue *kv = map_lookup(label2offset, lph->label);
-        assert(kv != NULL);
-        int v = (int)kv_value(kv) - lph->offset;
+        int v = lookup_label_offset(lph->label) - lph->offset;
 
         switch (lph->size) {
             case 4:
@@ -926,19 +985,24 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     // .text
     for (int i = 0; i < vector_size(objimg->text); i++)
         add_byte(dumped, (int)vector_get(objimg->text, i));
-    // padding
-    // NOTE: .text SHALL HAVE some 0x00 at the end.
-    for (int i = 0; i < 8 - vector_size(objimg->text) % 8; i++)
-        add_byte(dumped, 0x00);
+
     int text_size = vector_size(dumped) - text_offset;
-    assert(text_size % 8 == 0);
 
     // .data
     int data_offset = vector_size(dumped);
+
+    for (int i = 0; i < vector_size(objimg->data); i++)
+        add_byte(dumped, (int)vector_get(objimg->data, i));
+    // padding
+    while (vector_size(dumped) % 8 != 0) add_byte(dumped, 0);
+
     int data_size = vector_size(dumped) - data_offset;
 
     // .bss
     int bss_offset = vector_size(dumped);
+
+    // TODO: assume no data
+
     int bss_size = vector_size(dumped) - bss_offset;
 
     // .symtab
@@ -1001,6 +1065,18 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
 
     int strtab0_size = vector_size(dumped) - strtab0_offset;
 
+    // .rela.text
+    int rela_text_offset = vector_size(dumped);
+
+    for (int i = 0; i < vector_size(objimg->rela); i++) {
+        RelaEntry *ent = vector_get(objimg->rela, i);
+        add_qword_int(dumped, ent->offset, 0);
+        add_qword_int(dumped, 2, 2);
+        add_qword_int(dumped, -4, -1);  // TODO: addend
+    }
+
+    int rela_text_size = vector_size(dumped) - rela_text_offset;
+
     // .strtab
     int strtab1_offset = vector_size(dumped);
 
@@ -1011,7 +1087,7 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     add_string(dumped, ".rela.text\0", 11);
     add_string(dumped, ".data\0", 6);
     add_string(dumped, ".bss\0", 5);
-    add_string(dumped, "\0\0\0\0\0\0", 6);
+    while (vector_size(dumped) % 8 != 0) add_byte(dumped, 0);
 
     int strtab1_size = vector_size(dumped) - strtab1_offset;
 
@@ -1055,8 +1131,8 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     add_qword(dumped, 0x1b, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00);
     add_qword(dumped, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     add_qword(dumped, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    add_qword_int(dumped, data_offset, 0);
-    add_qword_int(dumped, data_size, 0);
+    add_qword_int(dumped, rela_text_offset, 0);
+    add_qword_int(dumped, rela_text_size, 0);
     add_qword(dumped, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
     add_qword(dumped, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     add_qword(dumped, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);

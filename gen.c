@@ -501,6 +501,18 @@ char *code2str(Code *code)
 
         case CD_DATA:
             return ".data";
+
+        case CD_ZERO:
+            return format(".zero %d", code->ival);
+
+        case CD_LONG:
+            return format(".long %d", code->ival);
+
+        case CD_BYTE:
+            return format(".byte %d", code->ival);
+
+        case CD_QUAD:
+            return format(".quad %d", code->ival);
     }
     warn(format("%d", code->kind));
     assert(0);
@@ -1523,17 +1535,22 @@ Vector *generate_register_code(Vector *asts)
         }
 
         if (gvar->ival == 0) {
-            appcode_str(".zero %d", gvar->type->nbytes);
+            Code *code = new_code(CD_ZERO);
+            code->ival = gvar->type->nbytes;
+            appcode(code);
             continue;
         }
 
         assert(gvar->type->kind != TY_ARY);  // TODO: implement
 
-        const char *type2spec[16];  // TODO: enough length?
-        type2spec[TY_INT] = ".long";
-        type2spec[TY_CHAR] = ".byte";
-        type2spec[TY_PTR] = ".quad";
-        appcode_str("%s %d", type2spec[gvar->type->kind], gvar->ival);
+        int type2spec[16];  // TODO: enough length?
+        type2spec[TY_INT] = CD_LONG;
+        type2spec[TY_CHAR] = CD_BYTE;
+        type2spec[TY_PTR] = CD_QUAD;
+
+        Code *code = new_code(type2spec[gvar->type->kind]);
+        code->ival = gvar->ival;
+        appcode(code);
     }
 
     return clone_vector(codeenv->code);

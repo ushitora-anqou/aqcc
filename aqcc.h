@@ -507,6 +507,10 @@ enum {
 
     CD_TEXT,
     CD_DATA,
+    CD_ZERO,
+    CD_LONG,
+    CD_BYTE,
+    CD_QUAD,
 
     MRK_BASIC_BLOCK_START,
     MRK_BASIC_BLOCK_END,
@@ -530,11 +534,13 @@ struct Code {
 typedef struct ObjectImage ObjectImage;
 struct ObjectImage {
     Vector *text;    // vector<int>
+    Vector *data;    // vector<int>
     Vector *rela;    // vector<RelaEntry *>
     Vector *strtab;  // vecotr<int>
     Vector *symtab;  // vector<SymbolInfo *>
 
-    Map *symbol_map;  // map<char *, SymbolInfo *>
+    Map *symbol_map;    // map<char *, SymbolInfo *>
+    Map *label2offset;  // map<char *, int>
 };
 
 // utility.c

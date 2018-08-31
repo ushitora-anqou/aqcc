@@ -37,7 +37,9 @@ function test_aqcc_experiment() {
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
 }
 
-#test_aqcc_experiment "int a; int main() { return a; }" 100
+test_aqcc_experiment "int a; int main() { return a; }" 0
+test_aqcc_experiment "int a = 10; int main() { return a; }" 10
+test_aqcc_experiment "int a; int main() { a = 10; return a; }" 10
 test_aqcc_experiment "int main() { return 100; }" 100
 test_aqcc_experiment "int main() { return 10; }" 10
 test_aqcc_experiment "int main() { int a; return 10; }" 10
