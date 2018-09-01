@@ -681,6 +681,14 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_imm(code->lhs) && is_reg64(code->rhs)) {
+                    text_rex_prefix(1, NULL, code->rhs);
+                    text_byte(0x81);
+                    text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    text_dword_int(code->lhs->ival);
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_SETL:
