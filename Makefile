@@ -19,27 +19,20 @@ $(TARGET_SELF): $(SELF_OBJS)
 $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 	gcc $^ -o $@
 
-%.self.s: %.c $(TARGET)
-	./$(TARGET) $< > $@
+%.self.o: %.c $(TARGET)
+	./$(TARGET) $< $@
 
-%.self.o: %.self.s
-	gcc -c $^ -o $@
-
-%.selfself.s: %.c $(TARGET_SELF)
-	./$(TARGET_SELF) $< > $@
-
-%.selfself.o: %.selfself.s
-	gcc -c $^ -o $@
-
+%.selfself.o: %.c $(TARGET_SELF)
+	./$(TARGET_SELF) $< $@
 
 self_test: $(TARGET_SELF) _test_self_test.sh testutil.o
 	./_test_self_test.sh
 
 selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh testutil.o
 	./_test_selfself_test.sh
-	cat $$(ls *.self.s | sort) > __self_sort.in
-	cat $$(ls *.selfself.s | sort) > __selfself_sort.in
-	diff __self_sort.in __selfself_sort.in
+	cat $$(ls *.self.o | sort) > __self_sort.in
+	cat $$(ls *.selfself.o | sort) > __selfself_sort.in
+	cmp __self_sort.in __selfself_sort.in
 
 _test_self_test.sh: test.sh
 	cp $^ $@
@@ -65,5 +58,3 @@ clean:
 	rm -f __self_sort.in __selfself_sort.in
 
 .PHONY: test self self_test test clean examples
-
-.PRECIOUS: %.self.s %.selfself.s
