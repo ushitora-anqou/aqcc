@@ -61,8 +61,6 @@ typedef struct {
     char *label;
     int st_name;
     int st_info;
-    int st_shndx;
-    int st_value;
 } SymbolInfo;
 
 SymbolInfo *get_symbol_info(char *label)
@@ -73,7 +71,7 @@ SymbolInfo *get_symbol_info(char *label)
     SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
     symbol->label = label;
     symbol->st_name = vector_size(target_objimg->strtab);
-    symbol->st_info = symbol->st_shndx = symbol->st_value = 0;
+    symbol->st_info = 0;
 
     add_string(target_objimg->strtab, label, strlen(label) + 1);
     map_insert(target_objimg->symbol_map, label, symbol);
@@ -98,18 +96,6 @@ void add_rela_entry(int offset, int symtabidx, int type, SymbolInfo *symbol)
     vector_push_back(target_objimg->rela, entry);
 }
 
-void add_label_offset(char *label, int offset)
-{
-    map_insert(target_objimg->label2offset, label, (void *)offset);
-}
-
-int lookup_label_offset(char *label)
-{
-    KeyValue *kv = map_lookup(target_objimg->label2offset, label);
-    assert(kv != NULL);
-    return (int)kv_value(kv);
-}
-
 enum { TEXT_SECTION, DATA_SECTION };
 int current_section = TEXT_SECTION;
 
@@ -126,6 +112,26 @@ Vector *get_current_section_buffer()
 int get_current_section_buffer_size()
 {
     return vector_size(get_current_section_buffer());
+}
+
+typedef struct {
+    int offset, section;
+} SectionOffset;
+
+void add_label_offset(char *label)
+{
+    SectionOffset *data = (SectionOffset *)safe_malloc(sizeof(SectionOffset));
+    data->offset = get_current_section_buffer_size();
+    data->section = get_current_section();
+
+    map_insert(target_objimg->label2offset, label, data);
+}
+
+SectionOffset *lookup_label_offset(char *label)
+{
+    KeyValue *kv = map_lookup(target_objimg->label2offset, label);
+    if (kv == NULL) return NULL;
+    return (SectionOffset *)kv_value(kv);
 }
 
 void retext_byte(int index, int val0)
@@ -822,13 +828,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 goto not_implemented_error;
 
             case INST_LABEL: {
-                int offset = get_current_section_buffer_size();
-                add_label_offset(code->label, offset);
+                add_label_offset(code->label);
                 if (get_current_section() == DATA_SECTION) {
                     SymbolInfo *sym = get_symbol_info(code->label);
-                    sym->st_info = 0x00;  // TODO: is this right?
-                    sym->st_shndx = 0x03;
-                    sym->st_value = offset;
+                    sym->st_info = 0x00;
                 }
             } break;
 
@@ -877,19 +880,12 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         error("not implemented code: %d", code->kind);
     }
 
-    // TODO: for now
-    {
-        SymbolInfo *sym = get_symbol_info("main");
-        sym->st_shndx = 0x01;
-        sym->st_value = 0x00;
-    }
-
     // write offset to label placeholders
     set_current_section(TEXT_SECTION);  // TODO: DATA_SECTION?
     for (int i = 0; i < vector_size(label_placeholders); i++) {
         LabelPlaceholder *lph =
             (LabelPlaceholder *)vector_get(label_placeholders, i);
-        int v = lookup_label_offset(lph->label) - lph->offset;
+        int v = lookup_label_offset(lph->label)->offset - lph->offset;
 
         switch (lph->size) {
             case 4:
@@ -916,6 +912,7 @@ ObjectImage *assemble_code(Vector *code) { return assemble_code_detail(code); }
 
 void dump_object_image(ObjectImage *objimg, FILE *fh)
 {
+    init_target_objimg(objimg);
     Vector *dumped = new_vector();
 
     //
@@ -1045,8 +1042,17 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
         add_dword_int(dumped, sym->st_name);
         add_byte(dumped, sym->st_info);
         add_byte(dumped, 0x00);
-        add_word_int(dumped, sym->st_shndx);
-        add_qword_int(dumped, sym->st_value, 0);
+
+        SectionOffset *so = lookup_label_offset(sym->label);
+        if (so == NULL) {
+            add_word_int(dumped, 0);
+            add_qword_int(dumped, 0, 0);
+        }
+        else {
+            add_word_int(dumped, so->section == TEXT_SECTION ? 1 : 3);
+            add_qword_int(dumped, so->offset, 0);
+        }
+
         add_qword_int(dumped, 0, 0);
     }
 
@@ -1067,9 +1073,7 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
         RelaEntry *ent = vector_get(objimg->rela, i);
         add_qword_int(dumped, ent->offset, 0);
         add_qword_int(dumped, ent->symtabidx, ent->type);
-        int addend = (int)kv_value(
-                         map_lookup(objimg->label2offset, ent->symbol->label)) -
-                     4;
+        int addend = lookup_label_offset(ent->symbol->label)->offset - 4;
         add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
     }
 

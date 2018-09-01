@@ -543,7 +543,7 @@ struct ObjectImage {
     Vector *symtab;  // vector<SymbolInfo *>
 
     Map *symbol_map;    // map<char *, SymbolInfo *>
-    Map *label2offset;  // map<char *, int>
+    Map *label2offset;  // map<char *, SectionOffset>
 };
 
 // utility.c

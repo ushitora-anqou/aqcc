@@ -311,4 +311,5 @@ test_aqcc_experiment "int main() { return 'a'; }" 97
 test_aqcc_experiment "int main() { return '\t'; }" 9
 test_aqcc_experiment "int main() { return '\0'; }" 0
 test_aqcc_experiment "int main() { return '\n'; }" 10
+test_aqcc_experiment "int main2() { return 0; } int main() { return '\n'; }" 10
 
