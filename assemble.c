@@ -891,9 +891,21 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         error("not implemented code: %d", code->kind);
     }
 
-    {
-        SymbolInfo *sym = get_symbol_info("_GLOBAL_OFFSET_TABLE_");
-        sym->st_info |= 0x10;
+    SymbolInfo *sym = get_symbol_info("_GLOBAL_OFFSET_TABLE_");
+
+    // if symbol doesn't have an instance (offset), then it's global.
+    for (int i = 0; i < vector_size(target_objimg->symtab); i++) {
+        SymbolInfo *sym = (SymbolInfo *)vector_get(target_objimg->symtab, i);
+        if (map_lookup(target_objimg->label2offset, sym->label) == NULL)
+            sym->st_info |= 0x10;
+    }
+
+    // if rela variable entry has no instance (offset), then its symtabidx is
+    // sym->index.
+    for (int i = 0; i < vector_size(objimg->rela); i++) {
+        RelaEntry *ent = (RelaEntry *)vector_get(objimg->rela, i);
+        if (map_lookup(target_objimg->label2offset, ent->symbol->label) == NULL)
+            ent->symtabidx = ent->symbol->index;
     }
 
     // write offset to label placeholders
@@ -1088,13 +1100,15 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     int rela_text_offset = vector_size(dumped);
 
     for (int i = 0; i < vector_size(objimg->rela); i++) {
-        RelaEntry *ent = vector_get(objimg->rela, i);
+        RelaEntry *ent = (RelaEntry *)vector_get(objimg->rela, i);
         add_qword_int(dumped, ent->offset, 0);
         add_qword_int(dumped, ent->type, ent->symtabidx);
 
         // TODO: is it right?
         if (ent->type == 2) {
-            int addend = lookup_label_offset(ent->symbol->label)->offset - 4;
+            int addend = -4;
+            SectionOffset *so = lookup_label_offset(ent->symbol->label);
+            if (so != NULL) addend += so->offset;  // if not extern var
             add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
         }
         else if (ent->type == 4) {
