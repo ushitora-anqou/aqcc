@@ -497,6 +497,9 @@ char *code2str(Code *code)
         case CD_ADDR_OF_LABEL:
             return format("%s(%s)", code->label, code2str(code->lhs));
 
+        case CD_GLOBAL:
+            return format(".global %s", code->sval);
+
         case CD_TEXT:
             return ".text";
 
@@ -1039,7 +1042,11 @@ int generate_register_code_detail(AST *ast)
             stack_idx -= (!!ast->is_variadic) * 48;
 
             // generate code
-            appcode_str(".global %s", ast->fname);
+            {
+                Code *code = new_code(CD_GLOBAL);
+                code->sval = ast->fname;
+                appcode(code);
+            }
             appcode(LABEL(ast->fname));
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));

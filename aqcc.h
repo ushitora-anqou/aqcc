@@ -505,6 +505,7 @@ enum {
     CD_ADDR_OF,
     CD_ADDR_OF_LABEL,
 
+    CD_GLOBAL,
     CD_TEXT,
     CD_DATA,
     CD_ZERO,

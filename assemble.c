@@ -73,8 +73,7 @@ SymbolInfo *get_symbol_info(char *label)
     SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
     symbol->label = label;
     symbol->st_name = vector_size(target_objimg->strtab);
-    symbol->st_info = 0x10;
-    symbol->st_shndx = symbol->st_value = 0;
+    symbol->st_info = symbol->st_shndx = symbol->st_value = 0;
 
     add_string(target_objimg->strtab, label, strlen(label) + 1);
     map_insert(target_objimg->symbol_map, label, symbol);
@@ -836,6 +835,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             case INST_OTHER:
                 break;
 
+            case CD_GLOBAL:
+                get_symbol_info(code->sval)->st_info |= 0x10;
+                break;
+
             case CD_TEXT:
                 set_current_section(TEXT_SECTION);
                 break;
@@ -877,7 +880,6 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     // TODO: for now
     {
         SymbolInfo *sym = get_symbol_info("main");
-        sym->st_info = 0x10;
         sym->st_shndx = 0x01;
         sym->st_value = 0x00;
     }
