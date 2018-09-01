@@ -37,6 +37,33 @@ function test_aqcc_experiment() {
     [ $res -eq $2 ] || fail "test_aqcc \"$1\" -> $res (expected $2)"
 }
 
+test_aqcc_experiment \
+'typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+
+int vsprintf(char *str, const char *format, va_list ap);
+void test346vsprintf(char *p, char *str, ...)
+{
+    va_list args;
+    va_start(args, str);
+    vsprintf(p, str, args);
+    va_end(args);
+}
+
+void main()
+{
+    char buf[256];
+    test346vsprintf(buf, "%d", 0);
+    return buf[0];
+}' 48
+
 test_aqcc_experiment "int main() { int *p, *q; q = p + 2; return q - p; }" 2
 test_aqcc_experiment "int main2() { return 0; } int main() { return main2(); }" 0
 test_aqcc_experiment "int fib(int n){return n == 0 ? 0 : n == 1 ? 1 : fib(n - 1) + fib(n - 2);}int main(){return fib(5);}" 5

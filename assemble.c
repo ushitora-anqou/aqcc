@@ -394,6 +394,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
                 goto not_implemented_error;
 
+            case INST_MOVL:
+                if (is_imm(code->lhs) && is_addrof(code->rhs)) {
+                    text_rex_prefix(0, NULL, code->rhs->lhs);
+                    text_byte(0xc7);
+                    text_addrof(0, code->rhs);
+                    text_dword_int(code->lhs->ival);
+                    break;
+                }
+
+                goto not_implemented_error;
+
             case INST_MOVSBL:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs));

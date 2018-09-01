@@ -77,6 +77,16 @@ Code *MOV(Code *lhs, Code *rhs)
     return code;
 }
 
+Code *MOVL(Code *lhs, Code *rhs)
+{
+    Code *code = new_code(INST_MOVL);
+    code->lhs = lhs;
+    code->rhs = rhs;
+    vector_push_back(code->read_dep, lhs);
+    if (!is_register_code(rhs)) vector_push_back(code->read_dep, rhs);
+    return code;
+}
+
 Code *MOVSBL(Code *lhs, Code *rhs)
 {
     Code *code = new_code(INST_MOVSBL);
@@ -364,6 +374,10 @@ char *code2str(Code *code)
 
         case INST_MOV:
             return format("mov %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+
+        case INST_MOVL:
+            return format("movl %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
 
         case INST_MOVSBL:
@@ -1506,9 +1520,8 @@ int generate_register_code_detail(AST *ast)
             int reg = generate_register_code_detail(ast->lhs);
             Code *reg_code = nbyte_reg(8, reg);
             assert(ast->rhs->kind == AST_INT);
-            appcode(new_other_code("movl", value(ast->rhs->ival * 8),
-                                   addrof(reg_code, 0)));
-            appcode(new_other_code("movl", value(48), addrof(reg_code, 4)));
+            appcode(MOVL(value(ast->rhs->ival * 8), addrof(reg_code, 0)));
+            appcode(MOVL(value(48), addrof(reg_code, 4)));
             appcode(LEA(addrof(RBP(), codeenv->overflow_arg_area_stack_idx),
                         RDI()));
             appcode(MOV(RDI(), addrof(reg_code, 8)));

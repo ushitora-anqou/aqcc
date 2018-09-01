@@ -465,6 +465,7 @@ enum {
 
     INST_ = 1 << 9,
     INST_MOV = 0 | INST_,
+    INST_MOVL,
     INST_MOVSBL,
     INST_MOVSLQ,
     INST_MOVZB,
