@@ -596,16 +596,18 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 goto not_implemented_error;
 
             case INST_SAL:
-                if (is_reg32(code->rhs)) {
+                if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
+                    assert(code->lhs->kind == REG_CL);
                     text_rex_prefix(0, NULL, code->rhs);
                     text_byte(0xd3);
                     text_byte(modrm(3, 4, reg_field(code->rhs)));
                     break;
                 }
 
-                if (is_reg64(code->rhs)) {
+                if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
+                    assert(code->lhs->kind == REG_CL);
                     text_rex_prefix(1, NULL, code->rhs);
                     text_byte(0xd3);
                     text_byte(modrm(3, 4, reg_field(code->rhs)));
@@ -615,19 +617,29 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 goto not_implemented_error;
 
             case INST_SAR:
-                if (is_reg32(code->rhs)) {
+                if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
+                    assert(code->lhs->kind == REG_CL);
                     text_rex_prefix(0, NULL, code->rhs);
                     text_byte(0xd3);
                     text_byte(modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
-                if (is_reg64(code->rhs)) {
+                if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
+                    assert(code->lhs->kind == REG_CL);
                     text_rex_prefix(1, NULL, code->rhs);
                     text_byte(0xd3);
                     text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    break;
+                }
+
+                if (is_imm(code->lhs) && is_reg64(code->rhs)) {
+                    text_rex_prefix(1, NULL, code->rhs);
+                    text_byte(0xc1);
+                    text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    text_byte(code->lhs->ival);
                     break;
                 }
 
