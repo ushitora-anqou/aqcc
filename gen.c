@@ -498,7 +498,7 @@ char *code2str(Code *code)
             return format("%s(%s)", code->label, code2str(code->lhs));
 
         case CD_GLOBAL:
-            return format(".global %s", code->sval);
+            return format(".global %s", code->label);
 
         case CD_TEXT:
             return ".text";
@@ -1044,7 +1044,7 @@ int generate_register_code_detail(AST *ast)
             // generate code
             {
                 Code *code = new_code(CD_GLOBAL);
-                code->sval = ast->fname;
+                code->label = ast->fname;
                 appcode(code);
             }
             appcode(LABEL(ast->fname));

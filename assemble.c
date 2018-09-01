@@ -839,7 +839,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 break;
 
             case CD_GLOBAL:
-                get_symbol_info(code->sval)->st_info |= 0x10;
+                get_symbol_info(code->label)->st_info |= 0x10;
                 break;
 
             case CD_TEXT:
