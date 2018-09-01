@@ -58,6 +58,7 @@ void init_target_objimg(ObjectImage *objimg) { target_objimg = objimg; }
 int get_target_text_size() { return vector_size(target_objimg->text); }
 
 typedef struct {
+    int index;
     char *label;
     int st_name;
     int st_info;
@@ -69,6 +70,7 @@ SymbolInfo *get_symbol_info(char *label)
     if (kv != NULL) return (SymbolInfo *)kv_value(kv);
 
     SymbolInfo *symbol = (SymbolInfo *)safe_malloc(sizeof(SymbolInfo));
+    symbol->index = vector_size(target_objimg->symtab) + 4;
     symbol->label = label;
     symbol->st_name = vector_size(target_objimg->strtab);
     symbol->st_info = 0;
@@ -85,7 +87,7 @@ typedef struct {
     SymbolInfo *symbol;
 } RelaEntry;
 
-void add_rela_entry(int offset, int symtabidx, int type, SymbolInfo *symbol)
+void add_rela_entry(int offset, int type, int symtabidx, SymbolInfo *symbol)
 {
     RelaEntry *entry = (RelaEntry *)safe_malloc(sizeof(RelaEntry));
     entry->offset = offset;
@@ -835,6 +837,15 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 }
             } break;
 
+            case INST_CALL: {
+                // TODO: assume that all called functions are global.
+                SymbolInfo *sym = get_symbol_info(code->label);
+                sym->st_info |= 0x10;
+                text_byte(0xe8);
+                add_rela_entry(get_target_text_size(), 4, sym->index, sym);
+                text_dword_int(0);
+            } break;
+
             case INST_OTHER:
                 break;
 
@@ -878,6 +889,11 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
     not_implemented_error:
         error("not implemented code: %d", code->kind);
+    }
+
+    {
+        SymbolInfo *sym = get_symbol_info("_GLOBAL_OFFSET_TABLE_");
+        sym->st_info |= 0x10;
     }
 
     // write offset to label placeholders
@@ -1063,6 +1079,8 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
 
     for (int i = 0; i < vector_size(objimg->strtab); i++)
         add_byte(dumped, (int)vector_get(objimg->strtab, i));
+    // padding
+    while (vector_size(dumped) % 8 != 0) add_byte(dumped, 0);
 
     int strtab0_size = vector_size(dumped) - strtab0_offset;
 
@@ -1072,9 +1090,18 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     for (int i = 0; i < vector_size(objimg->rela); i++) {
         RelaEntry *ent = vector_get(objimg->rela, i);
         add_qword_int(dumped, ent->offset, 0);
-        add_qword_int(dumped, ent->symtabidx, ent->type);
-        int addend = lookup_label_offset(ent->symbol->label)->offset - 4;
-        add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
+        add_qword_int(dumped, ent->type, ent->symtabidx);
+
+        // TODO: is it right?
+        if (ent->type == 2) {
+            int addend = lookup_label_offset(ent->symbol->label)->offset - 4;
+            add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
+        }
+        else if (ent->type == 4) {
+            add_qword_int(dumped, -4, -1);
+        }
+        else
+            assert(0);
     }
 
     int rela_text_size = vector_size(dumped) - rela_text_offset;

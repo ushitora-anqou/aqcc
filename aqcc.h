@@ -498,6 +498,7 @@ enum {
     INST_INCQ,
     INST_DECL,
     INST_DECQ,
+    INST_CALL,
 
     INST_OTHER,
 

@@ -479,6 +479,9 @@ char *code2str(Code *code)
         case INST_DECQ:
             return format("decq %s", code2str(code->lhs));
 
+        case INST_CALL:
+            return format("call %s@PLT", code->label);
+
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
             char *ret = code->other_op;
@@ -1149,7 +1152,12 @@ int generate_register_code_detail(AST *ast)
                 appcode(POP(nbyte_reg(8, i + 1)));
             appcode(MOV(value(0), EAX()));
             disable_elimination();
-            appcode_str("call %s@PLT", ast->fname);
+
+            {
+                Code *code = new_code(INST_CALL);
+                code->label = ast->fname;
+                appcode(code);
+            }
             appcode(ADD(value(8 * max(0, vector_size(ast->args) - 6)), RSP()));
             appcode(POP(R11()));
             appcode(POP(R10()));
