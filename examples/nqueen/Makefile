@@ -3,13 +3,13 @@ AQCC=../../aqcc
 
 TARGET=nqueen
 SRC=main.c
-ASSEMBLES=$(SRC:.c=.s)
+OBJS=$(SRC:.c=.o)
 
-$(TARGET) : $(ASSEMBLES)
+$(TARGET) : $(OBJS)
 	gcc $^ -o $@
 
-%.s : %.c
-	$(AQCC) $< > $@
+%.o : %.c
+	$(AQCC) $< $@
 
 clean:
 	rm -f $(TARGET) $(ASSEMBLES)
