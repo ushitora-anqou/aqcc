@@ -1,7 +1,12 @@
 # AnQou C Compiler: aqcc
 
+## Usage
+
+Try `make selfself_test`, which tells you all the things.
+
+---------
+
 AnQou C Compiler の使い方
-Last Modified: 2018.8.16
 
 ## aqcc をコンパイル
 
@@ -16,26 +21,30 @@ Last Modified: 2018.8.16
 * `make test` `aqcc` をテスト
 * `make self_test` `aqcc_self` をテスト
 * `make selfself_test` `aqcc_selfself` をテスト
-- `aqcc_self` と `aqcc_selfself` がそれぞれ出力するアセンブリに違いがないことも確認されます.
+- `aqcc_self` と `aqcc_selfself` がそれぞれ出力するオブジェクトファイルに違いがないことも確認されます.
 
 ## サンプルプログラム
 
 1段から8段までのQueen 問題を解くサンプルが `examples/nqueen` 以下にあります。
 トップディレクトリで `make examples` を実行すると、 `examples/nqueen/nqueen` が `aqcc` を用い生成されます。
-`./examples/nqueen/nqueen` とすると、1段から8段までの結果が表示されます。
+`examples/nqueen/nqueen` とすると、1段から8段までの結果が表示されます。
 
 ## 一般のCファイルをコンパイル
+
+`./aqcc [-S] infile outfile`
+
+デフォルトでオブジェクトファイルを出力します。`-S` をつけるとアセンブリを出力します。
 
 `program.c` を以下のようにしてコンパイルし、実行できます。
 `aqcc` や `program.c` などは適宜読みかえてください。
 
 ```
-$ ./aqcc program.c > program.s
-$ gcc program.s -o program
+$ ./aqcc program.c program.o
+$ gcc program.o -o program
 $ ./program
 ```
 
-なお、8/16 時点では、`#include <stdio.h>` などとはできません。
+なお、`#include <stdio.h>` などとはできません。
 `program.c` の中にこのような構文が含まれている場合は、取り除いて下さい。
 その代わりに、自前で `puts()` 関数などの プロトタイプ宣言を `program.c` の冒頭に加えてください。
 なお、カレントディレクトリ内のファイルはインクルードできますので、 `#include "aqcc.h"` などとインクルードして、
