@@ -873,7 +873,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 SymbolInfo *sym = get_symbol_info(code->label);
                 sym->st_info |= 0x10;
                 text_byte(0xe8);
-                add_rela_entry(get_target_text_size(), 4, sym->index, sym);
+                add_rela_entry(get_target_text_size(), 2, sym->index, sym);
                 text_dword_int(0);
             } break;
 
@@ -932,7 +932,7 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     }
 
     // if rela variable entry has no instance (offset), then its symtabidx is
-    // sym->index.
+    // sym->index. e.g. extern var
     for (int i = 0; i < vector_size(objimg->rela); i++) {
         RelaEntry *ent = (RelaEntry *)vector_get(objimg->rela, i);
         if (map_lookup(target_objimg->label2offset, ent->symbol->label) == NULL)
@@ -1139,11 +1139,10 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
         if (ent->type == 2) {
             int addend = -4;
             SectionOffset *so = lookup_label_offset(ent->symbol->label);
-            if (so != NULL) addend += so->offset;  // if not extern var
+            // TODO: ad hoc
+            if (so != NULL && so->section == DATA_SECTION)
+                addend += so->offset;  // if not extern var
             add_qword_int(dumped, addend, addend >= 0 ? 0 : -1);
-        }
-        else if (ent->type == 4) {
-            add_qword_int(dumped, -4, -1);
         }
         else
             assert(0);

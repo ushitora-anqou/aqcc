@@ -494,7 +494,7 @@ char *code2str(Code *code)
             return format("decq %s", code2str(code->lhs));
 
         case INST_CALL:
-            return format("call %s@PLT", code->label);
+            return format("call %s", code->label);
 
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
