@@ -567,14 +567,19 @@ int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
 Vector *read_tokens_from_filepath(char *filepath);
+Vector *read_asm_from_filepath(char *filepath);
 void assert(int cond);
 int is_register_code(Code *code);
 int reg_of_nbyte(int nbyte, int reg);
+Code *nbyte_reg(int nbyte, int reg);
+Code *str2reg(char *src);
+void erase_backslash_newline(char *src);
 
 // lex.c
 Vector *read_all_tokens(char *src);
 const char *token_kind2str(int kind);
 Vector *concatenate_string_literal_tokens(Vector *tokens);
+Vector *read_all_asm(char *src);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);
@@ -633,13 +638,16 @@ Code *SETL(Code *lhs);
 Code *SETLE(Code *lhs);
 Code *SUB(Code *lhs, Code *rhs);
 Code *XOR(Code *lhs, Code *rhs);
-Code *addrof(Code *reg, int offset);
-Code *addrof_label(Code *reg, char *label);
-Code *value(int value);
+Code *GLOBAL(char *label);
+Code *new_addrof_code(Code *reg, int offset);
+Code *new_addrof_label_code(Code *reg, char *label);
+Code *new_value_code(int value);
 Code *new_code(int kind);
 Code *new_other_code(char *other_op, Code *lhs, Code *rhs);
 char *code2str(Code *code);
 void dump_code(Code *code, FILE *fh);
+Code *new_binop_code(int kind, Code *lhs, Code *rhs);
+Code *new_unary_code(int kind, Code *lhs);
 
 // type.c
 Type *type_int();

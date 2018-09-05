@@ -44,14 +44,14 @@ Code *new_other_code(char *other_op, Code *lhs, Code *rhs)
     return code;
 }
 
-Code *value(int value)
+Code *new_value_code(int value)
 {
     Code *code = new_code(CD_VALUE);
     code->ival = value;
     return code;
 }
 
-Code *addrof_label(Code *reg, char *label)
+Code *new_addrof_label_code(Code *reg, char *label)
 {
     Code *code = new_code(CD_ADDR_OF_LABEL);
     code->lhs = reg;
@@ -59,7 +59,7 @@ Code *addrof_label(Code *reg, char *label)
     return code;
 }
 
-Code *addrof(Code *reg, int offset)
+Code *new_addrof_code(Code *reg, int offset)
 {
     Code *code = new_code(CD_ADDR_OF);
     code->lhs = reg;
@@ -234,6 +234,13 @@ Code *R15() { return new_code(REG_R15); }
 Code *AL() { return new_code(REG_AL); }
 
 Code *CL() { return new_code(REG_CL); }
+
+Code *GLOBAL(char *label)
+{
+    Code *code = new_code(CD_GLOBAL);
+    code->label = label;
+    return code;
+}
 
 char *code2str(Code *code)
 {
@@ -526,4 +533,8 @@ char *code2str(Code *code)
     assert(0);
 }
 
-void dump_code(Code *code, FILE *fh) { fprintf(fh, "%s\n", code2str(code)); }
+void dump_code(Code *code, FILE *fh)
+{
+    char *str = code2str(code);
+    if (str != NULL) fprintf(fh, "%s\n", str);
+}

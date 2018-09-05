@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     if (in_ft == FT_UNK || out_ft == FT_UNK)
         error("unknown (or may be invalid) input or output file type");
     if (out_ft == FT_C) error("invalid output file type");
-    if (in_ft == FT_ASM || in_ft == FT_OBJ)
+    if (in_ft == FT_OBJ)
         error("invalid input file type (but will be valid :muscle:)");
 
     Vector *code;  // assembly
@@ -47,6 +47,10 @@ int main(int argc, char **argv)
 
         code = generate_register_code(asts);
         code = optimize_code(code);
+    }
+
+    if (in_ft == FT_ASM) {
+        code = read_asm_from_filepath(infile);
     }
 
     FILE *fh = fopen(outfile, "wb");

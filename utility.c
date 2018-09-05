@@ -202,13 +202,18 @@ int max(int a, int b) { return a < b ? b : a; }
 
 int roundup(int n, int b) { return (n + b - 1) & ~(b - 1); }
 
-char *read_entire_file(FILE *fh)
+char *read_entire_file(char *filepath)
 {
+    FILE *fh = fopen(filepath, "r");
+    if (fh == NULL) error("no such file: '%s'", filepath);
+
     // read the file all
     StringBuilder *sb = new_string_builder();
     int ch;
     while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
     return string_builder_get(sb);
+
+    fclose(fh);
 }
 
 void erase_backslash_newline(char *src)
@@ -225,12 +230,14 @@ void erase_backslash_newline(char *src)
 
 Vector *read_tokens_from_filepath(char *filepath)
 {
-    FILE *fh = fopen(filepath, "r");
-    if (fh == NULL) error("no such file: '%s'", filepath);
-    char *src = read_entire_file(fh);
-    fclose(fh);
-    erase_backslash_newline(src);
+    char *src = read_entire_file(filepath);
     return read_all_tokens(src);
+}
+
+Vector *read_asm_from_filepath(char *filepath)
+{
+    char *src = read_entire_file(filepath);
+    return read_all_asm(src);
 }
 
 // alternative assert
@@ -261,4 +268,78 @@ int reg_of_nbyte(int nbyte, int reg)
             return (reg & 31) | REG_64;
     }
     assert(0);
+}
+
+Code *nbyte_reg(int nbyte, int reg)
+{
+    return new_code(reg_of_nbyte(nbyte, reg));
+}
+
+Code *str2reg(char *src)
+{
+    Map *map = new_map();
+
+    map_insert(map, "%al", nbyte_reg(1, 0));
+    map_insert(map, "%dil", nbyte_reg(1, 1));
+    map_insert(map, "%sil", nbyte_reg(1, 2));
+    map_insert(map, "%dl", nbyte_reg(1, 3));
+    map_insert(map, "%cl", nbyte_reg(1, 4));
+    map_insert(map, "%r8b", nbyte_reg(1, 5));
+    map_insert(map, "%r9b", nbyte_reg(1, 6));
+    map_insert(map, "%r10b", nbyte_reg(1, 7));
+    map_insert(map, "%r11b", nbyte_reg(1, 8));
+    map_insert(map, "%r12b", nbyte_reg(1, 9));
+    map_insert(map, "%r13b", nbyte_reg(1, 10));
+    map_insert(map, "%r14b", nbyte_reg(1, 11));
+    map_insert(map, "%r15b", nbyte_reg(1, 12));
+
+    map_insert(map, "%ax", nbyte_reg(2, 0));
+    map_insert(map, "%di", nbyte_reg(2, 1));
+    map_insert(map, "%si", nbyte_reg(2, 2));
+    map_insert(map, "%dx", nbyte_reg(2, 3));
+    map_insert(map, "%cx", nbyte_reg(2, 4));
+    map_insert(map, "%r8w", nbyte_reg(2, 5));
+    map_insert(map, "%r9w", nbyte_reg(2, 6));
+    map_insert(map, "%r10w", nbyte_reg(2, 7));
+    map_insert(map, "%r11w", nbyte_reg(2, 8));
+    map_insert(map, "%r12w", nbyte_reg(2, 9));
+    map_insert(map, "%r13w", nbyte_reg(2, 10));
+    map_insert(map, "%r14w", nbyte_reg(2, 11));
+    map_insert(map, "%r15w", nbyte_reg(2, 12));
+
+    map_insert(map, "%eax", nbyte_reg(4, 0));
+    map_insert(map, "%edi", nbyte_reg(4, 1));
+    map_insert(map, "%esi", nbyte_reg(4, 2));
+    map_insert(map, "%edx", nbyte_reg(4, 3));
+    map_insert(map, "%ecx", nbyte_reg(4, 4));
+    map_insert(map, "%r8d", nbyte_reg(4, 5));
+    map_insert(map, "%r9d", nbyte_reg(4, 6));
+    map_insert(map, "%r10d", nbyte_reg(4, 7));
+    map_insert(map, "%r11d", nbyte_reg(4, 8));
+    map_insert(map, "%r12d", nbyte_reg(4, 9));
+    map_insert(map, "%r13d", nbyte_reg(4, 10));
+    map_insert(map, "%r14d", nbyte_reg(4, 11));
+    map_insert(map, "%r15d", nbyte_reg(4, 12));
+
+    map_insert(map, "%rax", nbyte_reg(8, 0));
+    map_insert(map, "%rdi", nbyte_reg(8, 1));
+    map_insert(map, "%rsi", nbyte_reg(8, 2));
+    map_insert(map, "%rdx", nbyte_reg(8, 3));
+    map_insert(map, "%rcx", nbyte_reg(8, 4));
+    map_insert(map, "%r8", nbyte_reg(8, 5));
+    map_insert(map, "%r9", nbyte_reg(8, 6));
+    map_insert(map, "%r10", nbyte_reg(8, 7));
+    map_insert(map, "%r11", nbyte_reg(8, 8));
+    map_insert(map, "%r12", nbyte_reg(8, 9));
+    map_insert(map, "%r13", nbyte_reg(8, 10));
+    map_insert(map, "%r14", nbyte_reg(8, 11));
+    map_insert(map, "%r15", nbyte_reg(8, 12));
+
+    map_insert(map, "%rip", RIP());
+    map_insert(map, "%rbp", RBP());
+    map_insert(map, "%rsp", RSP());
+
+    KeyValue *kv = map_lookup(map, src);
+    assert(kv != NULL);
+    return kv_value(kv);
 }

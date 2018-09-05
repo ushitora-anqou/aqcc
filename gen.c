@@ -1,5 +1,14 @@
 #include "aqcc.h"
 
+Code *value(int value) { return new_value_code(value); }
+
+Code *addrof_label(Code *reg, char *label)
+{
+    return new_addrof_label_code(reg, label);
+}
+
+Code *addrof(Code *reg, int offset) { return new_addrof_code(reg, offset); }
+
 int temp_reg_table;
 
 void init_temp_reg() { temp_reg_table = 0; }
@@ -226,11 +235,6 @@ void generate_funcdef_end_marker()
 }
 
 void generate_funcdef_return_marker() { appcode(new_code(MRK_FUNCDEF_RETURN)); }
-
-Code *nbyte_reg(int nbyte, int reg)
-{
-    return new_code(reg_of_nbyte(nbyte, reg));
-}
 
 void generate_mov_mem_reg(int nbyte, int src_reg, int dst_reg)
 {
@@ -528,11 +532,7 @@ int generate_register_code_detail(AST *ast)
             stack_idx -= (!!ast->is_variadic) * 48;
 
             // generate code
-            {
-                Code *code = new_code(CD_GLOBAL);
-                code->label = ast->fname;
-                appcode(code);
-            }
+            appcode(GLOBAL(ast->fname));
             appcode(LABEL(ast->fname));
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));
