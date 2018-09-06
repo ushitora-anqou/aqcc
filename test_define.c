@@ -56,7 +56,8 @@ int test001()
 #endif
 
 #define test002value
-int test002() {
+int test002()
+{
 #ifndef test002value
     printf("[ERROR] test002:1: #ifndef guard is out of order\n");
 #endif
@@ -67,4 +68,49 @@ int test002() {
 #endif
 }
 
-int main() { test001(); test002();}
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
+
+void test003allcorrect_va_arg(int a, int b, int c, int d, int e, int f, int g,
+                              int h, ...)
+{
+    va_list args;
+    va_start(args, h);
+    if (va_arg(args, int) != a)
+        printf("[ERROR] test003:1: va_arg(args, int) != a\n");
+    if (va_arg(args, int) != b)
+        printf("[ERROR] test003:2: va_arg(args, int) != b\n");
+    if (va_arg(args, int) != c)
+        printf("[ERROR] test003:3: va_arg(args, int) != c\n");
+    if (va_arg(args, int) != d)
+        printf("[ERROR] test003:4: va_arg(args, int) != d\n");
+    if (va_arg(args, int) != e)
+        printf("[ERROR] test003:5: va_arg(args, int) != e\n");
+    if (va_arg(args, int) != f)
+        printf("[ERROR] test003:6: va_arg(args, int) != f\n");
+    if (va_arg(args, int) != g)
+        printf("[ERROR] test003:7: va_arg(args, int) != g\n");
+    if (va_arg(args, int) != h)
+        printf("[ERROR] test003:8: va_arg(args, int) != h\n");
+    va_end(args);
+}
+
+int test003()
+{
+    test003allcorrect_va_arg(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
+}
+
+int main()
+{
+    test001();
+    test002();
+    test003();
+}

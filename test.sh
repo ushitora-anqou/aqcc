@@ -9,27 +9,27 @@ function fail(){
 ./aqcc test
 [ $? -eq 0 ] || fail "./aqcc test"
 
-./aqcc test_define.c _test.s
+./aqcc test_define.c _test.s || fail "./aqcc test_define.c _test.s"
 gcc _test.s -o _test.o testutil.o -static
 ./_test.o
-[ $? -eq 0 ] || fail "./aqcc test_define.c _test.s"
+[ $? -eq 0 ] || fail "./aqcc test_define.c _test.s && ./_test.o"
 
 gcc -E -P test.c -o _test.c
-./aqcc _test.c _test.s
+./aqcc _test.c _test.s || fail "./aqcc _test.c _test.s"
 gcc _test.s -o _test.o testutil.o -static
 ./_test.o
-[ $? -eq 0 ] || fail "./aqcc _test.c _test.s"
+[ $? -eq 0 ] || fail "./aqcc _test.c _test.s && ./_test.o"
 
-./aqcc test_define.c _test_main.o
+./aqcc test_define.c _test_main.o || fail "./aqcc test_define.c _test_main.o"
 gcc _test_main.o -o _test.o testutil.o -static
 ./_test.o
-[ $? -eq 0 ] || fail "./aqcc test_define.c _test_main.o"
+[ $? -eq 0 ] || fail "./aqcc test_define.c _test_main.o && ./_test.o"
 
 gcc -E -P test.c -o _test.c
-./aqcc _test.c _test_main.o
+./aqcc _test.c _test_main.o || fail "./aqcc _test.c _test_main.o"
 gcc _test_main.o -o _test.o testutil.o -static
 ./_test.o
-[ $? -eq 0 ] || fail "./aqcc _test.c _test_main.o"
+[ $? -eq 0 ] || fail "./aqcc _test.c _test_main.o && ./_test.o"
 
 # test for asm asm
 function fail(){

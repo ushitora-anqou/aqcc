@@ -2,11 +2,18 @@
 
 Token *new_token(int kind, int line, int column)
 {
-    Token *token = safe_malloc(sizeof(Token));
+    Token *token = (Token *)safe_malloc(sizeof(Token));
     token->kind = kind;
     token->line = line;
     token->column = column;
     return token;
+}
+
+Token *clone_token(Token *src)
+{
+    Token *dst = (Token *)safe_malloc(sizeof(Token));
+    memcpy(dst, src, sizeof(Token));
+    return dst;
 }
 
 TokenSeq *new_token_seq(Vector *tokens)

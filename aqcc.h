@@ -710,6 +710,7 @@ Vector *preprocess_tokens(Vector *tokens);
 
 // token.c
 Token *new_token(int kind, int line, int column);
+Token *clone_token(Token *src);
 TokenSeq *new_token_seq(Vector *tokens);
 void init_tokenseq(Vector *tokens);
 void insert_tokens(Vector *tokens);

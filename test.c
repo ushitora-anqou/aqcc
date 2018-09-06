@@ -2044,9 +2044,28 @@ void test350allcorrect(int a, int b, int c, int d, int e, int f, int g, int h,
     va_end(args);
 }
 
+#define va_arg __builtin_va_arg
+
+void test350allcorrect_va_arg(int a, int b, int c, int d, int e, int f, int g,
+                              int h, ...)
+{
+    va_list args;
+    va_start(args, h);
+    EXPECT_INT(va_arg(args, int), a);
+    EXPECT_INT(va_arg(args, int), b);
+    EXPECT_INT(va_arg(args, int), c);
+    EXPECT_INT(va_arg(args, int), d);
+    EXPECT_INT(va_arg(args, int), e);
+    EXPECT_INT(va_arg(args, int), f);
+    EXPECT_INT(va_arg(args, int), g);
+    EXPECT_INT(va_arg(args, int), h);
+    va_end(args);
+}
+
 int test350()
 {
     test350allcorrect(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
+    test350allcorrect_va_arg(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
 }
 
 int main()

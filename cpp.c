@@ -1,5 +1,11 @@
 #include "aqcc.h"
 
+void skip_newline()
+{
+    while (pop_token_if(tNEWLINE))
+        ;
+}
+
 Map *define_table;
 
 void init_define() { define_table = new_map(); }
@@ -22,7 +28,7 @@ void preprocess_tokens_detail_define()
     char *name = expect_token(tIDENT)->sval;
     Vector *tokens = new_vector();
     while (!match_token(tNEWLINE)) vector_push_back(tokens, pop_token());
-    pop_token();
+    expect_token(tNEWLINE);
     add_define(name, tokens);
 }
 
@@ -98,6 +104,27 @@ Vector *preprocess_tokens(Vector *tokens)
         if (token->kind == tNEWLINE) continue;
 
         if (token->kind == tIDENT) {
+            // TODO: should be implemented by function macro?
+            // TODO: it can handle only `va_arg(args_var_name, int)`
+            if (strcmp(token->sval, "__builtin_va_arg") == 0) {
+                {
+                    Token *ntoken = clone_token(token);
+                    ntoken->sval = "__builtin_va_arg_int";
+                    vector_push_back(ntokens, ntoken);
+                }
+                skip_newline();
+                vector_push_back(ntokens, expect_token(tLPAREN));
+                skip_newline();
+                while (!match_token(tCOMMA))
+                    vector_push_back(ntokens, pop_token());
+                expect_token(tCOMMA);
+                skip_newline();
+                expect_token(kINT);
+                skip_newline();
+                vector_push_back(ntokens, expect_token(tRPAREN));
+                continue;
+            }
+
             Vector *deftokens = lookup_define(token->sval);
             if (deftokens != NULL) {  // found: replace tokens
                 insert_tokens(deftokens);
