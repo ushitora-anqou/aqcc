@@ -190,6 +190,13 @@ Code *JNE(char *label)
     return code;
 }
 
+Code *JAE(char *label)
+{
+    Code *code = new_code(INST_JAE);
+    code->label = label;
+    return code;
+}
+
 Code *LABEL(char *label)
 {
     Code *code = new_code(INST_LABEL);
@@ -206,6 +213,8 @@ Code *DECL(Code *lhs) { return new_unary_code(INST_DECL, lhs); }
 Code *DECQ(Code *lhs) { return new_unary_code(INST_DECQ, lhs); }
 
 Code *EAX() { return new_code(REG_EAX); }
+
+Code *EDX() { return new_code(REG_EDX); }
 
 Code *RAX() { return new_code(REG_RAX); }
 
@@ -467,6 +476,9 @@ char *code2str(Code *code)
 
         case INST_JNE:
             return format("jne %s", code->label);
+
+        case INST_JAE:
+            return format("jae %s", code->label);
 
         case INST_LABEL:
             return format("%s:", code->label);

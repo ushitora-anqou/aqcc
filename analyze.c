@@ -822,6 +822,15 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             ast->type = type_void();
         } break;
 
+        case AST_VA_ARG_INT: {
+            if (vector_size(ast->args) != 1)
+                error("invalid number of arguments of va_arg()");
+            AST *lhs = (AST *)vector_get(ast->args, 0);
+            lhs = analyze_ast_detail(env, lhs);
+            ast = new_unary_ast(AST_VA_ARG_INT, lhs);
+            ast->type = type_int();
+        } break;
+
         case AST_VA_END: {
             ast = new_ast(AST_NOP);
         } break;

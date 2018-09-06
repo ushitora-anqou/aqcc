@@ -101,6 +101,8 @@ AST *parse_postfix_expr()
             ast->kind = AST_VA_START;
         if (strcmp(ident->sval, "__builtin_va_end") == 0)
             ast->kind = AST_VA_END;
+        if (strcmp(ident->sval, "__builtin_va_arg_int") == 0)
+            ast->kind = AST_VA_ARG_INT;
     }
     else if (match_token(tIDENT))  // variable
         ast = new_var_ast(pop_token()->sval);

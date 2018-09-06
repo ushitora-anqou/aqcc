@@ -12,20 +12,24 @@ function fail(){
 ./aqcc test_define.c _test.s
 gcc _test.s -o _test.o testutil.o -static
 ./_test.o
+[ $? -eq 0 ] || fail "./aqcc test_define.c _test.s"
 
 gcc -E -P test.c -o _test.c
 ./aqcc _test.c _test.s
 gcc _test.s -o _test.o testutil.o -static
 ./_test.o
+[ $? -eq 0 ] || fail "./aqcc _test.c _test.s"
 
 ./aqcc test_define.c _test_main.o
 gcc _test_main.o -o _test.o testutil.o -static
 ./_test.o
+[ $? -eq 0 ] || fail "./aqcc test_define.c _test_main.o"
 
 gcc -E -P test.c -o _test.c
 ./aqcc _test.c _test_main.o
 gcc _test_main.o -o _test.o testutil.o -static
 ./_test.o
+[ $? -eq 0 ] || fail "./aqcc _test.c _test_main.o"
 
 # test for asm asm
 function fail(){

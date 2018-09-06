@@ -486,6 +486,13 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
+                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    text_byte(0x03);
+                    text_addrof(reg_field(code->rhs), code->lhs);
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_ADDQ:
@@ -815,6 +822,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_JNE: {
                 text_byte(0x75);
+                text_byte(0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = get_target_text_size();
+                lph->size = 1;
+                vector_push_back(label_placeholders, lph);
+            } break;
+
+            case INST_JAE: {
+                text_byte(0x73);
                 text_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));

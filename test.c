@@ -2028,6 +2028,27 @@ int test349()
     EXPECT_INT(b, 9);
 }
 
+void test350allcorrect(int a, int b, int c, int d, int e, int f, int g, int h,
+                       ...)
+{
+    va_list args;
+    va_start(args, h);
+    EXPECT_INT(__builtin_va_arg_int(args), a);
+    EXPECT_INT(__builtin_va_arg_int(args), b);
+    EXPECT_INT(__builtin_va_arg_int(args), c);
+    EXPECT_INT(__builtin_va_arg_int(args), d);
+    EXPECT_INT(__builtin_va_arg_int(args), e);
+    EXPECT_INT(__builtin_va_arg_int(args), f);
+    EXPECT_INT(__builtin_va_arg_int(args), g);
+    EXPECT_INT(__builtin_va_arg_int(args), h);
+    va_end(args);
+}
+
+int test350()
+{
+    test350allcorrect(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
+}
+
 int main()
 {
     EXPECT_INT(2, 2);
@@ -2379,4 +2400,5 @@ int main()
     test346();
     test347();
     test348();
+    test350();
 }

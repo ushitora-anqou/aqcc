@@ -988,17 +988,53 @@ int generate_register_code_detail(AST *ast)
         case AST_VA_START: {
             int reg = generate_register_code_detail(ast->lhs);
             Code *reg_code = nbyte_reg(8, reg);
+            // typedef struct {
+            //    unsigned int gp_offset;
+            //    unsigned int fp_offset;
+            //    void *overflow_arg_area;
+            //    void *reg_save_area;
+            // } va_list[1];
+            Code *gp_offset = addrof(reg_code, 0),
+                 *fp_offset = addrof(reg_code, 4),
+                 *overflow_arg_area = addrof(reg_code, 8),
+                 *reg_save_area = addrof(reg_code, 16);
+
             assert(ast->rhs->kind == AST_INT);
-            appcode(MOVL(value(ast->rhs->ival * 8), addrof(reg_code, 0)));
-            appcode(MOVL(value(48), addrof(reg_code, 4)));
+            appcode(MOVL(value(ast->rhs->ival * 8), gp_offset));
+            appcode(MOVL(value(48), fp_offset));
             appcode(LEA(addrof(RBP(), codeenv->overflow_arg_area_stack_idx),
                         RDI()));
-            appcode(MOV(RDI(), addrof(reg_code, 8)));
+            appcode(MOV(RDI(), overflow_arg_area));
             appcode(
                 LEA(addrof(RBP(), codeenv->reg_save_area_stack_idx), RDI()));
-            appcode(MOV(RDI(), addrof(reg_code, 16)));
+            appcode(MOV(RDI(), reg_save_area));
             restore_temp_reg(reg);
             return -1;
+        }
+
+        case AST_VA_ARG_INT: {
+            char *stack_label = make_label_string(),
+                 *fetch_label = make_label_string();
+            int reg = generate_register_code_detail(ast->lhs);
+            Code *reg_code = nbyte_reg(8, reg),
+                 *gp_offset = addrof(reg_code, 0),
+                 *overflow_arg_area = addrof(reg_code, 8),
+                 *reg_save_area = addrof(reg_code, 16);
+            appcode(MOV(gp_offset, EAX()));
+            appcode(CMP(value(48), EAX()));
+            appcode(JAE(stack_label));
+            appcode(MOV(EAX(), EDX()));
+            appcode(ADD(value(8), EDX()));
+            appcode(ADD(reg_save_area, RAX()));
+            appcode(MOV(EDX(), gp_offset));
+            appcode(JMP(fetch_label));
+            appcode(LABEL(stack_label));
+            appcode(MOV(overflow_arg_area, RAX()));
+            appcode(LEA(addrof(RAX(), 8), RDX()));
+            appcode(MOV(RDX(), overflow_arg_area));
+            appcode(LABEL(fetch_label));
+            appcode(MOV(addrof(RAX(), 0), nbyte_reg(4, reg)));
+            return reg;
         }
 
         case AST_GVAR_DECL:

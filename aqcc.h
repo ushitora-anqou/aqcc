@@ -321,6 +321,7 @@ enum {
     AST_CAST,
     AST_VA_START,
     AST_VA_END,
+    AST_VA_ARG_INT,
 };
 
 struct AST {
@@ -494,6 +495,7 @@ enum {
     INST_JMP,
     INST_JE,
     INST_JNE,
+    INST_JAE,
     INST_LABEL,
     INST_INCL,
     INST_INCQ,
@@ -598,14 +600,14 @@ Code *CLTQ();
 Code *CMP(Code *lhs, Code *rhs);
 Code *DECL(Code *lhs);
 Code *DECQ(Code *lhs);
-Code *EAX();
 Code *IDIV(Code *lhs);
 Code *IMUL(Code *lhs, Code *rhs);
 Code *INCL(Code *lhs);
 Code *INCQ(Code *lhs);
-Code *JE(char *label);
 Code *JMP(char *label);
+Code *JE(char *label);
 Code *JNE(char *label);
+Code *JAE(char *label);
 Code *LABEL(char *label);
 Code *LEA(Code *lhs, Code *rhs);
 Code *MOV(Code *lhs, Code *rhs);
@@ -624,6 +626,8 @@ Code *R12();
 Code *R13();
 Code *R14();
 Code *R15();
+Code *EAX();
+Code *EDX();
 Code *RAX();
 Code *RBP();
 Code *RDI();
