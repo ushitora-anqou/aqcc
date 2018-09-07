@@ -803,8 +803,6 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 error("only scalar type can be cast");
             // TODO: always convert_expr; is that safe?
             ast->lhs = convert_expr(analyze_ast_detail(env, ast->lhs));
-            ast->lhs->type = ast->type;
-            ast = ast->lhs;
             break;
 
         case AST_VA_START: {

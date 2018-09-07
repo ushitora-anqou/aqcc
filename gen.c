@@ -761,6 +761,7 @@ int generate_register_code_detail(AST *ast)
 
         case AST_ADDR:
         case AST_INDIR:
+        case AST_CAST:
             return generate_register_code_detail(ast->lhs);
 
         case AST_COND: {
