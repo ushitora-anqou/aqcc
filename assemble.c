@@ -136,46 +136,46 @@ SectionOffset *lookup_label_offset(char *label)
     return (SectionOffset *)kv_value(kv);
 }
 
-void retext_byte(int index, int val0)
+void reemit_byte(int index, int val0)
 {
     vector_set(get_current_section_buffer(), index, (void *)val0);
 }
 
-void text_byte(int val0) { add_byte(get_current_section_buffer(), val0); }
+void emit_byte(int val0) { add_byte(get_current_section_buffer(), val0); }
 
-void text_word(int val0, int val1)
+void emit_word(int val0, int val1)
 {
-    text_byte(val0);
-    text_byte(val1);
+    emit_byte(val0);
+    emit_byte(val1);
 }
 
-void text_dword(int val0, int val1, int val2, int val3)
+void emit_dword(int val0, int val1, int val2, int val3)
 {
-    text_word(val0, val1);
-    text_word(val2, val3);
+    emit_word(val0, val1);
+    emit_word(val2, val3);
 }
 
-void text_dword_int(int ival)
+void emit_dword_int(int ival)
 {
-    text_dword(ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
+    emit_dword(ival & 0xff, (ival >> 8) & 0xff, (ival >> 16) & 0xff,
                (ival >> 24) & 0xff);
 }
 
-void text_qword(int val0, int val1, int val2, int val3, int val4, int val5,
+void emit_qword(int val0, int val1, int val2, int val3, int val4, int val5,
                 int val6, int val7)
 {
-    text_dword(val0, val1, val2, val3);
-    text_dword(val4, val5, val6, val7);
+    emit_dword(val0, val1, val2, val3);
+    emit_dword(val4, val5, val6, val7);
 }
 
-void text_string(char *src, int len)
+void emit_string(char *src, int len)
 {
     add_string(get_current_section_buffer(), src, len);
 }
 
-void text_nbytes(int nbytes, int val)
+void emit_nbytes(int nbytes, int val)
 {
-    for (int i = 0; i < nbytes; i++) text_byte((val >> (i << 3)) & 0xff);
+    for (int i = 0; i < nbytes; i++) emit_byte((val >> (i << 3)) & 0xff);
 }
 
 int is_reg(Code *code) { return is_register_code(code); }
@@ -242,16 +242,16 @@ int modrm(int mod, int reg, int rm)
     return ((mod & 3) << 6) | ((reg & 7) << 3) | (rm & 7);
 }
 
-int text_modrm(int mod, int reg, int rm)
+int emit_modrm(int mod, int reg, int rm)
 {
-    text_byte(modrm(mod, reg, rm));
+    emit_byte(modrm(mod, reg, rm));
 
     // If mod == 2 and rm == 4 then SIB byte is enabled.
     // If I == 0 in SIB then index is disabled.
     // That's why this line is needed.
     // NOT CARGO CULT PROGRAMMING!!
     // But this spec is awful, isn't it :thinking_face:
-    if (mod == 2 && rm == 4) text_byte(modrm(0, 4, 4));
+    if (mod == 2 && rm == 4) emit_byte(modrm(0, 4, 4));
 }
 
 int rex_prefix(int w, int r, int x, int b)
@@ -265,28 +265,28 @@ int rex_prefix_reg_ext(int is64, Code *reg, Code *rm)
     return rex_prefix(is64, is_reg_ext(reg), 0, is_reg_ext(rm));
 }
 
-void text_rex_prefix(int is64, Code *reg, Code *rm)
+void emit_rex_prefix(int is64, Code *reg, Code *rm)
 {
     int pre = rex_prefix_reg_ext(is64, reg, rm);
     if (pre == 0x40) return;  // no info
-    text_byte(pre);
+    emit_byte(pre);
 }
 
-void text_addrof(int reg, Code *mem)
+void emit_addrof(int reg, Code *mem)
 {
     assert(is_addrof(mem));
 
     switch (mem->kind) {
         case CD_ADDR_OF:
-            text_modrm(2, reg, reg_field(mem->lhs));
-            text_dword_int(mem->ival);
+            emit_modrm(2, reg, reg_field(mem->lhs));
+            emit_dword_int(mem->ival);
             break;
 
         case CD_ADDR_OF_LABEL: {
             SymbolInfo *sym = get_symbol_info(mem->label);
-            text_modrm(0, reg, reg_field(mem->lhs));
+            emit_modrm(0, reg, reg_field(mem->lhs));
             add_rela_entry(get_target_text_size(), 2, 2, sym);
-            text_dword_int(0);
+            emit_dword_int(0);
         } break;
     }
 }
@@ -319,76 +319,76 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         switch (code->kind) {
             case INST_MOV:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    text_byte(0x89);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    emit_byte(0x89);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x89);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x89);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg8(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x88);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x88);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    if (is_reg_ext(code->rhs)) text_byte(0x41);
-                    text_byte(0xb8 + reg_field(code->rhs));
-                    text_dword_int(code->lhs->ival);
+                    if (is_reg_ext(code->rhs)) emit_byte(0x41);
+                    emit_byte(0xb8 + reg_field(code->rhs));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    text_byte(0xc7);
-                    text_byte(modrm(3, 0, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    emit_byte(0xc7);
+                    emit_byte(modrm(3, 0, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
-                    text_byte(0x8b);
-                    text_addrof(reg_field(code->rhs), code->lhs);
+                    emit_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    emit_byte(0x8b);
+                    emit_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
-                    text_byte(0x8b);
-                    text_addrof(reg_field(code->rhs), code->lhs);
+                    emit_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
+                    emit_byte(0x8b);
+                    emit_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_addrof(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
-                    text_byte(0x88);
-                    text_addrof(reg_field(code->lhs), code->rhs);
+                    emit_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
+                    emit_byte(0x88);
+                    emit_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_addrof(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
-                    text_byte(0x89);
-                    text_addrof(reg_field(code->lhs), code->rhs);
+                    emit_byte(rex_prefix_reg_ext(0, code->lhs, code->rhs->lhs));
+                    emit_byte(0x89);
+                    emit_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_addrof(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs->lhs));
-                    text_byte(0x89);
-                    text_addrof(reg_field(code->lhs), code->rhs);
+                    emit_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs->lhs));
+                    emit_byte(0x89);
+                    emit_addrof(reg_field(code->lhs), code->rhs);
                     break;
                 }
 
@@ -396,10 +396,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVL:
                 if (is_imm(code->lhs) && is_addrof(code->rhs)) {
-                    text_rex_prefix(0, NULL, code->rhs->lhs);
-                    text_byte(0xc7);
-                    text_addrof(0, code->rhs);
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(0, NULL, code->rhs->lhs);
+                    emit_byte(0xc7);
+                    emit_addrof(0, code->rhs);
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -407,17 +407,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVSBL:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs));
-                    text_word(0x0f, 0xbe);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs));
+                    emit_word(0x0f, 0xbe);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg32(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
-                    text_word(0x0f, 0xbe);
-                    text_addrof(reg_field(code->rhs), code->lhs);
+                    emit_byte(rex_prefix_reg_ext(0, code->rhs, code->lhs->lhs));
+                    emit_word(0x0f, 0xbe);
+                    emit_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -425,9 +425,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVSLQ:
                 if (is_reg32(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs));
-                    text_byte(0x63);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs));
+                    emit_byte(0x63);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
@@ -436,17 +436,17 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_MOVZB:
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->rhs, code->lhs);
-                    text_word(0x0f, 0xb6);
-                    text_byte(
+                    emit_rex_prefix(0, code->rhs, code->lhs);
+                    emit_word(0x0f, 0xb6);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
-                    text_rex_prefix(1, code->rhs, code->lhs);
-                    text_word(0x0f, 0xb6);
-                    text_byte(
+                    emit_rex_prefix(1, code->rhs, code->lhs);
+                    emit_word(0x0f, 0xb6);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
@@ -455,41 +455,41 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_ADD:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    text_byte(0x81);
-                    text_byte(modrm(3, 0, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 0, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    text_byte(0x01);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    emit_byte(0x01);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, NULL, code->rhs);
-                    text_byte(0x81);
-                    text_byte(modrm(3, 0, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(0, NULL, code->rhs);
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 0, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x01);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x01);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
-                    text_byte(0x03);
-                    text_addrof(reg_field(code->rhs), code->lhs);
+                    emit_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    emit_byte(0x03);
+                    emit_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -497,10 +497,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_ADDQ:
                 if (is_imm(code->lhs) && is_addrof(code->rhs)) {
-                    text_rex_prefix(1, NULL, code->rhs->lhs);
-                    text_byte(0x81);
-                    text_addrof(0, code->rhs);
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(1, NULL, code->rhs->lhs);
+                    emit_byte(0x81);
+                    emit_addrof(0, code->rhs);
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -508,33 +508,33 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SUB:
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
-                    text_byte(0x81);
-                    text_byte(modrm(3, 5, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_byte(rex_prefix_reg_ext(1, NULL, code->rhs));
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 5, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    text_byte(0x29);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    emit_byte(0x29);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, NULL, code->rhs);
-                    text_byte(0x81);
-                    text_byte(modrm(3, 5, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(0, NULL, code->rhs);
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 5, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(1, code->lhs, code->rhs);
-                    text_byte(0x29);
-                    text_byte(
+                    emit_rex_prefix(1, code->lhs, code->rhs);
+                    emit_byte(0x29);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -543,27 +543,27 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_IMUL:
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
-                    text_word(0x0f, 0xaf);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->lhs, code->rhs));
+                    emit_word(0x0f, 0xaf);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_word(0x0f, 0xaf);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_word(0x0f, 0xaf);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->rhs));
-                    text_byte(0x69);
-                    text_byte(
+                    emit_byte(rex_prefix_reg_ext(1, code->rhs, code->rhs));
+                    emit_byte(0x69);
+                    emit_byte(
                         modrm(3, reg_field(code->rhs), reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -571,9 +571,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_IDIV:
                 if (is_reg32(code->lhs)) {
-                    text_rex_prefix(0, NULL, code->lhs);
-                    text_byte(0xf7);
-                    text_byte(modrm(3, 7, reg_field(code->lhs)));
+                    emit_rex_prefix(0, NULL, code->lhs);
+                    emit_byte(0xf7);
+                    emit_byte(modrm(3, 7, reg_field(code->lhs)));
                     break;
                 }
 
@@ -581,16 +581,16 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_NEG:
                 if (is_reg32(code->lhs)) {
-                    text_rex_prefix(0, NULL, code->lhs);
-                    text_byte(0xf7);
-                    text_byte(modrm(3, 3, reg_field(code->lhs)));
+                    emit_rex_prefix(0, NULL, code->lhs);
+                    emit_byte(0xf7);
+                    emit_byte(modrm(3, 3, reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs)) {
-                    text_rex_prefix(1, NULL, code->lhs);
-                    text_byte(0xf7);
-                    text_byte(modrm(3, 3, reg_field(code->lhs)));
+                    emit_rex_prefix(1, NULL, code->lhs);
+                    emit_byte(0xf7);
+                    emit_byte(modrm(3, 3, reg_field(code->lhs)));
                     break;
                 }
 
@@ -598,16 +598,16 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_NOT:
                 if (is_reg32(code->lhs)) {
-                    text_rex_prefix(0, NULL, code->lhs);
-                    text_byte(0xf7);
-                    text_byte(modrm(3, 2, reg_field(code->lhs)));
+                    emit_rex_prefix(0, NULL, code->lhs);
+                    emit_byte(0xf7);
+                    emit_byte(modrm(3, 2, reg_field(code->lhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs)) {
-                    text_rex_prefix(1, NULL, code->lhs);
-                    text_byte(0xf7);
-                    text_byte(modrm(3, 2, reg_field(code->lhs)));
+                    emit_rex_prefix(1, NULL, code->lhs);
+                    emit_byte(0xf7);
+                    emit_byte(modrm(3, 2, reg_field(code->lhs)));
                     break;
                 }
 
@@ -617,18 +617,18 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
                     assert(code->lhs->kind == REG_CL);
-                    text_rex_prefix(0, NULL, code->rhs);
-                    text_byte(0xd3);
-                    text_byte(modrm(3, 4, reg_field(code->rhs)));
+                    emit_rex_prefix(0, NULL, code->rhs);
+                    emit_byte(0xd3);
+                    emit_byte(modrm(3, 4, reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
                     assert(code->lhs->kind == REG_CL);
-                    text_rex_prefix(1, NULL, code->rhs);
-                    text_byte(0xd3);
-                    text_byte(modrm(3, 4, reg_field(code->rhs)));
+                    emit_rex_prefix(1, NULL, code->rhs);
+                    emit_byte(0xd3);
+                    emit_byte(modrm(3, 4, reg_field(code->rhs)));
                     break;
                 }
 
@@ -638,26 +638,26 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 if (is_reg8(code->lhs) && is_reg32(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
                     assert(code->lhs->kind == REG_CL);
-                    text_rex_prefix(0, NULL, code->rhs);
-                    text_byte(0xd3);
-                    text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    emit_rex_prefix(0, NULL, code->rhs);
+                    emit_byte(0xd3);
+                    emit_byte(modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg8(code->lhs) && is_reg64(code->rhs)) {
                     // TODO: assume that code->lhs is CL.
                     assert(code->lhs->kind == REG_CL);
-                    text_rex_prefix(1, NULL, code->rhs);
-                    text_byte(0xd3);
-                    text_byte(modrm(3, 7, reg_field(code->rhs)));
+                    emit_rex_prefix(1, NULL, code->rhs);
+                    emit_byte(0xd3);
+                    emit_byte(modrm(3, 7, reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_rex_prefix(1, NULL, code->rhs);
-                    text_byte(0xc1);
-                    text_byte(modrm(3, 7, reg_field(code->rhs)));
-                    text_byte(code->lhs->ival);
+                    emit_rex_prefix(1, NULL, code->rhs);
+                    emit_byte(0xc1);
+                    emit_byte(modrm(3, 7, reg_field(code->rhs)));
+                    emit_byte(code->lhs->ival);
                     break;
                 }
 
@@ -665,34 +665,34 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_CMP:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x39);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x39);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
-                    text_rex_prefix(1, code->lhs, code->rhs);
-                    text_byte(0x39);
-                    text_byte(
+                    emit_rex_prefix(1, code->lhs, code->rhs);
+                    emit_byte(0x39);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, NULL, code->rhs);
-                    text_byte(0x81);
-                    text_byte(modrm(3, 7, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(0, NULL, code->rhs);
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 7, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
                 if (is_imm(code->lhs) && is_reg64(code->rhs)) {
-                    text_rex_prefix(1, NULL, code->rhs);
-                    text_byte(0x81);
-                    text_byte(modrm(3, 7, reg_field(code->rhs)));
-                    text_dword_int(code->lhs->ival);
+                    emit_rex_prefix(1, NULL, code->rhs);
+                    emit_byte(0x81);
+                    emit_byte(modrm(3, 7, reg_field(code->rhs)));
+                    emit_dword_int(code->lhs->ival);
                     break;
                 }
 
@@ -700,8 +700,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETL:
                 if (is_reg8(code->lhs)) {
-                    text_word(0x0f, 0x9c);
-                    text_byte(modrm(3, 0, reg_field(code->lhs)));
+                    emit_word(0x0f, 0x9c);
+                    emit_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -709,8 +709,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETLE:
                 if (is_reg8(code->lhs)) {
-                    text_word(0x0f, 0x9e);
-                    text_byte(modrm(3, 0, reg_field(code->lhs)));
+                    emit_word(0x0f, 0x9e);
+                    emit_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -718,8 +718,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_SETE:
                 if (is_reg8(code->lhs)) {
-                    text_word(0x0f, 0x94);
-                    text_byte(modrm(3, 0, reg_field(code->lhs)));
+                    emit_word(0x0f, 0x94);
+                    emit_byte(modrm(3, 0, reg_field(code->lhs)));
                     break;
                 }
 
@@ -727,9 +727,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_AND:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x21);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x21);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -738,9 +738,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_XOR:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x31);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x31);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -749,9 +749,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_OR:
                 if (is_reg32(code->lhs) && is_reg32(code->rhs)) {
-                    text_rex_prefix(0, code->lhs, code->rhs);
-                    text_byte(0x09);
-                    text_byte(
+                    emit_rex_prefix(0, code->lhs, code->rhs);
+                    emit_byte(0x09);
+                    emit_byte(
                         modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
                     break;
                 }
@@ -760,9 +760,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_LEA:
                 if (is_addrof(code->lhs) && is_reg64(code->rhs)) {
-                    text_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
-                    text_byte(0x8d);
-                    text_addrof(reg_field(code->rhs), code->lhs);
+                    emit_byte(rex_prefix_reg_ext(1, code->rhs, code->lhs->lhs));
+                    emit_byte(0x8d);
+                    emit_addrof(reg_field(code->rhs), code->lhs);
                     break;
                 }
 
@@ -770,8 +770,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_PUSH:
                 if (is_reg64(code->lhs)) {
-                    if (is_reg_ext(code->lhs)) text_byte(0x41);
-                    text_byte(0x50 + reg_field(code->lhs));
+                    if (is_reg_ext(code->lhs)) emit_byte(0x41);
+                    emit_byte(0x50 + reg_field(code->lhs));
                     break;
                 }
 
@@ -779,28 +779,28 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_POP:
                 if (is_reg64(code->lhs)) {
-                    if (is_reg_ext(code->lhs)) text_byte(0x41);
-                    text_byte(0x58 + reg_field(code->lhs));
+                    if (is_reg_ext(code->lhs)) emit_byte(0x41);
+                    emit_byte(0x58 + reg_field(code->lhs));
                     break;
                 }
 
                 goto not_implemented_error;
 
             case INST_RET:
-                text_byte(0xc3);
+                emit_byte(0xc3);
                 break;
 
             case INST_CLTD:
-                text_byte(0x99);
+                emit_byte(0x99);
                 break;
 
             case INST_CLTQ:
-                text_word(0x48, 0x98);
+                emit_word(0x48, 0x98);
                 break;
 
             case INST_JMP: {
-                text_byte(0xe9);
-                text_dword_int(0);  // placeholder
+                emit_byte(0xe9);
+                emit_dword_int(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -810,8 +810,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_JE: {
-                text_byte(0x74);
-                text_byte(0);  // placeholder
+                emit_byte(0x74);
+                emit_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -821,8 +821,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_JNE: {
-                text_byte(0x75);
-                text_byte(0);  // placeholder
+                emit_byte(0x75);
+                emit_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -832,8 +832,8 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_JAE: {
-                text_byte(0x73);
-                text_byte(0);  // placeholder
+                emit_byte(0x73);
+                emit_byte(0);  // placeholder
 
                 LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
                 lph->label = code->label;
@@ -844,36 +844,36 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_INCL:
                 if (is_addrof(code->lhs)) {
-                    text_rex_prefix(0, NULL, code->lhs->lhs);
-                    text_byte(0xff);
-                    text_addrof(0, code->lhs);
+                    emit_rex_prefix(0, NULL, code->lhs->lhs);
+                    emit_byte(0xff);
+                    emit_addrof(0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_INCQ:
                 if (is_addrof(code->lhs)) {
-                    text_rex_prefix(1, NULL, code->lhs->lhs);
-                    text_byte(0xff);
-                    text_addrof(0, code->lhs);
+                    emit_rex_prefix(1, NULL, code->lhs->lhs);
+                    emit_byte(0xff);
+                    emit_addrof(0, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_DECL:
                 if (is_addrof(code->lhs)) {
-                    text_rex_prefix(0, NULL, code->lhs->lhs);
-                    text_byte(0xff);
-                    text_addrof(1, code->lhs);
+                    emit_rex_prefix(0, NULL, code->lhs->lhs);
+                    emit_byte(0xff);
+                    emit_addrof(1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
 
             case INST_DECQ:
                 if (is_addrof(code->lhs)) {
-                    text_rex_prefix(1, NULL, code->lhs->lhs);
-                    text_byte(0xff);
-                    text_addrof(1, code->lhs);
+                    emit_rex_prefix(1, NULL, code->lhs->lhs);
+                    emit_byte(0xff);
+                    emit_addrof(1, code->lhs);
                     break;
                 }
                 goto not_implemented_error;
@@ -890,9 +890,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 // TODO: assume that all called functions are global.
                 SymbolInfo *sym = get_symbol_info(code->label);
                 sym->st_info |= 0x10;
-                text_byte(0xe8);
+                emit_byte(0xe8);
                 add_rela_entry(get_target_text_size(), 2, sym->index, sym);
-                text_dword_int(0);
+                emit_dword_int(0);
             } break;
 
             case INST_OTHER:
@@ -911,23 +911,23 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 break;
 
             case CD_ZERO:
-                text_nbytes(code->ival, 0);
+                emit_nbytes(code->ival, 0);
                 break;
 
             case CD_LONG:
-                text_nbytes(4, code->ival);
+                emit_nbytes(4, code->ival);
                 break;
 
             case CD_BYTE:
-                text_nbytes(1, code->ival);
+                emit_nbytes(1, code->ival);
                 break;
 
             case CD_QUAD:
-                text_nbytes(8, code->ival);
+                emit_nbytes(8, code->ival);
                 break;
 
             case CD_ASCII:
-                for (int i = 0; i < code->ival; i++) text_byte(code->sval[i]);
+                for (int i = 0; i < code->ival; i++) emit_byte(code->sval[i]);
                 break;
 
             default:
@@ -966,15 +966,15 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
         switch (lph->size) {
             case 4:
-                retext_byte(lph->offset - 4, v & 0xff);
-                retext_byte(lph->offset - 3, (v >> 8) & 0xff);
-                retext_byte(lph->offset - 2, (v >> 16) & 0xff);
-                retext_byte(lph->offset - 1, (v >> 24) & 0xff);
+                reemit_byte(lph->offset - 4, v & 0xff);
+                reemit_byte(lph->offset - 3, (v >> 8) & 0xff);
+                reemit_byte(lph->offset - 2, (v >> 16) & 0xff);
+                reemit_byte(lph->offset - 1, (v >> 24) & 0xff);
                 break;
 
             case 1:
                 assert(-128 <= v && v <= 127);
-                retext_byte(lph->offset - 1, v & 0xff);
+                reemit_byte(lph->offset - 1, v & 0xff);
                 break;
 
             default:
