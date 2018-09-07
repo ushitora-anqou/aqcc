@@ -745,4 +745,28 @@ void dump_object_image(ObjectImage *objimg, FILE *fh);
 ExeImage *link_objs(Vector *obj_paths);
 void dump_exe_image(ExeImage *exeimg, FILE *fh);
 
+// object.c
+void add_byte(Vector *vec, int val);
+void set_byte(Vector *vec, int index, int val);
+void add_word(Vector *vec, int val0, int val1);
+void add_word_int(Vector *vec, int ival);
+void add_dword(Vector *vec, int val0, int val1, int val2, int val3);
+void add_dword_int(Vector *vec, int ival);
+void add_qword_int(Vector *vec, int low, int high);
+void add_string(Vector *vec, char *src, int len);
+void add_qword(Vector *vec, int val0, int val1, int val2, int val3, int val4,
+               int val5, int val6, int val7);
+void write_byte(FILE *fh, int val0);
+Vector *get_buffer_to_emit();
+void set_buffer_to_emit(Vector *buffer);
+void reemit_byte(int index, int val0);
+void emit_byte(int val0);
+void emit_word(int val0, int val1);
+void emit_dword(int val0, int val1, int val2, int val3);
+void emit_dword_int(int ival);
+void emit_qword(int val0, int val1, int val2, int val3, int val4, int val5,
+                int val6, int val7);
+void emit_string(char *src, int len);
+void emit_nbytes(int nbytes, int val);
+
 #endif
