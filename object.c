@@ -55,6 +55,8 @@ Vector *buffer_to_emit = NULL;
 
 Vector *get_buffer_to_emit() { return buffer_to_emit; }
 
+int emitted_size() { return vector_size(buffer_to_emit); }
+
 void set_buffer_to_emit(Vector *buffer) { buffer_to_emit = buffer; }
 
 void reemit_byte(int index, int val0)
@@ -69,6 +71,8 @@ void emit_word(int val0, int val1)
     emit_byte(val0);
     emit_byte(val1);
 }
+
+void emit_word_int(int ival) { emit_word(ival & 0xff, (ival >> 8) & 0xff); }
 
 void emit_dword(int val0, int val1, int val2, int val3)
 {
@@ -87,6 +91,12 @@ void emit_qword(int val0, int val1, int val2, int val3, int val4, int val5,
 {
     emit_dword(val0, val1, val2, val3);
     emit_dword(val4, val5, val6, val7);
+}
+
+void emit_qword_int(int low, int high)
+{
+    emit_dword_int(low);
+    emit_dword_int(high);
 }
 
 void emit_string(char *src, int len) { add_string(buffer_to_emit, src, len); }

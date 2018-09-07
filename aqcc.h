@@ -758,14 +758,17 @@ void add_qword(Vector *vec, int val0, int val1, int val2, int val3, int val4,
                int val5, int val6, int val7);
 void write_byte(FILE *fh, int val0);
 Vector *get_buffer_to_emit();
+int emitted_size();
 void set_buffer_to_emit(Vector *buffer);
 void reemit_byte(int index, int val0);
 void emit_byte(int val0);
 void emit_word(int val0, int val1);
+void emit_word_int(int ival);
 void emit_dword(int val0, int val1, int val2, int val3);
 void emit_dword_int(int ival);
 void emit_qword(int val0, int val1, int val2, int val3, int val4, int val5,
                 int val6, int val7);
+void emit_qword_int(int low, int high);
 void emit_string(char *src, int len);
 void emit_nbytes(int nbytes, int val);
 
