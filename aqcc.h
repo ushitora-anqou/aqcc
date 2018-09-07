@@ -550,6 +550,11 @@ struct ObjectImage {
     Map *label2offset;  // map<char *, SectionOffset>
 };
 
+typedef struct ExeImage ExeImage;
+struct ExeImage {
+    int dum;
+};
+
 // utility.c
 _Noreturn void error(const char *msg, ...);
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
@@ -735,5 +740,9 @@ Vector *optimize_code(Vector *code);
 // assemble.c
 ObjectImage *assemble_code(Vector *code);
 void dump_object_image(ObjectImage *objimg, FILE *fh);
+
+// link.c
+ExeImage *link_objs(Vector *obj_paths);
+void dump_exe_image(ExeImage *exeimg, FILE *fh);
 
 #endif

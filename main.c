@@ -15,13 +15,14 @@ int main(int argc, char **argv)
     char *infile = argv[1], *outfile = argv[2];
 
     // detect filetype by file extensions, like gcc :smile:
-    enum { FT_UNK = -1, FT_C, FT_ASM, FT_OBJ };
+    enum { FT_UNK = -1, FT_C, FT_ASM, FT_OBJ, FT_EXE };
     int in_ft = FT_UNK, out_ft = FT_UNK;
     char ft_table[128];                      // TODO: enough length?
     memset(ft_table, -1, sizeof(ft_table));  // -1 is FT_UNK
     ft_table['c'] = FT_C;
     ft_table['s'] = FT_ASM;
     ft_table['o'] = FT_OBJ;
+    ft_table['e'] = FT_EXE;
 
     in_ft = ft_table[infile[strlen(infile) - 1]];
     out_ft = ft_table[outfile[strlen(outfile) - 1]];
@@ -29,8 +30,17 @@ int main(int argc, char **argv)
     if (in_ft == FT_UNK || out_ft == FT_UNK)
         error("unknown (or may be invalid) input or output file type");
     if (out_ft == FT_C) error("invalid output file type");
-    if (in_ft == FT_OBJ)
-        error("invalid input file type (but will be valid :muscle:)");
+
+    if (in_ft == FT_OBJ && out_ft == FT_EXE) {
+        // link
+        Vector *objs = new_vector();
+        vector_push_back(objs, infile);
+        ExeImage *exe = link_objs(objs);
+
+        FILE *fh = fopen(outfile, "wb");
+        dump_exe_image(exe, fh);
+        fclose(fh);
+    }
 
     Vector *code;  // assembly
 
