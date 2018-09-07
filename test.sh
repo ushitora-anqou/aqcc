@@ -69,5 +69,9 @@ nop\
 
 ls *.c | grep -Ev "aqcc_src2?.c|test" | xargs cat > _test.c
 ./aqcc _test.c _test.s
+[ $? -eq 0 ] || fail "./aqcc _test.c _test.s"
 ./aqcc _test.s _test_main.o
+[ $? -eq 0 ] || fail "./aqcc _test.s _test_main.o"
 gcc _test_main.o -o _test.o testutil.o -static
+./_test.o
+[ $? -eq 0 ] || fail "./aqcc _test.c _test.s && ./aqcc _test.s _test_main.o && ./_test.o"

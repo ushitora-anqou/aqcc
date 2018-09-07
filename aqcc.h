@@ -24,29 +24,39 @@ extern FILE *stdin;  /* Standard input stream.  */
 extern FILE *stdout; /* Standard output stream.  */
 extern FILE *stderr; /* Standard error output stream.  */
 #define NULL 0
-int printf(const char *format, ...);
-int fprintf(FILE *stream, const char *format, ...);
-int sprintf(char *str, const char *format, ...);
-#define EXIT_FAILURE 1 /* Failing exit status.  */
-#define EXIT_SUCCESS 0 /* Successful exit status.  */
-void exit(int status);
-void *malloc(int size);
-void *realloc(void *ptr, int size);
-int strlen(const char *s);
-int strcmp(const char *s1, const char *s2);
-char *strcpy(char *dest, const char *src);
-int vsprintf(char *str, const char *format, va_list ap);
-void *memset(void *s, int c, int n);
-int fputc(int c, FILE *stream);
-int fgetc(FILE *stream);
 #define EOF (-1)
 FILE *fopen(const char *pathname, const char *mode);
 int fclose(FILE *stream);
-int isalnum(int c);
+int fputc(int c, FILE *stream);
+int fgetc(FILE *stream);
+int fprintf(FILE *stream, const char *format, ...);
+int printf(const char *format, ...);
+#define vsprintf vsprintf_wrap
+int vsprintf(char *str, const char *format, va_list ap);
+#define EXIT_FAILURE 1 /* Failing exit status.  */
+#define EXIT_SUCCESS 0 /* Successful exit status.  */
+#define exit exit_wrap
+void exit(int status);
+#define malloc malloc_wrap
+void *malloc(int size);
+#define strlen strlen_wrap
+int strlen(const char *s);
+#define strcmp strcmp_wrap
+int strcmp(const char *s1, const char *s2);
+#define strcpy strcpy_wrap
+char *strcpy(char *dest, const char *src);
+#define isalpha isalpha_wrap
 int isalpha(int c);
+#define isalnum isalnum_wrap
+int isalnum(int c);
+#define isdigit isdigit_wrap
 int isdigit(int c);
+#define isspace isspace_wrap
 int isspace(int c);
+#define memcpy memcpy_wrap
 void *memcpy(void *dest, const void *src, int n);
+#define memset memset_wrap
+void *memset(void *s, int c, int n);
 
 // vector.c
 typedef struct Vector Vector;
@@ -556,7 +566,6 @@ _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
 _Noreturn void error_unexpected_token_str(char *expect_str, Token *got);
 void warn(const char *msg, ...);
 void *safe_malloc(int size);
-void *safe_realloc(void *ptr, int size);
 char *new_str(const char *src);
 int *new_int(int src);
 char *format(const char *src, ...);
