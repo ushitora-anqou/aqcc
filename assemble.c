@@ -1,5 +1,16 @@
 #include "aqcc.h"
 
+struct ObjectImage {
+    Vector *text;    // vector<int>
+    Vector *data;    // vector<int>
+    Vector *rela;    // vector<RelaEntry *>
+    Vector *strtab;  // vecotr<int>
+    Vector *symtab;  // vector<SymbolInfo *>
+
+    Map *symbol_map;    // map<char *, SymbolInfo *>
+    Map *label2offset;  // map<char *, SectionOffset>
+};
+
 ObjectImage *target_objimg = NULL;
 
 void init_target_objimg(ObjectImage *objimg) { target_objimg = objimg; }

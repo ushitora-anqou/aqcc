@@ -1,5 +1,9 @@
 #include "aqcc.h"
 
+struct ExeImage {
+    Vector *objs;  // vector<BinaryData *>
+};
+
 typedef struct BinaryData BinaryData;
 struct BinaryData {
     char *data;

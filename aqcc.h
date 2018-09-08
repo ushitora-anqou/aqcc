@@ -540,21 +540,7 @@ struct Code {
 };
 
 typedef struct ObjectImage ObjectImage;
-struct ObjectImage {
-    Vector *text;    // vector<int>
-    Vector *data;    // vector<int>
-    Vector *rela;    // vector<RelaEntry *>
-    Vector *strtab;  // vecotr<int>
-    Vector *symtab;  // vector<SymbolInfo *>
-
-    Map *symbol_map;    // map<char *, SymbolInfo *>
-    Map *label2offset;  // map<char *, SectionOffset>
-};
-
 typedef struct ExeImage ExeImage;
-struct ExeImage {
-    Vector *objs;  // vector<BinaryData *>
-};
 
 // utility.c
 _Noreturn void error(const char *msg, ...);
