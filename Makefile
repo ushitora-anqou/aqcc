@@ -53,8 +53,9 @@ clean:
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
 	rm -f $(SELF_ASSEMBLES) $(SELFSELF_ASSEMBLES)
 	rm -f _test_self_test.sh _test_selfself_test.sh
-	rm -f _test.s _test.o testutil.o _test.in
+	rm -f _test.c _test.s _test.o testutil.o _test.in
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
 	rm -f __self_sort.in __selfself_sort.in
+	rm -f test_link.o test_link.exe
 
-.PHONY: test self self_test test clean examples
+.PHONY: test self self_test selfself_test test clean examples

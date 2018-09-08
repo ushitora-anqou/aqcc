@@ -553,7 +553,7 @@ struct ObjectImage {
 
 typedef struct ExeImage ExeImage;
 struct ExeImage {
-    int dum;
+    Vector *objs;  // vector<BinaryData *>
 };
 
 // utility.c

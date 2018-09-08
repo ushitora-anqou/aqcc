@@ -915,7 +915,7 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
     set_buffer_to_emit(dumped);
 
     //
-    // *** ELF HEADRE ***
+    // *** ELF HEADER ***
     //
 
     int header_offset = 0;

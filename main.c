@@ -40,6 +40,7 @@ int main(int argc, char **argv)
         FILE *fh = fopen(outfile, "wb");
         dump_exe_image(exe, fh);
         fclose(fh);
+        return;
     }
 
     Vector *code;  // assembly

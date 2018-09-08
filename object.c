@@ -1,6 +1,9 @@
 #include "aqcc.h"
 
-void add_byte(Vector *vec, int val) { vector_push_back(vec, (void *)val); }
+void add_byte(Vector *vec, int val)
+{
+    vector_push_back(vec, (void *)(val & 0xff));
+}
 
 void set_byte(Vector *vec, int index, int val)
 {
@@ -61,7 +64,7 @@ void set_buffer_to_emit(Vector *buffer) { buffer_to_emit = buffer; }
 
 void reemit_byte(int index, int val0)
 {
-    vector_set(buffer_to_emit, index, (void *)val0);
+    vector_set(buffer_to_emit, index, (void *)(val0 & 0xff));
 }
 
 void emit_byte(int val0) { add_byte(buffer_to_emit, val0); }
