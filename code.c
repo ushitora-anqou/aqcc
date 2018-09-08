@@ -498,6 +498,9 @@ char *code2str(Code *code)
         case INST_CALL:
             return format("call %s", code->label);
 
+        case INST_NOP:
+            return "nop";
+
         case INST_OTHER: {
             char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
             char *ret = code->other_op;

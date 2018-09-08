@@ -808,6 +808,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 emit_dword_int(0);
             } break;
 
+            case INST_NOP:
+                emit_byte(0x90);
+                break;
+
             case INST_OTHER:
                 break;
 

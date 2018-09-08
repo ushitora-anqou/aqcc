@@ -502,6 +502,7 @@ enum {
     INST_DECL,
     INST_DECQ,
     INST_CALL,
+    INST_NOP,
 
     INST_OTHER,
 
