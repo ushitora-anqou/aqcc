@@ -812,6 +812,10 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                 emit_byte(0x90);
                 break;
 
+            case INST_SYSCALL:
+                emit_word(0x0f, 0x05);
+                break;
+
             case CD_COMMENT:
                 break;
 

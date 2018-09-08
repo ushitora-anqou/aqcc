@@ -503,6 +503,7 @@ enum {
     INST_DECQ,
     INST_CALL,
     INST_NOP,
+    INST_SYSCALL,
 
     CD_VALUE,
     CD_ADDR_OF,

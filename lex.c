@@ -811,6 +811,7 @@ Vector *read_all_asm(char *src)
         Map *simple_table = new_map();
         map_insert(simple_table, "ret", (void *)INST_RET);
         map_insert(simple_table, "nop", (void *)INST_NOP);
+        map_insert(simple_table, "syscall", (void *)INST_SYSCALL);
         map_insert(simple_table, "cltd", (void *)INST_CLTD);
         map_insert(simple_table, "cltq", (void *)INST_CLTQ);
         map_insert(simple_table, ".text", (void *)CD_TEXT);

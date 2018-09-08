@@ -489,6 +489,9 @@ char *code2str(Code *code)
         case INST_NOP:
             return "nop";
 
+        case INST_SYSCALL:
+            return "syscall";
+
         case CD_COMMENT:
             return format("/* %s */", code->sval);
 
