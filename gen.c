@@ -551,11 +551,6 @@ int generate_register_code_detail(AST *ast)
             assert(temp_reg_table == 0);
             RESTORE_VARIADIC_CXT;
 
-            // avoid duplicate needless `ret`
-            Code *code = last_appended_code();
-            if (code->kind == INST_OTHER && strcmp(code->other_op, "ret") == 0)
-                return -1;
-
             if (ast->type->kind != TY_VOID) appcode(MOV(value(0), RAX()));
             generate_funcdef_end_marker();
             appcode(MOV(RBP(), RSP()));

@@ -320,8 +320,7 @@ int is_same_code(Code *lhs, Code *rhs)
     if (!is_same_code(lhs->lhs, rhs->lhs) || !is_same_code(lhs->rhs, rhs->rhs))
         return 0;
     if (lhs->ival != rhs->ival) return 0;
-    if (lhs->label != rhs->label) return 0;        // TODO: strcmp
-    if (lhs->other_op != rhs->other_op) return 0;  // TODO: strcmp
+    if (lhs->label != rhs->label) return 0;  // TODO: strcmp
     return 1;
 }
 

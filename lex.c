@@ -848,7 +848,7 @@ Vector *read_all_asm(char *src)
             continue;
         }
 
-        vector_push_back(code, new_other_code(str, NULL, NULL));
+        error("not implemented assembly: %s", str);
     }
 
     return code;

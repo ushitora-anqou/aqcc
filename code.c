@@ -8,7 +8,6 @@ Code *new_code(int kind)
     code->ival = 0;
     code->sval = NULL;
     code->label = NULL;
-    code->other_op = NULL;
     code->read_dep = new_vector();
     code->can_be_eliminated = 1;
     return code;
@@ -30,17 +29,6 @@ Code *new_unary_code(int kind, Code *lhs)
     code->lhs = lhs;
     code->rhs = NULL;
     vector_push_back(code->read_dep, lhs);
-    return code;
-}
-
-Code *new_other_code(char *other_op, Code *lhs, Code *rhs)
-{
-    Code *code = new_code(INST_OTHER);
-    code->other_op = other_op;
-    code->lhs = lhs;
-    code->rhs = rhs;
-    if (lhs) vector_push_back(code->read_dep, lhs);
-    if (rhs) vector_push_back(code->read_dep, rhs);
     return code;
 }
 
@@ -500,14 +488,6 @@ char *code2str(Code *code)
 
         case INST_NOP:
             return "nop";
-
-        case INST_OTHER: {
-            char *lhs = code2str(code->lhs), *rhs = code2str(code->rhs);
-            char *ret = code->other_op;
-            if (lhs) ret = format("%s %s", ret, lhs);
-            if (rhs) ret = format("%s, %s", ret, rhs);
-            return ret;
-        }
 
         case CD_COMMENT:
             return format("/* %s */", code->sval);

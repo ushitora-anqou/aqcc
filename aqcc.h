@@ -504,8 +504,6 @@ enum {
     INST_CALL,
     INST_NOP,
 
-    INST_OTHER,
-
     CD_VALUE,
     CD_ADDR_OF,
     CD_ADDR_OF_LABEL,
@@ -536,7 +534,6 @@ struct Code {
     int ival;
     char *sval;  // size is ival
     char *label;
-    char *other_op;
     Vector *read_dep;
     int can_be_eliminated;
 };
@@ -655,7 +652,6 @@ Code *new_addrof_code(Code *reg, int offset);
 Code *new_addrof_label_code(Code *reg, char *label);
 Code *new_value_code(int value);
 Code *new_code(int kind);
-Code *new_other_code(char *other_op, Code *lhs, Code *rhs);
 char *code2str(Code *code);
 void dump_code(Code *code, FILE *fh);
 Code *new_binop_code(int kind, Code *lhs, Code *rhs);
