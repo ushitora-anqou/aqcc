@@ -158,32 +158,11 @@ void init_code_env()
 
 void appcode(Code *code) { vector_push_back(codeenv->code, code); }
 
-void appcode_str(const char *src, ...)
+void appcomment(char *str)
 {
-    char buf[256], buf2[256];  // TODO: enough length?
-    int i, bufidx;
-    va_list args;
-
-    // copy src to buf.
-    // replace # to %% in src.
-    for (i = 0, bufidx = 0;; i++) {
-        if (src[i] == '\0') break;
-
-        if (src[i] == '#') {
-            buf[bufidx++] = '%';
-            buf[bufidx++] = '%';
-            continue;
-        }
-
-        buf[bufidx++] = src[i];
-    }
-    buf[bufidx] = '\0';
-
-    va_start(args, src);
-    vsprintf(buf2, buf, args);
-    va_end(args);
-
-    appcode(new_other_code(new_str(buf2), NULL, NULL));
+    Code *code = new_code(CD_COMMENT);
+    code->sval = str;
+    appcode(code);
 }
 
 Code *last_appended_code()
@@ -212,26 +191,26 @@ int nbyte_of_reg(int reg)
 
 void generate_basic_block_start_maker()
 {
-    appcode_str("/* BLOCK START */");
+    appcomment("BLOCK START");
     appcode(new_code(MRK_BASIC_BLOCK_START));
 }
 
 void generate_basic_block_end_marker()
 {
     appcode(new_code(MRK_BASIC_BLOCK_END));
-    appcode_str("/* BLOCK END */");
+    appcomment("BLOCK END");
 }
 
 void generate_funcdef_start_marker()
 {
-    appcode_str("/* FUNCDEF START */");
+    appcomment("FUNCDEF START");
     appcode(new_code(MRK_FUNCDEF_START));
 }
 
 void generate_funcdef_end_marker()
 {
     appcode(new_code(MRK_FUNCDEF_END));
-    appcode_str("/* FUNCDEF END */");
+    appcomment("FUNCDEF END");
 }
 
 void generate_funcdef_return_marker() { appcode(new_code(MRK_FUNCDEF_RETURN)); }
@@ -1045,7 +1024,7 @@ int generate_register_code_detail(AST *ast)
             return -1;
     }
 
-    warn("%d\n", ast->kind);
+    warn("gen.c %d\n", ast->kind);
     assert(0);
 }
 

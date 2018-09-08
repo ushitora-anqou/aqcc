@@ -811,6 +811,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             case INST_OTHER:
                 break;
 
+            case CD_COMMENT:
+                break;
+
             case CD_GLOBAL:
                 get_symbol_info(code->label)->st_info |= 0x10;
                 break;

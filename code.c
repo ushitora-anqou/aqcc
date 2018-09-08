@@ -506,6 +506,9 @@ char *code2str(Code *code)
             return ret;
         }
 
+        case CD_COMMENT:
+            return format("/* %s */", code->sval);
+
         case CD_VALUE:
             return format("$%d", code->ival);
 
@@ -541,7 +544,7 @@ char *code2str(Code *code)
             return format(".ascii \"%s\"",
                           escape_string(code->sval, code->ival));
     }
-    warn(format("%d", code->kind));
+    warn(format("code.c %d", code->kind));
     assert(0);
 }
 
