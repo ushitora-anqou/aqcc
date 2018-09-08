@@ -649,6 +649,14 @@ ObjectImage *assemble_code_detail(Vector *code_list)
                     break;
                 }
 
+                if (is_reg64(code->lhs) && is_reg64(code->rhs)) {
+                    emit_rex_prefix(1, code->lhs, code->rhs);
+                    emit_byte(0x31);
+                    emit_byte(
+                        modrm(3, reg_field(code->lhs), reg_field(code->rhs)));
+                    break;
+                }
+
                 goto not_implemented_error;
 
             case INST_OR:
