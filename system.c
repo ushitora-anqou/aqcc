@@ -57,8 +57,8 @@ void *memset_wrap(void *s, int c, int n)
     return s;
 }
 
-typedef __builtin_va_list va_list;
 #ifndef va_start
+typedef __builtin_va_list va_list;
 #define va_start __builtin_va_start
 #define va_end __builtin_va_end
 #define va_arg __builtin_va_arg
@@ -124,44 +124,44 @@ void exit_wrap(int status)
     syscall_wrap(60, status);
 }
 
-// void *brk_wrap(void *addr)
-//{
-//    // __NR_brk
-//    return syscall_wrap(12, addr);
-//}
-//
-// void *malloc_wrap(int size)
-//{
-//    static void *malloc_pointer_head = 0;
-//    static int malloc_remaining_size = 0;
-//
-//    if (malloc_pointer_head == 0) {
-//        void *p = brk_wrap(0);
-//        int size = 0x32000000;
-//        void *q = brk_wrap(p + size);
-//        // printf("init %d\n", malloc_remaining_size);
-//        // printf("init %p\n", p);
-//        // printf("init %p\n", q);
-//        malloc_pointer_head = p;
-//        malloc_remaining_size = size;
-//    }
-//
-//    if (malloc_remaining_size < size) {
-//        printf("BUG%d\n", malloc_remaining_size);
-//        printf("BUG%d\n", size);
-//        return 0;
-//    }
-//
-//    void *ret = malloc_pointer_head + 4;
-//    malloc_pointer_head += size + 4;
-//    malloc_remaining_size -= size + 4;
-//
-//    // printf("%d\n", malloc_remaining_size);
-//    // printf("%d\n", size);
-//    // printf("%p\n", ret);
-//    // printf("%p\n", ret + size);
-//    return ret;
-//}
+void *brk_wrap(void *addr)
+{
+    // __NR_brk
+    return syscall_wrap(12, addr);
+}
+
+void *malloc_wrap(int size)
+{
+    static void *malloc_pointer_head = 0;
+    static int malloc_remaining_size = 0;
+
+    if (malloc_pointer_head == 0) {
+        void *p = brk_wrap(0);
+        int size = 0x32000000;
+        void *q = brk_wrap(p + size);
+        // printf("init %d\n", malloc_remaining_size);
+        // printf("init %p\n", p);
+        // printf("init %p\n", q);
+        malloc_pointer_head = p;
+        malloc_remaining_size = size;
+    }
+
+    if (malloc_remaining_size < size) {
+        printf("BUG%d\n", malloc_remaining_size);
+        printf("BUG%d\n", size);
+        return NULL_wrap;
+    }
+
+    void *ret = malloc_pointer_head + 4;
+    malloc_pointer_head += size + 4;
+    malloc_remaining_size -= size + 4;
+
+    // printf("%d\n", malloc_remaining_size);
+    // printf("%d\n", size);
+    // printf("%p\n", ret);
+    // printf("%p\n", ret + size);
+    return ret;
+}
 
 int open_wrap(const char *path, int oflag)
 {
