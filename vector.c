@@ -29,7 +29,9 @@ void vector_push_back(Vector *vec, void *item)
 {
     if (vec->data == NULL || vec->size == vec->rsved_size) {
         vec->rsved_size *= 2;
-        vec->data = safe_realloc(vec->data, vec->rsved_size * sizeof(void *));
+        void **ndata = (void **)safe_malloc(sizeof(void *) * vec->rsved_size);
+        memcpy(ndata, vec->data, vec->size * sizeof(void *));
+        vec->data = ndata;
     }
 
     vec->data[vec->size++] = item;

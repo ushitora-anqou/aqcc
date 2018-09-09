@@ -44,13 +44,6 @@ void *safe_malloc(int size)
     return ptr;
 }
 
-void *safe_realloc(void *ptr, int size)
-{
-    ptr = realloc(ptr, size);
-    if (ptr == NULL) error("realloc failed.");
-    return ptr;
-}
-
 char *new_str(const char *src)
 {
     char *ret = safe_malloc(strlen(src) + 1);

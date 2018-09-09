@@ -1,14 +1,13 @@
 TARGET=aqcc
 TARGET_SELF=aqcc_self
 TARGET_SELFSELF=aqcc_selfself
-SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c optimize.c assemble.c code.c link.c object.c
-SELF_OBJS=$(SRC:.c=.self.o)
-SELFSELF_OBJS=$(SRC:.c=.selfself.o)
-SELF_ASSEMBLES=$(SRC:.c=.self.s)
-SELFSELF_ASSEMBLES=$(SRC:.c=.selfself.s)
+SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analyze.c string_builder.c cpp.c token.c optimize.c assemble.c code.c link.c object.c system.c
+SRC_ASM=system.s
+SELF_OBJS=$(SRC:.c=.self.o) $(SRC_ASM:.s=.self.o)
+SELFSELF_OBJS=$(SRC:.c=.selfself.o) $(SRC_ASM:.s=.selfself.o)
 
-$(TARGET): $(SRC) test.inc aqcc.h
-	gcc -o $@ $(SRC) -O0 -g3 -Wall -lm -std=c11 -static
+$(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
+	gcc -o $@ $(SRC) $(SRC_ASM) -O0 -g3 -Wall -std=c11 -static
 
 test: $(TARGET) testutil.o
 	./test.sh
@@ -22,11 +21,17 @@ $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 %.self.s: %.c
 	./$(TARGET) cs $< $@
 
+%.self.s: %.s
+	cp $< $@
+
 %.self.o: %.self.s $(TARGET)
 	./$(TARGET) so $< $@
 
 %.selfself.s: %.c
 	./$(TARGET_SELF) cs $< $@
+
+%.selfself.s: %.s
+	cp $< $@
 
 %.selfself.o: %.selfself.s $(TARGET_SELF)
 	./$(TARGET_SELF) so $< $@
@@ -49,7 +54,7 @@ _test_selfself_test.sh: test.sh
 	sed -i -E "s/\\.\\/aqcc/.\\/aqcc_selfself/g" $@
 
 testutil.o: testutil.c aqcc.h
-	gcc -c testutil.c -o testutil.o
+	gcc -c testutil.c -o $@
 
 examples: $(TARGET)
 	make -C examples
@@ -57,7 +62,6 @@ examples: $(TARGET)
 clean:
 	make -C examples $@
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
-	rm -f $(SELF_ASSEMBLES) $(SELFSELF_ASSEMBLES)
 	rm -f _test_self_test.sh _test_selfself_test.sh
 	rm -f _test.c _test.s _test.o testutil.o _test.in
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
