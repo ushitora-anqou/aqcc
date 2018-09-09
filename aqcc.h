@@ -25,11 +25,17 @@ extern FILE *stdout; /* Standard output stream.  */
 extern FILE *stderr; /* Standard error output stream.  */
 #define NULL 0
 #define EOF (-1)
+#define fopen fopen_wrap
 FILE *fopen(const char *pathname, const char *mode);
+#define fclose fclose_wrap
 int fclose(FILE *stream);
+#define fputc fputc_wrap
 int fputc(int c, FILE *stream);
+#define fgetc fgetc_wrap
 int fgetc(FILE *stream);
+#define fprintf fprintf_wrap
 int fprintf(FILE *stream, const char *format, ...);
+#define printf printf_wrap
 int printf(const char *format, ...);
 #define vsprintf vsprintf_wrap
 int vsprintf(char *str, const char *format, va_list ap);

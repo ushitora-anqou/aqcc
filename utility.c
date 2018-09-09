@@ -7,7 +7,8 @@ _Noreturn void error(const char *msg, ...)
     char *str = vformat(msg, args);
     va_end(args);
 
-    fprintf(stderr, "[ERROR] %s\n", str);
+    // fprintf(stderr, "[ERROR] %s\n", str);
+    printf("[ERROR] %s\n", str);
     // fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
     exit(EXIT_FAILURE);
 }
@@ -31,7 +32,8 @@ void warn(const char *msg, ...)
     char *str = vformat(msg, args);
     va_end(args);
 
-    fprintf(stderr, "[WARN]  %s\n", str);
+    // fprintf(stderr, "[WARN]  %s\n", str);
+    printf("[WARN]  %s\n", str);
     // fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
 }
 
@@ -237,7 +239,8 @@ Vector *read_asm_from_filepath(char *filepath)
 void assert(int cond)
 {
     if (cond) return;
-    fprintf(stderr, "[ASSERT] %d\n", cond);
+    // fprintf(stderr, "[ASSERT] %d\n", cond);
+    printf("[ASSERT] %d\n", cond);
     exit(EXIT_FAILURE);
 }
 

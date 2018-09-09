@@ -1,3 +1,6 @@
+#define NULL_wrap 0
+#define EOF_wrap -1
+
 int isdigit_wrap(int c) { return '0' <= c && c <= '9'; }
 
 int isalpha_wrap(int c)
@@ -63,7 +66,7 @@ typedef __builtin_va_list va_list;
 
 int vsprintf_wrap(char *str, const char *format, va_list ap)
 {
-    const char *p = format;
+    const char *p = format, *org_str = str;
     while (*p != '\0') {
         if (*p != '%') {
             *str++ = *p++;
@@ -110,7 +113,7 @@ int vsprintf_wrap(char *str, const char *format, va_list ap)
 end:
     *str = '\0';
 
-    return 0;  // TODO: should return length of printed letters
+    return str - org_str;
 }
 
 void *syscall_wrap(int number, ...);
@@ -163,4 +166,84 @@ void exit_wrap(int status)
 int open_wrap(const char *path, int oflag)
 {
     return (int)syscall_wrap(2, path, oflag);
+}
+
+int close_wrap(int fd) { return (int)syscall_wrap(3, fd); }
+
+typedef struct {
+    int fd;
+} FILE_wrap;
+
+int write_wrap(int fd, const void *buf, int count)
+{
+    return (int)syscall_wrap(1, fd, buf, count);
+}
+
+int read_wrap(int fd, const void *buf, int count)
+{
+    return (int)syscall_wrap(0, fd, buf, count);
+}
+
+FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
+{
+    if (mode[0] == 'w') {
+        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
+        // O_CREAT | O_WRONLY | O_TRUNC
+        file->fd = open_wrap(pathname, 64 | 1 | 512);
+        if (file->fd == -1) return NULL_wrap;
+        return file;
+    }
+
+    if (mode[0] == 'r') {
+        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
+        //  O_RDONLY
+        file->fd = open_wrap(pathname, 0);
+        if (file->fd == -1) return NULL_wrap;
+        return file;
+    }
+
+    assert(0);
+}
+
+int fclose_wrap(FILE_wrap *stream) { return close_wrap(stream->fd); }
+
+int fputc_wrap(int c, FILE_wrap *stream)
+{
+    char buf[1];
+    buf[0] = c & 0xff;
+    return write_wrap(stream->fd, buf, 1);
+}
+
+int fgetc_wrap(FILE_wrap *stream)
+{
+    char buf[1];
+    int res = read_wrap(stream->fd, buf, 1);
+    if (res <= 0) return EOF_wrap;
+    return buf[0] & 0xff;
+}
+
+int fprintf_wrap(FILE_wrap *stream, const char *format, ...)
+{
+    char buf[512];  // TODO: enough length?
+    va_list args;
+
+    va_start(args, format);
+    int cnt = vsprintf_wrap(buf, format, args);
+    va_end(args);
+
+    write_wrap(stream->fd, buf, cnt);
+    return cnt;
+}
+
+int printf_wrap(const char *format, ...)
+{
+    char buf[512];  // TODO: enough length?
+    va_list args;
+
+    va_start(args, format);
+    int cnt = vsprintf_wrap(buf, format, args);
+    va_end(args);
+
+    write_wrap(1, buf, cnt);
+    return cnt;
 }
