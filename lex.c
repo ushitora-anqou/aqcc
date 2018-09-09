@@ -826,6 +826,7 @@ Vector *read_all_asm(char *src)
         map_insert(label_table, "jmp", (void *)INST_JMP);
         map_insert(label_table, "je", (void *)INST_JE);
         map_insert(label_table, "jne", (void *)INST_JNE);
+        map_insert(label_table, "jae", (void *)INST_JAE);
         map_insert(label_table, ".global", (void *)CD_GLOBAL);
         if (kv = map_lookup(label_table, str)) {
             char *label = read_asm_token();

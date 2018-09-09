@@ -2420,4 +2420,6 @@ int main()
     test347();
     test348();
     test350();
+
+    static int d = -1;
 }
