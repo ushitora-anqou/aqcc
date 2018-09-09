@@ -1,6 +1,7 @@
 #include "aqcc.h"
 
 struct ExeImage {
+    int vaddr_offset, header_size;
     Vector *objs;  // vector<ObjectData *>
 };
 
@@ -9,8 +10,8 @@ struct ObjectData {
     char *data;
     int size;
 
-    char *shdr, *symtab, *strtab;
-    int nshdr, nsymtab;
+    char *shdr, *symtab, *strtab, *rela_text;
+    int nshdr, nsymtab, nrela_text;
 };
 
 int read_byte(char *data) { return data[0] & 0xff; }
@@ -25,6 +26,23 @@ int read_dword(char *data)
     return read_word(data) | (read_word(data + 2) << 16);
 }
 
+// assume that obj->shdr, obj->nshdr and obj->data are already filled.
+int get_section_offset(ObjectData *obj, char *name)
+{
+    char *section_strtab =
+        obj->data +
+        read_dword(obj->shdr + 0x40 * read_word(obj->data + 62) + 24);
+
+    for (int i = 1; i < obj->nshdr; i++) {
+        char *entry = obj->shdr + 0x40 * i;
+        int offset = read_dword(entry + 24);
+        if (strcmp(name, section_strtab + read_dword(entry)) == 0)
+            return offset;
+    }
+
+    assert(0);
+}
+
 ObjectData *new_object_data(char *data, int size)
 {
     ObjectData *obj = (ObjectData *)safe_malloc(sizeof(ObjectData));
@@ -37,18 +55,22 @@ ObjectData *new_object_data(char *data, int size)
     char *section_strtab =
         data + read_dword(obj->shdr + 0x40 * read_word(data + 62) + 24);
     obj->nshdr = read_word(data + 60);
+
     for (int i = 1; i < obj->nshdr; i++) {
         char *entry = obj->shdr + 0x40 * i;
         char *offset = data + read_dword(entry + 24);
         int size = read_dword(entry + 32);
-        if (obj->symtab == NULL &&
-            strcmp(section_strtab + read_dword(entry), ".symtab") == 0) {
+        char *name = section_strtab + read_dword(entry);
+        if (obj->symtab == NULL && strcmp(name, ".symtab") == 0) {
             obj->symtab = offset;
             obj->nsymtab = size / 24;
         }
-        if (obj->strtab == NULL &&
-            strcmp(section_strtab + read_dword(entry), ".strtab") == 0)
+        if (obj->strtab == NULL && strcmp(name, ".strtab") == 0)
             obj->strtab = offset;
+        if (obj->rela_text == NULL && strcmp(name, ".rela.text") == 0) {
+            obj->rela_text = offset;
+            obj->nrela_text = size / 24;
+        }
     }
     assert(obj->shdr != NULL && obj->symtab != NULL && obj->strtab != NULL);
 
@@ -71,14 +93,14 @@ ObjectData *read_entire_binary(char *filepath)
     return new_object_data(string_builder_get(sb), string_builder_size(sb) - 1);
 }
 
-int search_symbol(Vector *objs, const char *name)
+int search_symbol(Vector *objs, const char *name, int header_offset)
 {
-    int prev_offset = 0;
+    int prev_offset = header_offset;
 
     for (int i = 0; i < vector_size(objs); i++) {
         ObjectData *obj = (ObjectData *)vector_get(objs, i);
         for (int j = 0; j < obj->nsymtab; j++) {
-            char *entry = obj->symtab + 0x30 * j;
+            char *entry = obj->symtab + 24 * j;
             if (strcmp(obj->strtab + read_dword(entry), name) != 0) continue;
             int st_info = read_byte(entry + 4), st_shndx = read_word(entry + 6),
                 st_value = read_word(entry + 8);
@@ -92,16 +114,68 @@ int search_symbol(Vector *objs, const char *name)
     error("undefined symbol: %s", name);
 }
 
+void link_objs_detail(Vector *objs, int header_offset)
+{
+    int prev_offset = header_offset;
+
+    for (int i = 0; i < vector_size(objs); i++) {
+        ObjectData *obj = (ObjectData *)vector_get(objs, i);
+        for (int j = 0; j < obj->nrela_text; j++) {
+            char *entry = obj->rela_text + j * 24;
+            int r_offset = read_dword(entry),
+                r_info_type = read_dword(entry + 8),
+                r_info_symtabidx = read_dword(entry + 12),
+                r_addend = read_dword(entry + 16);
+            char *symtab_entry = obj->symtab + 24 * r_info_symtabidx;
+            int st_shndx = read_word(symtab_entry + 6);
+
+            int reled_addr = -1;
+            if (st_shndx == 0) {  // SHN_UNDEF
+                char *name = obj->strtab + read_dword(symtab_entry);
+                reled_addr = search_symbol(objs, name, header_offset);
+            }
+            else {
+                reled_addr =
+                    prev_offset + read_dword(obj->shdr + 0x40 * st_shndx + 24);
+            }
+            assert(reled_addr != -1);
+
+            int offset = r_offset + get_section_offset(obj, ".text");
+            switch (r_info_type) {
+                case 2: {  // R_X86_64_PC32
+                    int addr = reled_addr + r_addend - (prev_offset + offset);
+                    obj->data[offset] = addr & 0xff;
+                    obj->data[offset + 1] = (addr >> 8) & 0xff;
+                    obj->data[offset + 2] = (addr >> 16) & 0xff;
+                    obj->data[offset + 3] = (addr >> 24) & 0xff;
+                } break;
+
+                default:
+                    assert(0);
+            }
+        }
+
+        prev_offset += obj->size;
+    }
+}
+
 ExeImage *link_objs(Vector *obj_paths)
 {
+    int vaddr_offset = 0x400000, header_size = 64 + 56,
+        header_offset = vaddr_offset + header_size;
+
     Vector *objs = new_vector();
 
     for (int i = 0; i < vector_size(obj_paths); i++)
         vector_push_back(objs,
                          read_entire_binary((char *)vector_get(obj_paths, i)));
 
+    link_objs_detail(objs, header_offset);
+
     ExeImage *exe = (ExeImage *)safe_malloc(sizeof(ExeImage));
     exe->objs = objs;
+    exe->vaddr_offset = vaddr_offset;
+    exe->header_size = header_size;
     return exe;
 }
 
@@ -174,9 +248,9 @@ void dump_exe_image(ExeImage *exeimg, FILE *fh)
     // offset
     emit_qword_int(0, 0);
     // virtual address in memory
-    emit_qword_int(0x400000, 0);
+    emit_qword_int(exeimg->vaddr_offset, 0);
     // reserved (phisical address in memory ?)
-    emit_qword_int(0x400000, 0);
+    emit_qword_int(exeimg->vaddr_offset, 0);
     // size of segment in file (placeholder)
     int filesz_addr = emitted_size();
     emit_qword_int(0, 0);
@@ -198,8 +272,8 @@ void dump_exe_image(ExeImage *exeimg, FILE *fh)
     }
 
     // rewrite placeholders
-    int ep_offset =
-        0x400000 + body_offset + search_symbol(exeimg->objs, "_start");
+    int ep_offset = search_symbol(exeimg->objs, "_start",
+                                  exeimg->vaddr_offset + exeimg->header_size);
     reemit_byte(ep_addr + 0, (ep_offset >> 0) & 0xff);
     reemit_byte(ep_addr + 1, (ep_offset >> 8) & 0xff);
     reemit_byte(ep_addr + 2, (ep_offset >> 16) & 0xff);

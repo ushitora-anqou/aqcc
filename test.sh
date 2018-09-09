@@ -77,4 +77,4 @@ gcc _test_main.o -o _test.o testutil.o -static
 ./aqcc test_link.o test_link.exe
 chmod 755 test_link.exe
 ./test_link.exe
-[ $? -eq 0 ] || fail "./aqcc test_link.s test_link.o & ./aqcc test_link.o test_link.exe & ./test_link.exe"
+[ $? -eq 4 ] || fail "./aqcc test_link.s test_link.o & ./aqcc test_link.o test_link.exe & ./test_link.exe"
