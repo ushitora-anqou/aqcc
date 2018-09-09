@@ -31,15 +31,16 @@ AnQou C Compiler の使い方
 
 ## 一般のCファイルをコンパイル
 
-`./aqcc infile outfile`
+`./aqcc [cs|so] infile outfile`
 
-拡張子を見てオブジェクトファイルを出力するべきかアセンブリを出力するべきか判断します。
+`cs` はCファイルをアセンブリに、`so`はアセンブリをオブジェクトファイルに変換します。
 
 `program.c` を以下のようにしてコンパイルし、実行できます。
 `aqcc` や `program.c` などは適宜読みかえてください。
 
 ```
-$ ./aqcc program.c program.o
+$ ./aqcc cs program.c program.s
+$ ./aqcc so program.s program.o
 $ gcc program.o -o program
 $ ./program
 ```

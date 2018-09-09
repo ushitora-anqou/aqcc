@@ -19,11 +19,17 @@ $(TARGET_SELF): $(SELF_OBJS)
 $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 	gcc $^ -o $@ -static
 
-%.self.o: %.c $(TARGET)
-	./$(TARGET) $< $@
+%.self.s: %.c
+	./$(TARGET) cs $< $@
 
-%.selfself.o: %.c $(TARGET_SELF)
-	./$(TARGET_SELF) $< $@
+%.self.o: %.self.s $(TARGET)
+	./$(TARGET) so $< $@
+
+%.selfself.s: %.c
+	./$(TARGET_SELF) cs $< $@
+
+%.selfself.o: %.selfself.s $(TARGET_SELF)
+	./$(TARGET_SELF) so $< $@
 
 self_test: $(TARGET_SELF) _test_self_test.sh testutil.o
 	./_test_self_test.sh

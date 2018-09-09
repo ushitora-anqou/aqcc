@@ -850,7 +850,8 @@ Vector *read_all_asm(char *src)
             continue;
         }
 
-        error("not implemented assembly: %s", str);
+        error(":%d:%d: not implemented assembly: %s", source.line,
+              source.column, str);
     }
 
     return code;

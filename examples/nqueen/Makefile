@@ -8,8 +8,11 @@ OBJS=$(SRC:.c=.o)
 $(TARGET) : $(OBJS)
 	gcc $^ -o $@
 
-%.o : %.c
-	$(AQCC) $< $@
+%.s : %.c
+	$(AQCC) cs $< $@
+
+%.o : %.s
+	$(AQCC) so $< $@
 
 clean:
 	rm -f $(TARGET) $(ASSEMBLES)
