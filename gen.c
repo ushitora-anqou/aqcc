@@ -1012,6 +1012,31 @@ int generate_register_code_detail(AST *ast)
             return reg;
         }
 
+        case AST_VA_ARG_CHARP: {
+            char *stack_label = make_label_string(),
+                 *fetch_label = make_label_string();
+            int reg = generate_register_code_detail(ast->lhs);
+            Code *reg_code = nbyte_reg(8, reg),
+                 *gp_offset = addrof(reg_code, 0),
+                 *overflow_arg_area = addrof(reg_code, 8),
+                 *reg_save_area = addrof(reg_code, 16);
+            appcode(MOV(gp_offset, EAX()));
+            appcode(CMP(value(48), EAX()));
+            appcode(JAE(stack_label));
+            appcode(MOV(EAX(), EDX()));
+            appcode(ADD(value(8), EDX()));
+            appcode(ADD(reg_save_area, RAX()));
+            appcode(MOV(EDX(), gp_offset));
+            appcode(JMP(fetch_label));
+            appcode(LABEL(stack_label));
+            appcode(MOV(overflow_arg_area, RAX()));
+            appcode(LEA(addrof(RAX(), 8), RDX()));
+            appcode(MOV(RDX(), overflow_arg_area));
+            appcode(LABEL(fetch_label));
+            appcode(MOV(addrof(RAX(), 0), nbyte_reg(8, reg)));
+            return reg;
+        }
+
         case AST_GVAR_DECL:
         case AST_LVAR_DECL:
         case AST_FUNC_DECL:

@@ -103,9 +103,19 @@ void test003allcorrect_va_arg(int a, int b, int c, int d, int e, int f, int g,
     va_end(args);
 }
 
+void test003charp(int a, ...)
+{
+    va_list args;
+    va_start(args, a);
+    if (va_arg(args, char *)[0] != a)
+        printf("[ERROR] test003:9: va_arg(args, char *)[0] != a\n");
+    va_end(args);
+}
+
 int test003()
 {
     test003allcorrect_va_arg(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
+    test003charp('a', "a");
 }
 
 int main()

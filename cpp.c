@@ -105,13 +105,12 @@ Vector *preprocess_tokens(Vector *tokens)
 
         if (token->kind == tIDENT) {
             // TODO: should be implemented by function macro?
-            // TODO: it can handle only `va_arg(args_var_name, int)`
+            // TODO: it can handle only `va_arg(args_var_name, int|char *)`
             if (strcmp(token->sval, "__builtin_va_arg") == 0) {
-                {
-                    Token *ntoken = clone_token(token);
-                    ntoken->sval = "__builtin_va_arg_int";
-                    vector_push_back(ntokens, ntoken);
-                }
+                Token *ntoken = clone_token(token);
+                ntoken->sval = "__builtin_va_arg_int";
+                vector_push_back(ntokens, ntoken);
+
                 skip_newline();
                 vector_push_back(ntokens, expect_token(tLPAREN));
                 skip_newline();
@@ -119,7 +118,14 @@ Vector *preprocess_tokens(Vector *tokens)
                     vector_push_back(ntokens, pop_token());
                 expect_token(tCOMMA);
                 skip_newline();
-                expect_token(kINT);
+                if (pop_token_if(kCHAR)) {
+                    skip_newline();
+                    expect_token(tSTAR);
+                    ntoken->sval = "__builtin_va_arg_charp";
+                }
+                else {
+                    expect_token(kINT);
+                }
                 skip_newline();
                 vector_push_back(ntokens, expect_token(tRPAREN));
                 continue;

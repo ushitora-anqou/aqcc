@@ -338,6 +338,7 @@ enum {
     AST_VA_START,
     AST_VA_END,
     AST_VA_ARG_INT,
+    AST_VA_ARG_CHARP,
 };
 
 struct AST {
