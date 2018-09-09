@@ -661,6 +661,16 @@ char sexpect_ch(char expect)
     return ch;
 }
 
+int read_asm_ival()
+{
+    int mul = 1;
+    if (speekch() == '-') {
+        getch();
+        mul = -1;
+    }
+    return read_next_int_token()->ival * mul;
+}
+
 char *read_asm_token()
 {
     StringBuilder *sb = new_string_builder();
@@ -692,12 +702,7 @@ Code *read_asm_param()
 
         case '$': {
             getch();  // already skipped space
-            int mul = 1;
-            if (peekch() == '-') {
-                getch();
-                mul = -1;
-            }
-            return new_value_code(mul * read_next_int_token()->ival);
+            return new_value_code(read_asm_ival());
         }
 
         case '(':
@@ -705,12 +710,7 @@ Code *read_asm_param()
     }
 
     if (isdigit(ch) || ch == '-') {
-        int mul = 1;
-        if (peekch() == '-') {
-            getch();
-            mul = -1;
-        }
-        int offset = mul * read_next_int_token()->ival;
+        int offset = read_asm_ival();
         return new_addrof_code(read_asm_memory(), offset);
     }
 
@@ -843,7 +843,7 @@ Vector *read_all_asm(char *src)
         map_insert(ival_table, ".quad", (void *)CD_QUAD);
         if (kv = map_lookup(ival_table, str)) {
             skip_space();
-            int ival = read_next_int_token()->ival;
+            int ival = read_asm_ival();
             Code *c = new_code((int)kv_value(kv));
             c->ival = ival;
             vector_push_back(code, c);
