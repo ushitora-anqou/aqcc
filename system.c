@@ -1,6 +1,22 @@
 #define NULL_wrap 0
 #define EOF_wrap -1
 
+#ifdef __GNUC__
+typedef __builtin_va_list va_list;
+#else
+#endif
+#ifndef __GNUC__
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+#endif
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
+
 int isdigit_wrap(int c) { return '0' <= c && c <= '9'; }
 
 int isalpha_wrap(int c)
@@ -56,13 +72,6 @@ void *memset_wrap(void *s, int c, int n)
     for (int i = 0; i < n; i++) *((char *)s + i) = c;
     return s;
 }
-
-#ifndef va_start
-typedef __builtin_va_list va_list;
-#define va_start __builtin_va_start
-#define va_end __builtin_va_end
-#define va_arg __builtin_va_arg
-#endif
 
 int vsprintf_wrap(char *str, const char *format, va_list ap)
 {
@@ -163,9 +172,9 @@ void *malloc_wrap(int size)
     return ret;
 }
 
-int open_wrap(const char *path, int oflag)
+int open_wrap(const char *path, int oflag, int mode)
 {
-    return (int)syscall_wrap(2, path, oflag);
+    return (int)syscall_wrap(2, path, oflag, mode);
 }
 
 int close_wrap(int fd) { return (int)syscall_wrap(3, fd); }
@@ -189,7 +198,7 @@ FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
     if (mode[0] == 'w') {
         FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
         // O_CREAT | O_WRONLY | O_TRUNC
-        file->fd = open_wrap(pathname, 64 | 1 | 512);
+        file->fd = open_wrap(pathname, 64 | 1 | 512, 0644);
         if (file->fd == -1) return NULL_wrap;
         return file;
     }
@@ -197,7 +206,7 @@ FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
     if (mode[0] == 'r') {
         FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
         //  O_RDONLY
-        file->fd = open_wrap(pathname, 0);
+        file->fd = open_wrap(pathname, 0, 0);
         if (file->fd == -1) return NULL_wrap;
         return file;
     }
