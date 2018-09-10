@@ -139,6 +139,7 @@ void *brk_wrap(void *addr)
     return syscall_wrap(12, addr);
 }
 
+int printf_wrap(const char *format, ...);
 void *malloc_wrap(int size)
 {
     static void *malloc_pointer_head = 0;
@@ -148,16 +149,16 @@ void *malloc_wrap(int size)
         void *p = brk_wrap(0);
         int size = 0x32000000;
         void *q = brk_wrap(p + size);
-        // printf("init %d\n", malloc_remaining_size);
-        // printf("init %p\n", p);
-        // printf("init %p\n", q);
+        // printf_wrap("init %d\n", malloc_remaining_size);
+        // printf_wrap("init %p\n", p);
+        // printf_wrap("init %p\n", q);
         malloc_pointer_head = p;
         malloc_remaining_size = size;
     }
 
     if (malloc_remaining_size < size) {
-        printf("BUG%d\n", malloc_remaining_size);
-        printf("BUG%d\n", size);
+        printf_wrap("BUG%d\n", malloc_remaining_size);
+        printf_wrap("BUG%d\n", size);
         return NULL_wrap;
     }
 
@@ -165,10 +166,10 @@ void *malloc_wrap(int size)
     malloc_pointer_head += size + 4;
     malloc_remaining_size -= size + 4;
 
-    // printf("%d\n", malloc_remaining_size);
-    // printf("%d\n", size);
-    // printf("%p\n", ret);
-    // printf("%p\n", ret + size);
+    // printf_wrap("%d\n", malloc_remaining_size);
+    // printf_wrap("%d\n", size);
+    // printf_wrap("%p\n", ret);
+    // printf_wrap("%p\n", ret + size);
     return ret;
 }
 
@@ -196,7 +197,7 @@ int read_wrap(int fd, const void *buf, int count)
 FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
 {
     if (mode[0] == 'w') {
-        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
+        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
         // O_CREAT | O_WRONLY | O_TRUNC
         file->fd = open_wrap(pathname, 64 | 1 | 512, 0644);
         if (file->fd == -1) return NULL_wrap;
@@ -204,7 +205,7 @@ FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
     }
 
     if (mode[0] == 'r') {
-        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
+        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
         //  O_RDONLY
         file->fd = open_wrap(pathname, 0, 0);
         if (file->fd == -1) return NULL_wrap;
