@@ -8,7 +8,7 @@ struct ExeImage {
 typedef struct ObjectData ObjectData;
 struct ObjectData {
     char *data;
-    int size;
+    int data_size, entire_size;
 
     char *shdr, *symtab, *strtab, *rela_text;
     int nshdr, nsymtab, nrela_text;
@@ -43,11 +43,12 @@ int get_section_offset(ObjectData *obj, char *name)
     assert(0);
 }
 
-ObjectData *new_object_data(char *data, int size)
+ObjectData *new_object_data(char *data, int data_size)
 {
     ObjectData *obj = (ObjectData *)safe_malloc(sizeof(ObjectData));
     obj->data = data;
-    obj->size = size;
+    obj->data_size = data_size;
+    obj->entire_size = roundup(data_size, 16);
     obj->shdr = obj->symtab = obj->strtab = NULL;
 
     // parse data
@@ -108,7 +109,7 @@ int search_symbol(Vector *objs, const char *name, int header_offset)
             return prev_offset + read_dword(obj->shdr + 0x40 * st_shndx + 24) +
                    st_value;
         }
-        prev_offset += obj->size;
+        prev_offset += obj->entire_size;
     }
 
     error("undefined symbol: %s", name);
@@ -155,13 +156,13 @@ void link_objs_detail(Vector *objs, int header_offset)
             }
         }
 
-        prev_offset += obj->size;
+        prev_offset += obj->entire_size;
     }
 }
 
 ExeImage *link_objs(Vector *obj_paths)
 {
-    int vaddr_offset = 0x400000, header_size = 64 + 56,
+    int vaddr_offset = 0x400000, header_size = 64 + 56 + 8,
         header_offset = vaddr_offset + header_size;
 
     Vector *objs = new_vector();
@@ -260,6 +261,9 @@ void dump_exe_image(ExeImage *exeimg, FILE *fh)
     // alignment
     emit_qword_int(0x1000, 0);
 
+    // padding
+    emit_qword_int(0, 0);
+
     //
     // *** BODY ***
     //
@@ -268,7 +272,9 @@ void dump_exe_image(ExeImage *exeimg, FILE *fh)
 
     for (int i = 0; i < vector_size(exeimg->objs); i++) {
         ObjectData *obj = (ObjectData *)vector_get(exeimg->objs, i);
-        for (int j = 0; j < obj->size; j++) emit_byte(obj->data[j]);
+        for (int j = 0; j < obj->data_size; j++) emit_byte(obj->data[j]);
+        for (int j = 0; j < obj->entire_size - obj->data_size; j++)
+            emit_byte(0);
     }
 
     // rewrite placeholders

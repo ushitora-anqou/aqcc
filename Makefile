@@ -9,7 +9,7 @@ SELFSELF_OBJS=$(SRC:.c=.selfself.o) $(SRC_ASM:.s=.selfself.o)
 $(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
 	gcc -o $@ $(SRC) $(SRC_ASM) -O0 -g3 -Wall -std=c11 -fno-builtin  -fno-stack-protector -static -nostdlib
 
-test: $(TARGET) testutil.o stdlib.o system.o
+test: $(TARGET)
 	./test.sh
 
 $(TARGET_SELF): $(SELF_OBJS)
@@ -36,10 +36,10 @@ $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 %.selfself.o: %.selfself.s $(TARGET_SELF)
 	./$(TARGET_SELF) so $< $@
 
-self_test: $(TARGET_SELF) _test_self_test.sh testutil.o stdlib.o
+self_test: $(TARGET_SELF) _test_self_test.sh
 	./_test_self_test.sh
 
-selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh testutil.o stdlib.o
+selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh
 	./_test_selfself_test.sh
 	cat $$(ls *.self.o | sort) > __self_sort.in
 	cat $$(ls *.selfself.o | sort) > __selfself_sort.in
@@ -53,15 +53,6 @@ _test_selfself_test.sh: test.sh
 	cp $^ $@
 	sed -i -E "s/\\.\\/aqcc/.\\/aqcc_selfself/g" $@
 
-testutil.o: testutil.c aqcc.h
-	gcc -c testutil.c -o $@ -fno-builtin  -fno-stack-protector
-
-stdlib.o: stdlib.c aqcc.h
-	gcc -c stdlib.c -o $@ -fno-builtin  -fno-stack-protector
-
-system.o: system.s
-	gcc -c system.s -o $@
-
 examples: $(TARGET)
 	make -C examples
 
@@ -69,7 +60,12 @@ clean:
 	make -C examples $@
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
 	rm -f _test_self_test.sh _test_selfself_test.sh
-	rm -f _test.c _test.s _test.o testutil.o _test.in
+	rm -f _test.c _test.s _test.o _test.in _test_exe.o
+	rm -f _testutil.s _testutil.o
+	rm -f _test_define.o  _test_define_exe.o
+	rm -f _test_link_c.o  _test_link_s.o  test_link_c.o  test_link_exe.o
+	rm -f _stdlib.s _stdlib.o
+	rm -f _system.s _system.o
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
 	rm -f __self_sort.in __selfself_sort.in
 	rm -f test_link.o test_link.exe
