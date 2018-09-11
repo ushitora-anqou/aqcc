@@ -1,32 +1,12 @@
-#define NULL_wrap 0
-#define EOF_wrap -1
+#include "aqcc.h"
 
-#ifdef __GNUC__
-typedef __builtin_va_list va_list;
-#else
-#endif
-#ifndef __GNUC__
-typedef struct {
-    int gp_offset;
-    int fp_offset;
-    void *overflow_arg_area;
-    void *reg_save_area;
-} va_list[1];
-#endif
-#define va_start __builtin_va_start
-#define va_end __builtin_va_end
-#define va_arg __builtin_va_arg
+int isdigit(int c) { return '0' <= c && c <= '9'; }
 
-int isdigit_wrap(int c) { return '0' <= c && c <= '9'; }
+int isalpha(int c) { return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z'); }
 
-int isalpha_wrap(int c)
-{
-    return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
-}
+int isalnum(int c) { return isdigit(c) || isalpha(c); }
 
-int isalnum_wrap(int c) { return isdigit_wrap(c) || isalpha_wrap(c); }
-
-int isspace_wrap(int c)
+int isspace(int c)
 {
     switch (c) {
         case ' ':
@@ -40,13 +20,13 @@ int isspace_wrap(int c)
     return 0;
 }
 
-void *memcpy_wrap(void *dst, const void *src, int n)
+void *memcpy(void *dst, const void *src, int n)
 {
     for (int i = 0; i < n; i++) *((char *)dst + i) = *((char *)src + i);
     return dst;
 }
 
-char *strcpy_wrap(char *dst, const char *src)
+char *strcpy(char *dst, const char *src)
 {
     char *ret = dst;
     while (*src != '\0') *dst++ = *src++;
@@ -54,26 +34,26 @@ char *strcpy_wrap(char *dst, const char *src)
     return ret;
 }
 
-int strcmp_wrap(const char *s1, const char *s2)
+int strcmp(const char *s1, const char *s2)
 {
     while (*s1 != '\0' && *s1 == *s2) s1++, s2++;
     return (*s1 & 0xff) - (*s2 & 0xff);
 }
 
-int strlen_wrap(const char *s)
+int strlen(const char *s)
 {
     int cnt = 0;
     while (*s++ != '\0') cnt++;
     return cnt;
 }
 
-void *memset_wrap(void *s, int c, int n)
+void *memset(void *s, int c, int n)
 {
     for (int i = 0; i < n; i++) *((char *)s + i) = c;
     return s;
 }
 
-int vsprintf_wrap(char *str, const char *format, va_list ap)
+int vsprintf(char *str, const char *format, va_list ap)
 {
     const char *p = format, *org_str = str;
     while (*p != '\0') {
@@ -125,135 +105,142 @@ end:
     return str - org_str;
 }
 
-void *syscall_wrap(int number, ...);
+void *syscall(int number, ...);
 
-void exit_wrap(int status)
+void exit(int status)
 {
     // __NR_exit
-    syscall_wrap(60, status);
+    syscall(60, status);
 }
 
-int printf_wrap(const char *format, ...);
-void *brk_wrap(void *addr)
+void *brk(void *addr)
 {
     // __NR_brk
-    // printf_wrap("initbrk %d\n", addr);
-    return syscall_wrap(12, addr);
+    // printf("initbrk %d\n", addr);
+    return syscall(12, addr);
 }
 
-void *malloc_wrap(int size)
+void *malloc(int size)
 {
     static char *malloc_pointer_head = 0;
     static int malloc_remaining_size = 0;
 
     if (malloc_pointer_head == 0) {
-        char *p = brk_wrap(0);
+        char *p = brk(0);
         int size = 0x32000000;
-        char *q = brk_wrap(p + size);
-        // printf_wrap("init %d\n", p);
-        // printf_wrap("init %d\n", q);
+        char *q = brk(p + size);
+        // printf("init %d\n", p);
+        // printf("init %d\n", q);
         malloc_pointer_head = p;
         malloc_remaining_size = size;
     }
 
     if (malloc_remaining_size < size) {
-        printf_wrap("BUG%d\n", malloc_remaining_size);
-        printf_wrap("BUG%d\n", size);
-        return NULL_wrap;
+        printf("BUG%d\n", malloc_remaining_size);
+        printf("BUG%d\n", size);
+        return NULL;
     }
 
     char *ret = malloc_pointer_head + 4;
     malloc_pointer_head += size + 4;
     malloc_remaining_size -= size + 4;
 
-    // printf_wrap("%d\n", malloc_remaining_size);
-    // printf_wrap("%d\n", size);
-    // printf_wrap("%d\n", ret);
-    // printf_wrap("%d\n", ret + size);
+    // printf("%d\n", malloc_remaining_size);
+    // printf("%d\n", size);
+    // printf("%d\n", ret);
+    // printf("%d\n", ret + size);
     return ret;
 }
 
-int open_wrap(const char *path, int oflag, int mode)
+int open(const char *path, int oflag, int mode)
 {
-    return (int)syscall_wrap(2, path, oflag, mode);
+    return (int)syscall(2, path, oflag, mode);
 }
 
-int close_wrap(int fd) { return (int)syscall_wrap(3, fd); }
+int close(int fd) { return (int)syscall(3, fd); }
 
-typedef struct FILE_wrap {
+struct _IO_FILE {
     int fd;
-} FILE_wrap;
+};
 
-int write_wrap(int fd, const void *buf, int count)
+int write(int fd, const void *buf, int count)
 {
-    return (int)syscall_wrap(1, fd, buf, count);
+    return (int)syscall(1, fd, buf, count);
 }
 
-int read_wrap(int fd, const void *buf, int count)
+int read(int fd, const void *buf, int count)
 {
-    return (int)syscall_wrap(0, fd, buf, count);
+    return (int)syscall(0, fd, buf, count);
 }
 
-FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
+FILE *fopen(const char *pathname, const char *mode)
 {
     if (mode[0] == 'w') {
-        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
+        FILE *file = (FILE *)malloc(sizeof(FILE));
         // O_CREAT | O_WRONLY | O_TRUNC
-        file->fd = open_wrap(pathname, 64 | 1 | 512, 0644);
-        if (file->fd == -1) return NULL_wrap;
+        file->fd = open(pathname, 64 | 1 | 512, 0644);
+        if (file->fd == -1) return NULL;
         return file;
     }
 
     if (mode[0] == 'r') {
-        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
+        FILE *file = (FILE *)malloc(sizeof(FILE));
         //  O_RDONLY
-        file->fd = open_wrap(pathname, 0, 0);
-        if (file->fd == -1) return NULL_wrap;
+        file->fd = open(pathname, 0, 0);
+        if (file->fd == -1) return NULL;
         return file;
     }
 
     assert(0);
 }
 
-int fclose_wrap(FILE_wrap *stream) { return close_wrap(stream->fd); }
+int fclose(FILE *stream) { return close(stream->fd); }
 
-int fputc_wrap(int c, FILE_wrap *stream)
+int fputc(int c, FILE *stream)
 {
     char buf[1];
     buf[0] = c & 0xff;
-    return write_wrap(stream->fd, buf, 1);
+    return write(stream->fd, buf, 1);
 }
 
-int fgetc_wrap(FILE_wrap *stream)
+int fgetc(FILE *stream)
 {
     char buf[1];
-    int res = read_wrap(stream->fd, buf, 1);
-    if (res <= 0) return EOF_wrap;
+    int res = read(stream->fd, buf, 1);
+    if (res <= 0) return EOF;
     return buf[0] & 0xff;
 }
 
-int fprintf_wrap(FILE_wrap *stream, const char *format, ...)
+int fprintf(FILE *stream, const char *format, ...)
 {
     char buf[512];  // TODO: enough length?
     va_list args;
 
     va_start(args, format);
-    int cnt = vsprintf_wrap(buf, format, args);
+    int cnt = vsprintf(buf, format, args);
     va_end(args);
 
-    write_wrap(stream->fd, buf, cnt);
+    write(stream->fd, buf, cnt);
     return cnt;
 }
 
-int printf_wrap(const char *format, ...)
+int printf(const char *format, ...)
 {
     char buf[512];  // TODO: enough length?
     va_list args;
 
     va_start(args, format);
-    int cnt = vsprintf_wrap(buf, format, args);
+    int cnt = vsprintf(buf, format, args);
     va_end(args);
 
-    write_wrap(1, buf, cnt);
+    write(1, buf, cnt);
     return cnt;
+}
+
+void assert(int cond)
+{
+    if (cond) return;
+    // fprintf(stderr, "[ASSERT] %d\n", cond);
+    printf("[ASSERT] %d\n", cond);
+    exit(EXIT_FAILURE);
 }

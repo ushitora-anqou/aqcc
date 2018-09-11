@@ -7,16 +7,16 @@ SELF_OBJS=$(SRC:.c=.self.o) $(SRC_ASM:.s=.self.o)
 SELFSELF_OBJS=$(SRC:.c=.selfself.o) $(SRC_ASM:.s=.selfself.o)
 
 $(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
-	gcc -o $@ $(SRC) $(SRC_ASM) -O0 -g3 -Wall -std=c11 -static
+	gcc -o $@ $(SRC) $(SRC_ASM) -O0 -g3 -Wall -std=c11 -fno-builtin  -fno-stack-protector -static -nostdlib
 
-test: $(TARGET) testutil.o
+test: $(TARGET) testutil.o stdlib.o system.o
 	./test.sh
 
 $(TARGET_SELF): $(SELF_OBJS)
-	gcc $^ -o $@ -static
+	gcc $^ -o $@ -static -nostdlib
 
 $(TARGET_SELFSELF): $(SELFSELF_OBJS)
-	gcc $^ -o $@ -static
+	gcc $^ -o $@ -static -nostdlib
 
 %.self.s: %.c $(TARGET)
 	./$(TARGET) cs $< $@
@@ -36,10 +36,10 @@ $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 %.selfself.o: %.selfself.s $(TARGET_SELF)
 	./$(TARGET_SELF) so $< $@
 
-self_test: $(TARGET_SELF) _test_self_test.sh testutil.o
+self_test: $(TARGET_SELF) _test_self_test.sh testutil.o stdlib.o
 	./_test_self_test.sh
 
-selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh testutil.o
+selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh testutil.o stdlib.o
 	./_test_selfself_test.sh
 	cat $$(ls *.self.o | sort) > __self_sort.in
 	cat $$(ls *.selfself.o | sort) > __selfself_sort.in
@@ -54,7 +54,13 @@ _test_selfself_test.sh: test.sh
 	sed -i -E "s/\\.\\/aqcc/.\\/aqcc_selfself/g" $@
 
 testutil.o: testutil.c aqcc.h
-	gcc -c testutil.c -o $@
+	gcc -c testutil.c -o $@ -fno-builtin  -fno-stack-protector
+
+stdlib.o: stdlib.c aqcc.h
+	gcc -c stdlib.c -o $@ -fno-builtin  -fno-stack-protector
+
+system.o: system.s
+	gcc -c system.s -o $@
 
 examples: $(TARGET)
 	make -C examples

@@ -8,63 +8,49 @@
 //#include <stdlib.h>
 //#include <string.h>
 
-#define va_start __builtin_va_start
-#define va_end __builtin_va_end
-#define va_arg __builtin_va_arg
-
+#ifdef __GNUC__
+typedef __builtin_va_list va_list;
+#else
+#endif
+#ifndef __GNUC__
 typedef struct {
     int gp_offset;
     int fp_offset;
     void *overflow_arg_area;
     void *reg_save_area;
 } va_list[1];
+#endif
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
 
-// typedef struct _IO_FILE FILE;
+typedef struct _IO_FILE FILE;
 // extern FILE *stdin;  /* Standard input stream.  */
 // extern FILE *stdout; /* Standard output stream.  */
 // extern FILE *stderr; /* Standard error output stream.  */
-typedef struct FILE_wrap FILE_wrap;
-#define FILE FILE_wrap
 #define NULL 0
 #define EOF (-1)
-#define fopen fopen_wrap
 FILE *fopen(const char *pathname, const char *mode);
-#define fclose fclose_wrap
 int fclose(FILE *stream);
-#define fputc fputc_wrap
 int fputc(int c, FILE *stream);
-#define fgetc fgetc_wrap
 int fgetc(FILE *stream);
-#define fprintf fprintf_wrap
 int fprintf(FILE *stream, const char *format, ...);
-#define printf printf_wrap
 int printf(const char *format, ...);
-#define vsprintf vsprintf_wrap
 int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_FAILURE 1 /* Failing exit status.  */
 #define EXIT_SUCCESS 0 /* Successful exit status.  */
-#define exit exit_wrap
 void exit(int status);
-#define malloc malloc_wrap
 void *malloc(int size);
-#define strlen strlen_wrap
 int strlen(const char *s);
-#define strcmp strcmp_wrap
 int strcmp(const char *s1, const char *s2);
-#define strcpy strcpy_wrap
 char *strcpy(char *dest, const char *src);
-#define isalpha isalpha_wrap
 int isalpha(int c);
-#define isalnum isalnum_wrap
 int isalnum(int c);
-#define isdigit isdigit_wrap
 int isdigit(int c);
-#define isspace isspace_wrap
 int isspace(int c);
-#define memcpy memcpy_wrap
 void *memcpy(void *dest, const void *src, int n);
-#define memset memset_wrap
 void *memset(void *s, int c, int n);
+void assert(int cond);
 
 // vector.c
 typedef struct Vector Vector;
@@ -580,7 +566,6 @@ int max(int a, int b);
 int roundup(int n, int b);
 Vector *read_tokens_from_filepath(char *filepath);
 Vector *read_asm_from_filepath(char *filepath);
-void assert(int cond);
 int is_register_code(Code *code);
 int reg_of_nbyte(int nbyte, int reg);
 Code *nbyte_reg(int nbyte, int reg);

@@ -235,15 +235,6 @@ Vector *read_asm_from_filepath(char *filepath)
     return read_all_asm(src);
 }
 
-// alternative assert
-void assert(int cond)
-{
-    if (cond) return;
-    // fprintf(stderr, "[ASSERT] %d\n", cond);
-    printf("[ASSERT] %d\n", cond);
-    exit(EXIT_FAILURE);
-}
-
 int is_register_code(Code *code)
 {
     if (code == NULL) return 0;
