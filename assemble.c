@@ -803,10 +803,9 @@ ObjectImage *assemble_code_detail(Vector *code_list)
 
             case INST_LABEL: {
                 add_label_offset(code->label);
-                if (get_current_section() == DATA_SECTION) {
-                    SymbolInfo *sym = get_symbol_info(code->label);
-                    sym->st_info = 0x00;
-                }
+                if (get_current_section() == DATA_SECTION)
+                    // create symbol if not exists.
+                    get_symbol_info(code->label);
             } break;
 
             case INST_CALL: {

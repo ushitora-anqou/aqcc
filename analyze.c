@@ -22,6 +22,7 @@ GVar *new_gvar_from_decl(AST *ast)
     gvar->type = ast->type;
     gvar->ival = 0;
     gvar->sval = NULL;
+    gvar->is_global = 1;
     return gvar;
 }
 
@@ -31,6 +32,7 @@ GVar *new_gvar_from_string_literal(char *sval, int ssize)
     gvar->name = format(".LC%d", gvar_string_literal_label++);
     gvar->type = new_array_type(type_char(), ssize);
     gvar->sval = sval;
+    gvar->is_global = 0;
     return gvar;
 }
 
@@ -46,6 +48,7 @@ GVar *new_gvar_from_static_lvar(AST *lvar)
     gvar->type = lvar->type;
     gvar->ival = 0;
     gvar->sval = NULL;
+    gvar->is_global = 0;
     return gvar;
 }
 

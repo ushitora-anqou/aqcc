@@ -1074,6 +1074,7 @@ Vector *generate_register_code(Vector *asts)
     for (int i = 0; i < vector_size(gvar_list); i++) {
         GVar *gvar = (GVar *)vector_get(gvar_list, i);
 
+        if (gvar->is_global) appcode(GLOBAL(gvar->name));
         appcode(LABEL(gvar->name));
         if (gvar->sval) {
             assert(gvar->type->kind == TY_ARY &&

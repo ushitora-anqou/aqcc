@@ -238,6 +238,7 @@ struct GVar {
     char *name;
     Type *type;
 
+    int is_global;
     int ival;
     char *sval;
 };
