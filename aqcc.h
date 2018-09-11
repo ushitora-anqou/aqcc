@@ -45,7 +45,7 @@ int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_SUCCESS 0 /* Successful exit status.  */
 #define exit exit_wrap
 void exit(int status);
-//#define malloc malloc_wrap
+#define malloc malloc_wrap
 void *malloc(int size);
 #define strlen strlen_wrap
 int strlen(const char *s);
