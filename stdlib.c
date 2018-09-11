@@ -57,7 +57,7 @@ char *strcpy_wrap(char *dst, const char *src)
 int strcmp_wrap(const char *s1, const char *s2)
 {
     while (*s1 != '\0' && *s1 == *s2) s1++, s2++;
-    return *s1 - *s2;
+    return (*s1 & 0xff) - (*s2 & 0xff);
 }
 
 int strlen_wrap(const char *s)
@@ -180,7 +180,7 @@ int open_wrap(const char *path, int oflag, int mode)
 
 int close_wrap(int fd) { return (int)syscall_wrap(3, fd); }
 
-typedef struct {
+typedef struct FILE_wrap {
     int fd;
 } FILE_wrap;
 
@@ -194,10 +194,11 @@ int read_wrap(int fd, const void *buf, int count)
     return (int)syscall_wrap(0, fd, buf, count);
 }
 
+void *malloc(int size);
 FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
 {
     if (mode[0] == 'w') {
-        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
+        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
         // O_CREAT | O_WRONLY | O_TRUNC
         file->fd = open_wrap(pathname, 64 | 1 | 512, 0644);
         if (file->fd == -1) return NULL_wrap;
@@ -205,7 +206,7 @@ FILE_wrap *fopen_wrap(const char *pathname, const char *mode)
     }
 
     if (mode[0] == 'r') {
-        FILE_wrap *file = (FILE_wrap *)malloc_wrap(sizeof(FILE_wrap));
+        FILE_wrap *file = (FILE_wrap *)malloc(sizeof(FILE_wrap));
         //  O_RDONLY
         file->fd = open_wrap(pathname, 0, 0);
         if (file->fd == -1) return NULL_wrap;

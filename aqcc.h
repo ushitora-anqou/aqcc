@@ -19,10 +19,12 @@ typedef struct {
     void *reg_save_area;
 } va_list[1];
 
-typedef struct _IO_FILE FILE;
-extern FILE *stdin;  /* Standard input stream.  */
-extern FILE *stdout; /* Standard output stream.  */
-extern FILE *stderr; /* Standard error output stream.  */
+// typedef struct _IO_FILE FILE;
+// extern FILE *stdin;  /* Standard input stream.  */
+// extern FILE *stdout; /* Standard output stream.  */
+// extern FILE *stderr; /* Standard error output stream.  */
+typedef struct FILE_wrap FILE_wrap;
+#define FILE FILE_wrap
 #define NULL 0
 #define EOF (-1)
 #define fopen fopen_wrap
@@ -43,7 +45,7 @@ int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_SUCCESS 0 /* Successful exit status.  */
 #define exit exit_wrap
 void exit(int status);
-#define malloc malloc_wrap
+//#define malloc malloc_wrap
 void *malloc(int size);
 #define strlen strlen_wrap
 int strlen(const char *s);

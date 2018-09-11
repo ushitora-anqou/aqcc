@@ -24,7 +24,7 @@ int get_temp_reg()
     error("no more register");
 }
 
-int restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
+void restore_temp_reg(int i) { temp_reg_table &= ~(1 << (i - 7)); }
 
 const char *reg_name(int byte, int i)
 {
@@ -297,7 +297,18 @@ int generate_register_code_detail(AST *ast)
             if (match_type2(ast->lhs, ast->rhs, TY_PTR, TY_PTR)) {
                 // assume pointer size is 8.
                 appcode(SUB(nbyte_reg(8, rreg), nbyte_reg(8, lreg)));
-                appcode(SAR(value(2), nbyte_reg(8, lreg)));
+                switch (ast->lhs->type->ptr_of->nbytes) {
+                    case 1:
+                        break;
+                    case 4:
+                        appcode(SAR(value(2), nbyte_reg(8, lreg)));
+                        break;
+                    case 8:
+                        appcode(SAR(value(3), nbyte_reg(8, lreg)));
+                        break;
+                    default:
+                        assert(0);  // TODO: idiv?
+                }
             }
             else {
                 int nbytes = ast->type->nbytes;

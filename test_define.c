@@ -112,10 +112,25 @@ void test003charp(int a, ...)
     va_end(args);
 }
 
+void test003vaarg_valist(char *a, char *b, va_list ap)
+{
+    if (va_arg(ap, char *)[0] != a[0])
+        printf("[ERROR] test003:10: va_arg(ap, char *)[0] != a[0]\n");
+}
+
+void test003vaarg(char *a, char *b, ...)
+{
+    va_list args;
+    va_start(args, b);
+    test003vaarg_valist(a, b, args);
+    va_end(args);
+}
+
 int test003()
 {
     test003allcorrect_va_arg(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7);
     test003charp('a', "a");
+    test003vaarg("a", "b", "a");
 }
 
 int main()

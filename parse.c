@@ -675,7 +675,7 @@ AST *parse_direct_declarator(Type *type)
     if (pop_token_if(tLPAREN)) {  // function declarator
         // TODO: K&R style
         Vector *params = parse_parameter_type_list();
-        int is_variadic = pop_token_if(tDOTS);
+        int is_variadic = pop_token_if(tDOTS) != NULL;
         expect_token(tRPAREN);
         AST *ast = new_func_ast(AST_FUNC_DECL, ident, NULL, params, type);
         ast->is_variadic = is_variadic;

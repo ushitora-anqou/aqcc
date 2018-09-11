@@ -18,7 +18,7 @@ $(TARGET_SELF): $(SELF_OBJS)
 $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 	gcc $^ -o $@ -static
 
-%.self.s: %.c
+%.self.s: %.c $(TARGET)
 	./$(TARGET) cs $< $@
 
 %.self.s: %.s
@@ -27,7 +27,7 @@ $(TARGET_SELFSELF): $(SELFSELF_OBJS)
 %.self.o: %.self.s $(TARGET)
 	./$(TARGET) so $< $@
 
-%.selfself.s: %.c
+%.selfself.s: %.c $(TARGET_SELF)
 	./$(TARGET_SELF) cs $< $@
 
 %.selfself.s: %.s
@@ -67,5 +67,7 @@ clean:
 	rm -f $(TARGET) $(TARGET_SELF) $(TARGET_SELFSELF)
 	rm -f __self_sort.in __selfself_sort.in
 	rm -f test_link.o test_link.exe
+	rm -f $(SELF_OBJS:.o=.s) $(SELFSELF_OBJS:.o=.s)
 
 .PHONY: test self self_test selfself_test test clean examples
+.PRECIOUS: $(SELF_OBJS:.o=.s) $(SELFSELF_OBJS:.o=.s)
