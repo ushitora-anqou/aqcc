@@ -162,7 +162,7 @@ void link_objs_detail(Vector *objs, int header_offset)
 
 ExeImage *link_objs(Vector *obj_paths)
 {
-    int vaddr_offset = 0x400000, header_size = 64 + 56 + 8,
+    int vaddr_offset = 0x400000, header_size = 4096,  // 64 + 56 + 8,
         header_offset = vaddr_offset + header_size;
 
     Vector *objs = new_vector();
@@ -262,7 +262,8 @@ void dump_exe_image(ExeImage *exeimg, FILE *fh)
     emit_qword_int(0x1000, 0);
 
     // padding
-    emit_qword_int(0, 0);
+    for (int i = emitted_size(); i < exeimg->header_size; i++) emit_byte(0);
+    assert(emitted_size() == exeimg->header_size);
 
     //
     // *** BODY ***
