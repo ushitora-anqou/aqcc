@@ -55,7 +55,7 @@ dkms.conf
 _test*
 *.~*~
 main
-aqcc
+aqcc_detail
 
 # written by hiromi-mi
 *.self.s
