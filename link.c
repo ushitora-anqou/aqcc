@@ -133,18 +133,20 @@ void link_objs_detail(Vector *objs, int header_offset)
             int reled_addr = -1;
             if (st_shndx == 0) {  // SHN_UNDEF
                 char *name = obj->strtab + read_dword(symtab_entry);
-                reled_addr = search_symbol(objs, name, header_offset);
+                reled_addr =
+                    search_symbol(objs, name, header_offset) + r_addend;
             }
             else {
-                reled_addr =
-                    prev_offset + read_dword(obj->shdr + 0x40 * st_shndx + 24);
+                reled_addr = prev_offset +
+                             read_dword(obj->shdr + 0x40 * st_shndx + 24) +
+                             read_dword(symtab_entry + 8) + r_addend;
             }
             assert(reled_addr != -1);
 
             int offset = r_offset + get_section_offset(obj, ".text");
             switch (r_info_type) {
                 case 2: {  // R_X86_64_PC32
-                    int addr = reled_addr + r_addend - (prev_offset + offset);
+                    int addr = reled_addr - (prev_offset + offset);
                     obj->data[offset] = addr & 0xff;
                     obj->data[offset + 1] = (addr >> 8) & 0xff;
                     obj->data[offset + 2] = (addr >> 16) & 0xff;
