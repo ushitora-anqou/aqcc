@@ -1,5 +1,5 @@
 # AQCC
-AQCC=../../aqcc
+AQCC=../../aqcc_detail
 
 TARGET=nqueen
 SRC=main.c

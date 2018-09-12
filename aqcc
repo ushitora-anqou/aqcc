@@ -1,6 +1,9 @@
 #!/bin/sh
 
-AQCC_DETAIL=./aqcc_detail
+if [ -z $AQCC_DETAIL ]
+then
+    AQCC_DETAIL=./aqcc_detail
+fi
 
 function print_usage_to_fail() {
     echo "Usage: aqcc [-c, -S] input-files... -o output-file"

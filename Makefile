@@ -12,50 +12,56 @@ $(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
 test: $(TARGET)
 	./test.sh
 
-$(TARGET_SELF): $(TARGET) $(SELF_OBJS)
-	#gcc $^ -o $@ -static -nostdlib
-	./$(TARGET) oe $(SELF_OBJS) $@
-	chmod +x $@
+#$(TARGET_SELF): $(TARGET) $(SELF_OBJS)
+$(TARGET_SELF): $(TARGET) $(SRC) $(SRC_ASM) test.inc aqcc.h
+	##gcc $^ -o $@ -static -nostdlib
+	#./$(TARGET) oe $(SELF_OBJS) $@
+	#chmod +x $@
+	AQCC_DETAIL=./$(TARGET) ./aqcc -o $@ $(SRC) $(SRC_ASM)
 
-$(TARGET_SELFSELF): $(TARGET_SELF) $(SELFSELF_OBJS)
-	#gcc $^ -o $@ -static -nostdlib
-	./$(TARGET_SELF) oe $(SELFSELF_OBJS) $@
-	chmod +x $@
+#$(TARGET_SELFSELF): $(TARGET_SELF) $(SELFSELF_OBJS)
+$(TARGET_SELFSELF): $(TARGET_SELF) $(SRC) $(SRC_ASM) test.inc aqcc.h
+	##gcc $^ -o $@ -static -nostdlib
+	#./$(TARGET_SELF) oe $(SELFSELF_OBJS) $@
+	#chmod +x $@
+	AQCC_DETAIL=./$(TARGET_SELF) ./aqcc -o $@ $(SRC) $(SRC_ASM)
 
-%.self.s: %.c $(TARGET)
-	./$(TARGET) cs $< $@
-
-%.self.s: %.s
-	cp $< $@
-
-%.self.o: %.self.s $(TARGET)
-	./$(TARGET) so $< $@
-
-%.selfself.s: %.c $(TARGET_SELF)
-	./$(TARGET_SELF) cs $< $@
-
-%.selfself.s: %.s
-	cp $< $@
-
-%.selfself.o: %.selfself.s $(TARGET_SELF)
-	./$(TARGET_SELF) so $< $@
+#%.self.s: %.c $(TARGET)
+#	./$(TARGET) cs $< $@
+#
+#%.self.s: %.s
+#	cp $< $@
+#
+#%.self.o: %.self.s $(TARGET)
+#	./$(TARGET) so $< $@
+#
+#%.selfself.s: %.c $(TARGET_SELF)
+#	./$(TARGET_SELF) cs $< $@
+#
+#%.selfself.s: %.s
+#	cp $< $@
+#
+#%.selfself.o: %.selfself.s $(TARGET_SELF)
+#	./$(TARGET_SELF) so $< $@
+#
 
 self_test: $(TARGET_SELF) _test_self_test.sh
 	./_test_self_test.sh
 
 selfself_test: $(TARGET_SELFSELF) _test_selfself_test.sh
 	./_test_selfself_test.sh
-	cat $$(ls *.self.o | sort) > __self_sort.in
-	cat $$(ls *.selfself.o | sort) > __selfself_sort.in
-	cmp __self_sort.in __selfself_sort.in
+	#cat $$(ls *.self.o | sort) > __self_sort.in
+	#cat $$(ls *.selfself.o | sort) > __selfself_sort.in
+	#cmp __self_sort.in __selfself_sort.in
+	cmp aqcc_self_detail aqcc_selfself_detail
 
 _test_self_test.sh: test.sh
 	cp $^ $@
-	sed -i -E "s/\\.\\/aqcc/.\\/aqcc_self/g" $@
+	sed -i -E "s#AQCC_DETAIL=\./aqcc_detail#AQCC_DETAIL=\./aqcc_self_detail#g" $@
 
 _test_selfself_test.sh: test.sh
 	cp $^ $@
-	sed -i -E "s/\\.\\/aqcc/.\\/aqcc_selfself/g" $@
+	sed -i -E "s#AQCC_DETAIL=\./aqcc_detail#AQCC_DETAIL=\./aqcc_selfself_detail#g" $@
 
 examples: $(TARGET)
 	make -C examples
