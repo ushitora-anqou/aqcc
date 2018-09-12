@@ -104,7 +104,7 @@ int search_symbol(Vector *objs, const char *name, int header_offset)
             char *entry = obj->symtab + 24 * j;
             if (strcmp(obj->strtab + read_dword(entry), name) != 0) continue;
             int st_info = read_byte(entry + 4), st_shndx = read_word(entry + 6),
-                st_value = read_word(entry + 8);
+                st_value = read_dword(entry + 8);
             if (st_shndx == 0) continue;
             return prev_offset + read_dword(obj->shdr + 0x40 * st_shndx + 24) +
                    st_value;
