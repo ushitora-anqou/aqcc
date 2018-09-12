@@ -11,7 +11,7 @@ syscall:
 	ret
 
 .global _start
-	_start:
+_start:
 	mov (%rsp), %rdi
 	lea 8(%rsp), %rsi
 	call main

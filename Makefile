@@ -12,11 +12,15 @@ $(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
 test: $(TARGET)
 	./test.sh
 
-$(TARGET_SELF): $(SELF_OBJS)
-	gcc $^ -o $@ -static -nostdlib
+$(TARGET_SELF): $(TARGET) $(SELF_OBJS)
+	#gcc $^ -o $@ -static -nostdlib
+	./$(TARGET) oe $(SELF_OBJS) $@
+	chmod +x $@
 
-$(TARGET_SELFSELF): $(SELFSELF_OBJS)
-	gcc $^ -o $@ -static -nostdlib
+$(TARGET_SELFSELF): $(TARGET_SELF) $(SELFSELF_OBJS)
+	#gcc $^ -o $@ -static -nostdlib
+	./$(TARGET_SELF) oe $(SELFSELF_OBJS) $@
+	chmod +x $@
 
 %.self.s: %.c $(TARGET)
 	./$(TARGET) cs $< $@
