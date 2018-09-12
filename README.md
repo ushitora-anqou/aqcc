@@ -25,23 +25,28 @@ AnQou C Compiler の使い方
 
 ## サンプルプログラム
 
-1段から8段までのQueen 問題を解くサンプルが `examples/nqueen` 以下にあります。
+1段から8段までのN-Queen問題を解くサンプルが `examples/nqueen` 以下にあります。
 トップディレクトリで `make examples` を実行すると、 `examples/nqueen/nqueen` が `aqcc` を用い生成されます。
 `examples/nqueen/nqueen` とすると、1段から8段までの結果が表示されます。
 
 ## 一般のCファイルをコンパイル
 
-`./aqcc [cs|so] infile outfile`
+`./aqcc [options] file...`
 
-`cs` はCファイルをアセンブリに、`so`はアセンブリをオブジェクトファイルに変換します。
+`options` には以下のようなものを使用できます。
+
+- `-S`
+    アセンブリファイルを出力します。
+- `-c`
+    オブジェクトファイルを出力します。
+- `-o out`
+    出力ファイル名を指定できます。
 
 `program.c` を以下のようにしてコンパイルし、実行できます。
 `aqcc` や `program.c` などは適宜読みかえてください。
 
 ```
-$ ./aqcc cs program.c program.s
-$ ./aqcc so program.s program.o
-$ gcc program.o -o program
+$ ./aqcc program.c -o program
 $ ./program
 ```
 
@@ -50,3 +55,6 @@ $ ./program
 その代わりに、自前で `puts()` 関数などの プロトタイプ宣言を `program.c` の冒頭に加えてください。
 なお、カレントディレクトリ内のファイルはインクルードできますので、 `#include "aqcc.h"` などとインクルードして、
 `aqcc.h` に記されているプロトタイプ宣言を流用できます。
+
+また、標準ライブラリのうち提供されている機能はごく僅かです。
+`stdlib.c` を参照して下さい。
