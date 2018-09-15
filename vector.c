@@ -43,6 +43,18 @@ void *vector_get(Vector *vec, int i)
     return vec->data[i];
 }
 
+void *vector_peek(Vector *vec) {
+   if (vec->size <= 0) return NULL;
+   return vector_get(vec, vec->size);
+   // assert the result != NULL
+}
+
+void *vector_pop(Vector *vec) {
+   if (vec->size <= 0) return NULL;
+   return vector_get(vec, vec->size--);
+   // assert the result != NULL
+}
+
 void *vector_set(Vector *vec, int i, void *item)
 {
     assert(vec != NULL && i < vector_size(vec));

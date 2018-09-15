@@ -58,13 +58,33 @@ int test001()
 #define test002value
 int test002()
 {
+    int a = 0;
 #ifndef test002value
     printf("[ERROR] test002:1: #ifndef guard is out of order\n");
+#else
+    a = 1;
+#ifdef test002value // Test nested #ifdef
+    a = 2;
+#else
+    printf("[ERROR] test002:2: nested #ifdef guard is out of order\n");
+#endif // #ifdef test002value
+
+
+#ifndef test002value
+    printf("[ERROR] test002:3: nested and multiple #else guard is out of order\n");
+#else
+    a = 3;
 #endif
+    if (a != 3) {
+        printf("[ERROR] test002:4: neither #ifdef nor #else is called. Expected 'a': 3, got: %d\n", a);
+    }
+#endif // #ifndef test002value
 
 // DO NOT define test002unknown
 #ifdef test002unknown
-    printf("[ERROR] test002:2: #ifdef guard is out of order\n");
+    printf("[ERROR] test002:5: #ifdef guard is out of order\n");
+#else
+    assert(0);
 #endif
 }
 
