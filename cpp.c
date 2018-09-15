@@ -38,9 +38,11 @@ void preprocess_skip_until_endif(const char *keyword)
 
         if (token->kind == tEOF) {
             if (strcmp("ifdef", keyword) == 0)
-                error_unexpected_token_str("#endif corresponding to #ifdef", token);
+                error_unexpected_token_str("#endif corresponding to #ifdef",
+                                           token);
             else
-                error_unexpected_token_str("#endif corresponding to #ifndef", token);
+                error_unexpected_token_str("#endif corresponding to #ifndef",
+                                           token);
         }
 
         if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
@@ -51,11 +53,13 @@ void preprocess_skip_until_endif(const char *keyword)
                 if (strcmp("else", keyword) == 0) {
                     error_unexpected_token_str("#else after #else", token);
                     break;
-                } else {
+                }
+                else {
                     preprocess_tokens_detail_else();
                     break;
                 }
-            } else if (strcmp("endif", ident) == 0 && --cnt == 0) {
+            }
+            else if (strcmp("endif", ident) == 0 && --cnt == 0) {
                 vector_pop(if_stack);
                 expect_token(tNEWLINE);
                 break;
@@ -68,8 +72,7 @@ void preprocess_tokens_detail_define()
 {
     char *name = expect_token(tIDENT)->sval;
     Vector *tokens = new_vector();
-    while (!match_token(tNEWLINE))
-        vector_push_back(tokens, pop_token());
+    while (!match_token(tNEWLINE)) vector_push_back(tokens, pop_token());
     expect_token(tNEWLINE);
     add_define(name, tokens);
 }
@@ -83,7 +86,8 @@ void preprocess_tokens_detail_else()
     if (*tf == 0) {
         // False when #ifdef or #ifndef
         return;
-    } else {
+    }
+    else {
         // True when #ifdef or #ifndef. Now it's time to skip.
         preprocess_skip_until_endif("else");
     }
@@ -100,7 +104,8 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
 {
     char *name = expect_token(tIDENT)->sval;
     expect_token(tNEWLINE);
-    if (strcmp("ifdef", keyword) == 0 && lookup_define(name) || strcmp("ifndef", keyword) == 0 && !lookup_define(name)) {
+    if (strcmp("ifdef", keyword) == 0 && lookup_define(name) ||
+        strcmp("ifndef", keyword) == 0 && !lookup_define(name)) {
         vector_push_back(if_stack, 1);
         return;
     }
