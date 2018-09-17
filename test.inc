@@ -34,6 +34,13 @@ void test_vector(int n)
 
     Vector *vec3 = clone_vector(vec2);
     assert(*(int*)vector_get(vec3, 0) == 100);
+
+    assert(*(int*)vector_peek(vec3) == 100);
+    assert(*(int*)vector_pop(vec3) == 100);
+
+    // vector_peek and vector_pop on vector including no item should return NULL.
+    assert((int*)vector_peek(vec3) == NULL);
+    assert((int*)vector_pop(vec3) == NULL);
 }
 
 void test_map()
