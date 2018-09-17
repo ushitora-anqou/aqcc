@@ -1,8 +1,28 @@
 # AnQou C Compiler: aqcc
 
+aqcc is yet another tiny self-hosted C compiler with an also tiny assembler,
+linker and standard C library.
+
 ## Usage
 
-Try `make selfself_test`, which tells you all the things.
+`./aqcc [options] file...`
+
+`options` are:
+
+- `-S`: output an assembly file.
+- `-c`: output an object file.
+- `-o`: set the output file name.
+
+To find the detail, try `make selfself_test`, which tells you all the things.
+
+## Note
+
+- aqcc is a product of [Security Camp 2018](https://www.ipa.go.jp/jinzai/camp/2018/zenkoku2018_index.html).
+Special thanks to @rui314 san and @hikalium san.
+- Many features, functions and so on have not yet been implemented in aqcc
+that a C compiler generally has.
+Feel free to implement missing features and to send pull requests :)
+
 
 ---------
 

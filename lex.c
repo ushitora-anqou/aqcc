@@ -1,14 +1,29 @@
 #include "aqcc.h"
 
-typedef struct {
-    int line, column;
-    Vector *line2length;
-    char *src;
-} Source;
 Source source;
 
-void init_source(char *src)
+void init_source(char *src, char *filepath)
 {
+    // caluculate current working directory
+    int i, j, len = strlen(filepath);
+    source.cwd = safe_malloc(sizeof(char *) * len);
+    // TODO: ad-hoc
+    for (i = len - 1; i >= 0; i--) {
+        if (filepath[i] == '/') {
+            // detect last '/'
+            for (j = 0; j <= i; j++) {
+                source.cwd[j] = filepath[j];
+            }
+            source.cwd[i + 1] = '\0';
+            break;
+        }
+    }
+    // When this source code and aqcc are located in the same directory
+    if (source.cwd[0] == '\0') {
+        strcpy(source.cwd, "./");
+    }
+
+    source.filepath = filepath;
     source.src = src;
     source.line = source.column = 1;
     source.line2length = new_vector();
@@ -25,7 +40,9 @@ void init_source(char *src)
 
 Token *make_token(int kind)
 {
-    return new_token(kind, source.line, source.column);
+    Source *src = (Source *)safe_malloc(sizeof(Source));
+    memcpy(src, &source, sizeof(Source));
+    return new_token(kind, src);
 }
 
 void ungetch()
@@ -374,7 +391,8 @@ Token *read_next_token()
                     return make_token(tDOT);
                 }
                 if (getch() != '.')
-                    error(":%d:%d: unexpected dot", source.line, source.column);
+                    error("%s:%d:%d: unexpected dot", source.filepath,
+                          source.line, source.column);
                 return make_token(tDOTS);  // ...
 
             case '{':
@@ -405,17 +423,18 @@ Token *read_next_token()
                 return make_token(tNEWLINE);
         }
 
-        error(format("%d:%d:unexpected character", source.line, source.column));
+        error(format("%s:%d:%d:unexpected character", source.filepath,
+                     source.line, source.column));
     }
 
     return make_token(tEOF);
 }
 
-Vector *read_all_tokens(char *src)
+Vector *read_all_tokens(char *src, char *filepath)
 {
     erase_backslash_newline(src);
 
-    init_source(src);
+    init_source(src, filepath);
 
     Vector *tokens = new_vector();
     while (1) {
@@ -650,8 +669,8 @@ char sgetch()
 
 _Noreturn void unexpected_char_error(char expect, char got)
 {
-    error("%d:%d: unexpected character: expect %c, got %c", source.line,
-          source.column, expect, got);
+    error("%s:%d:%d: unexpected character: expect %c, got %c", source.filepath,
+          source.line, source.column, expect, got);
 }
 
 char sexpect_ch(char expect)
@@ -718,9 +737,9 @@ Code *read_asm_param()
     return new_addrof_label_code(read_asm_memory(), label);
 }
 
-Vector *read_all_asm(char *src)
+Vector *read_all_asm(char *src, char *filepath)
 {
-    init_source(src);
+    init_source(src, filepath);
 
     Vector *code = new_vector();
 
@@ -850,8 +869,8 @@ Vector *read_all_asm(char *src)
             continue;
         }
 
-        error(":%d:%d: not implemented assembly: %s", source.line,
-              source.column, str);
+        error("%s:%d:%d: not implemented assembly: %s", source.filepath,
+              source.line, source.column, str);
     }
 
     return code;

@@ -95,9 +95,10 @@ void preprocess_tokens_detail_else()
 
 void preprocess_tokens_detail_include()
 {
-    char *filepath = expect_token(tSTRING_LITERAL)->sval;
+    Token *token = expect_token(tSTRING_LITERAL);
+    char *include_filepath = format("%s%s", token->source->cwd, token->sval);
     expect_token(tNEWLINE);
-    insert_tokens(read_tokens_from_filepath(filepath));
+    insert_tokens(read_tokens_from_filepath(include_filepath));
 }
 
 void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
