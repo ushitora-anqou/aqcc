@@ -9,6 +9,8 @@ void skip_newline()
 Map *define_table;
 Vector *if_stack;
 
+void preprocess_tokens_detail_else();
+
 void init_preprocess()
 {
     define_table = new_map();
