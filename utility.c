@@ -226,13 +226,13 @@ void erase_backslash_newline(char *src)
 Vector *read_tokens_from_filepath(char *filepath)
 {
     char *src = read_entire_file(filepath);
-    return read_all_tokens(src);
+    return read_all_tokens(src, filepath);
 }
 
 Vector *read_asm_from_filepath(char *filepath)
 {
     char *src = read_entire_file(filepath);
-    return read_all_asm(src);
+    return read_all_asm(src, filepath);
 }
 
 int is_register_code(Code *code)

@@ -36,6 +36,7 @@ int fputc(int c, FILE *stream);
 int fgetc(FILE *stream);
 int fprintf(FILE *stream, const char *format, ...);
 int printf(const char *format, ...);
+int sprintf(char *str, const char *format, ...);
 int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_FAILURE 1 /* Failing exit status.  */
 #define EXIT_SUCCESS 0 /* Successful exit status.  */
@@ -574,10 +575,19 @@ Code *str2reg(char *src);
 void erase_backslash_newline(char *src);
 
 // lex.c
-Vector *read_all_tokens(char *src);
+typedef struct {
+    int line, column;
+    Vector *line2length;
+    char *src;
+    // example: "/tmp/1.c" -> cwd: "/tmp/"
+    char *cwd;  // current working directory with '/'
+    char *filepath;
+} Source;
+
+Vector *read_all_tokens(char *src, char *filepath);
 const char *token_kind2str(int kind);
 Vector *concatenate_string_literal_tokens(Vector *tokens);
-Vector *read_all_asm(char *src);
+Vector *read_all_asm(char *src, char *filepath);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);
