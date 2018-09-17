@@ -15,13 +15,15 @@ _Noreturn void error(const char *msg, ...)
 
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
 {
-    error(":%d:%d: unexpected token: expect %s, got %s", got->line, got->column,
+    error("%s:%d:%d: unexpected token: expect %s, got %s",
+          got->source->filepath, got->source->line, got->source->column,
           token_kind2str(expect_kind), token_kind2str(got->kind));
 }
 
 _Noreturn void error_unexpected_token_str(char *expect_str, Token *got)
 {
-    error(":%d:%d: unexpected token: expect %s, got %s", got->line, got->column,
+    error("%s:%d:%d: unexpected token: expect %s, got %s",
+          got->source->filepath, got->source->line, got->source->column,
           expect_str, token_kind2str(got->kind));
 }
 

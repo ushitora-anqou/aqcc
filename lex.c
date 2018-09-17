@@ -7,7 +7,7 @@ void init_source(char *src, char *filepath)
     // caluculate current working directory
     int i, j, len = strlen(filepath);
     source.cwd = safe_malloc(sizeof(char *) * len);
-    // ad-hoc
+    // TODO: ad-hoc
     for (i = len - 1; i >= 0; i--) {
         if (filepath[i] == '/') {
             // detect last '/'
@@ -40,7 +40,9 @@ void init_source(char *src, char *filepath)
 
 Token *make_token(int kind)
 {
-    return new_token(kind, source.line, source.column);
+    Source *src = (Source *)safe_malloc(sizeof(Source));
+    memcpy(src, &source, sizeof(Source));
+    return new_token(kind, src);
 }
 
 void ungetch()

@@ -32,12 +32,10 @@ void preprocess_tokens_detail_define()
     add_define(name, tokens);
 }
 
-extern Source source;  // To get source.cwd. Declared in lex.c
-
 void preprocess_tokens_detail_include()
 {
-    char *include_filepath =
-        format("%s%s", source.cwd, expect_token(tSTRING_LITERAL)->sval);
+    Token *token = expect_token(tSTRING_LITERAL);
+    char *include_filepath = format("%s%s", token->source->cwd, token->sval);
     expect_token(tNEWLINE);
     insert_tokens(read_tokens_from_filepath(include_filepath));
 }

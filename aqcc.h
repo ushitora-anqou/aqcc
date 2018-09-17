@@ -80,6 +80,15 @@ char string_builder_append(StringBuilder *sb, char ch);
 char *string_builder_get(StringBuilder *sb);
 int string_builder_size(StringBuilder *sb);
 
+typedef struct {
+    int line, column;
+    Vector *line2length;
+    char *src;
+    // example: "/tmp/1.c" -> cwd: "/tmp/"
+    char *cwd;  // current working directory with '/'
+    char *filepath;
+} Source;
+
 enum {
     tINT,
     tSTRING_LITERAL,
@@ -160,7 +169,8 @@ enum {
 };
 
 typedef struct {
-    int kind, line, column;
+    int kind;
+    Source *source;
 
     union {
         int ival;
@@ -574,15 +584,6 @@ Code *str2reg(char *src);
 void erase_backslash_newline(char *src);
 
 // lex.c
-typedef struct {
-    int line, column;
-    Vector *line2length;
-    char *src;
-    // example: "/tmp/1.c" -> cwd: "/tmp/"
-    char *cwd;  // current working directory with '/'
-    char *filepath;
-} Source;
-
 Vector *read_all_tokens(char *src, char *filepath);
 const char *token_kind2str(int kind);
 Vector *concatenate_string_literal_tokens(Vector *tokens);
@@ -713,7 +714,7 @@ Vector *get_gvar_list();
 Vector *preprocess_tokens(Vector *tokens);
 
 // token.c
-Token *new_token(int kind, int line, int column);
+Token *new_token(int kind, Source *source);
 Token *clone_token(Token *src);
 TokenSeq *new_token_seq(Vector *tokens);
 void init_tokenseq(Vector *tokens);
