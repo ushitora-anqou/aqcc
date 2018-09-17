@@ -36,7 +36,6 @@ int fputc(int c, FILE *stream);
 int fgetc(FILE *stream);
 int fprintf(FILE *stream, const char *format, ...);
 int printf(const char *format, ...);
-int sprintf(char *str, const char *format, ...);
 int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_FAILURE 1 /* Failing exit status.  */
 #define EXIT_SUCCESS 0 /* Successful exit status.  */

@@ -237,17 +237,6 @@ int printf(const char *format, ...)
     return cnt;
 }
 
-int sprintf(char *str, const char *format, ...)
-{
-    va_list args;
-
-    va_start(args, format);
-    int cnt = vsprintf(str, format, args);
-    va_end(args);
-
-    return cnt;
-}
-
 void assert(int cond)
 {
     if (cond) return;
