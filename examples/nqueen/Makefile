@@ -1,20 +1,14 @@
 # AQCC
-AQCC=../../aqcc_detail
+AQCC=../../aqcc
 
 TARGET=nqueen
 SRC=main.c
 OBJS=$(SRC:.c=.o)
 
-$(TARGET) : $(OBJS)
-	gcc $^ -o $@
-
-%.s : %.c
-	$(AQCC) cs $< $@
-
-%.o : %.s
-	$(AQCC) so $< $@
+$(TARGET) : $(SRC) ../../system.s ../../stdlib.c
+	$(AQCC) $^  -o $@
 
 clean:
-	rm -f $(TARGET) $(ASSEMBLES)
+	rm -f $(TARGET) $(ASSEMBLES) $(OBJS)
 
 .PHONY: clean

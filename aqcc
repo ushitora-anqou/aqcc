@@ -2,7 +2,8 @@
 
 if [ -z $AQCC_DETAIL ]
 then
-    AQCC_DETAIL=./aqcc_detail
+    # Use aqcc_detail located in the directory including this script.
+    AQCC_DETAIL=`dirname ${0}`/aqcc_detail
 fi
 
 function print_usage_to_fail() {

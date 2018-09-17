@@ -51,18 +51,16 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# written by anqou
+# written for aqcc
 _test*
 *.~*~
 main
 aqcc_detail
-
-# written by hiromi-mi
 *.self.s
 *.selfself.s
 tags
-aqcc_self
-aqcc_selfself
+aqcc_self_detail
+aqcc_selfself_detail
 examples/nqueen/main.s
 examples/nqueen/nqueen
 __self_sort.in

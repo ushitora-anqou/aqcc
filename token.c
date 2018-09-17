@@ -1,11 +1,10 @@
 #include "aqcc.h"
 
-Token *new_token(int kind, int line, int column)
+Token *new_token(int kind, Source *source)
 {
     Token *token = (Token *)safe_malloc(sizeof(Token));
     token->kind = kind;
-    token->line = line;
-    token->column = column;
+    token->source = source;
     return token;
 }
 
