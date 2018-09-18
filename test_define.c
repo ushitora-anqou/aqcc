@@ -68,8 +68,7 @@ int test002()
     a = 2;
 #else
     printf("[ERROR] test002:2: nested #ifdef guard is out of order\n");
-#endif
-// for #ifdef test002value
+#endif  // #ifdef test002value
 
 #ifndef test002value
     printf(
@@ -97,6 +96,22 @@ int test002()
         printf(
             "[ERROR] test002:6: neither #ifdef nor #else is called. Expected "
             "'a': 5, got: %d\n",
+            a);
+    }
+
+#ifndef test002unknown
+#ifdef test002unknown
+    printf("[ERROR] test002:7: nested #ifdef guard is out of order\n");
+#else
+    a = 6;
+#endif  // #ifdef test002unknown
+#else
+    printf("[ERROR] test002:8: nested #ifndef guard is out of order\n");
+#endif
+    if (a != 6) {
+        printf(
+            "[ERROR] test002:9: neither #ifdef nor #else is called. Expected "
+            "'a': 6, got: %d\n",
             a);
     }
 }
