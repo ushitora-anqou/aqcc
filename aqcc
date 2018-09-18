@@ -47,7 +47,6 @@ case $outft in
         ;;
 
     o)
-        echo "o"
         [ ${#infiles[@]} -eq 1 ] || print_usage_to_fail
         case "${infiles[0]}" in
             *c)
