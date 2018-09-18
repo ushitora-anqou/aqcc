@@ -47,11 +47,18 @@ void preprocess_skip_until_endif(const char *keyword)
                                            token);
         }
 
-        if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
-            char *ident = token->sval;
-            if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
-                cnt++;
-            else if (strcmp("else", ident) == 0 && --cnt == 0) {
+        if (token->kind == tNUMBER) {
+            if (token = pop_token_if(tIDENT)) {
+                char *ident = token->sval;
+                if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
+                    cnt++;
+                else if (strcmp("endif", ident) == 0 && --cnt == 0) {
+                    vector_pop(if_stack);
+                    expect_token(tNEWLINE);
+                    break;
+                }
+            }
+            else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0) {
                 if (strcmp("else", keyword) == 0) {
                     error_unexpected_token_str("#else after #else", token);
                     break;
@@ -60,11 +67,6 @@ void preprocess_skip_until_endif(const char *keyword)
                     preprocess_tokens_detail_else();
                     break;
                 }
-            }
-            else if (strcmp("endif", ident) == 0 && --cnt == 0) {
-                vector_pop(if_stack);
-                expect_token(tNEWLINE);
-                break;
             }
         }
     }
@@ -81,11 +83,11 @@ void preprocess_tokens_detail_define()
 
 void preprocess_tokens_detail_else()
 {
-    int *tf = vector_peek(if_stack);
+    char *tf = vector_peek(if_stack);
     if (tf == NULL) {
         error("invalid #else");
     }
-    if (*tf == 0) {
+    if (strcmp(tf, "false") == 0) {
         // False when #ifdef or #ifndef
         return;
     }
@@ -109,31 +111,35 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
     expect_token(tNEWLINE);
     if (strcmp("ifdef", keyword) == 0 && lookup_define(name) ||
         strcmp("ifndef", keyword) == 0 && !lookup_define(name)) {
-        vector_push_back(if_stack, 1);
+        vector_push_back(if_stack, "true");
         return;
     }
 
-    vector_push_back(if_stack, 0);
+    vector_push_back(if_stack, "false");
 
     preprocess_skip_until_endif(keyword);
 }
 
 void preprocess_tokens_detail_number()
 {
-    char *keyword = expect_token(tIDENT)->sval;
-    // TODO: other preprocess token
-    if (strcmp(keyword, "define") == 0)
-        preprocess_tokens_detail_define();
-    else if (strcmp(keyword, "include") == 0)
-        preprocess_tokens_detail_include();
-    else if ((strcmp(keyword, "ifdef") == 0) || strcmp(keyword, "ifndef") == 0)
-        preprocess_tokens_detail_ifdef_ifndef(keyword);
-    else if (strcmp(keyword, "endif") == 0)
-        vector_pop(if_stack);
-    else if (strcmp(keyword, "else") == 0)
-        preprocess_tokens_detail_else();
-    else
-        error("invalid preprocess token");
+    if (match_token(tIDENT) || match_token(kELSE)) {
+        Token *token = pop_token();
+        char *keyword = token->sval;
+        // TODO: other preprocess token
+        if (!keyword && token->kind == kELSE)
+            preprocess_tokens_detail_else();
+        else if (strcmp(keyword, "define") == 0)
+            preprocess_tokens_detail_define();
+        else if (strcmp(keyword, "include") == 0)
+            preprocess_tokens_detail_include();
+        else if ((strcmp(keyword, "ifdef") == 0) ||
+                 strcmp(keyword, "ifndef") == 0)
+            preprocess_tokens_detail_ifdef_ifndef(keyword);
+        else if (strcmp(keyword, "endif") == 0)
+            vector_pop(if_stack);
+        else
+            error("invalid preprocess token");
+    }
 }
 
 Vector *preprocess_tokens(Vector *tokens)
