@@ -23,14 +23,15 @@ Vector *lookup_define(char *name)
     return (Vector *)kv_value(map_lookup(define_table, name));
 }
 
-void preprocess_skip_until_else()
+void preprocess_skip_until_else_or_endif()
 {
     // search corresponding #endif or #else
     int cnt = 1;
     while (1) {
         Token *token = pop_token();
 
-        if (token->kind == tEOF) error_unexpected_token_str("#endif", token);
+        if (token->kind == tEOF)
+            error_unexpected_token_str("#endif or #else", token);
 
         if (token->kind == tNUMBER) {
             if (token = pop_token_if(tIDENT)) {
@@ -44,29 +45,6 @@ void preprocess_skip_until_else()
             }
             else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0)
                 break;
-        }
-    }
-}
-
-void preprocess_skip_until_endif()
-{
-    // search corresponding #endif
-    // TODO: #if
-    int cnt = 1;
-    while (1) {
-        Token *token = pop_token();
-
-        if (token->kind == tEOF)
-            error_unexpected_token_str("#endif corresponding to #else", token);
-
-        if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
-            char *ident = token->sval;
-            if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
-                cnt++;
-            else if (strcmp("endif", ident) == 0 && --cnt == 0) {
-                expect_token(tNEWLINE);
-                break;
-            }
         }
     }
 }
@@ -97,7 +75,7 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
         return;
     }
 
-    preprocess_skip_until_else();
+    preprocess_skip_until_else_or_endif();
 }
 
 void preprocess_tokens_detail_number()
@@ -107,7 +85,7 @@ void preprocess_tokens_detail_number()
         char *keyword = token->sval;
         // TODO: other preprocess token
         if (!keyword && token->kind == kELSE)
-            preprocess_skip_until_endif("else");
+            preprocess_skip_until_else_or_endif();
         else if (strcmp(keyword, "define") == 0)
             preprocess_tokens_detail_define();
         else if (strcmp(keyword, "include") == 0)
