@@ -23,21 +23,14 @@ Vector *lookup_define(char *name)
     return (Vector *)kv_value(map_lookup(define_table, name));
 }
 
-void preprocess_skip_until_else(const char *keyword)
+void preprocess_skip_until_else()
 {
     // search corresponding #endif or #else
     int cnt = 1;
     while (1) {
         Token *token = pop_token();
 
-        if (token->kind == tEOF) {
-            if (strcmp("ifdef", keyword) == 0)
-                error_unexpected_token_str("#endif corresponding to #ifdef",
-                                           token);
-            else
-                error_unexpected_token_str("#endif corresponding to #ifndef",
-                                           token);
-        }
+        if (token->kind == tEOF) error_unexpected_token_str("#endif", token);
 
         if (token->kind == tNUMBER) {
             if (token = pop_token_if(tIDENT)) {
@@ -49,16 +42,13 @@ void preprocess_skip_until_else(const char *keyword)
                     break;
                 }
             }
-            else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0) {
-                if (strcmp("else", keyword) == 0) {
-                    error_unexpected_token_str("#else after #else", token);
-                }
+            else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0)
                 break;
-            }
         }
     }
 }
-void preprocess_skip_until_endif(const char *keyword)
+
+void preprocess_skip_until_endif()
 {
     // search corresponding #endif
     // TODO: #if
@@ -66,9 +56,8 @@ void preprocess_skip_until_endif(const char *keyword)
     while (1) {
         Token *token = pop_token();
 
-        if (token->kind == tEOF) {
+        if (token->kind == tEOF)
             error_unexpected_token_str("#endif corresponding to #else", token);
-        }
 
         if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
             char *ident = token->sval;
@@ -108,7 +97,7 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
         return;
     }
 
-    preprocess_skip_until_else(keyword);
+    preprocess_skip_until_else();
 }
 
 void preprocess_tokens_detail_number()
