@@ -58,8 +58,6 @@ Vector *new_vector();
 Vector *new_vector_from_scalar(void *scalar);
 void vector_push_back(Vector *vec, void *item);
 void *vector_get(Vector *vec, int i);
-void *vector_peek(Vector *vec);
-void *vector_pop(Vector *vec);
 int vector_size(Vector *vec);
 void *vector_set(Vector *vec, int i, void *item);
 void vector_push_back_vector(Vector *vec, Vector *src);
