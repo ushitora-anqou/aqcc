@@ -8,7 +8,7 @@ void skip_newline()
 
 Map *define_table;
 
-void init_define() { define_table = new_map(); }
+void init_preprocess() { define_table = new_map(); }
 
 Vector *add_define(char *name, Vector *tokens)
 {
@@ -21,6 +21,32 @@ Vector *add_define(char *name, Vector *tokens)
 Vector *lookup_define(char *name)
 {
     return (Vector *)kv_value(map_lookup(define_table, name));
+}
+
+void preprocess_skip_until_else_or_endif()
+{
+    // search corresponding #endif or #else
+    int cnt = 1;
+    while (1) {
+        Token *token = pop_token();
+
+        if (token->kind == tEOF)
+            error_unexpected_token_str("#endif or #else", token);
+
+        if (token->kind == tNUMBER) {
+            if (token = pop_token_if(tIDENT)) {
+                char *ident = token->sval;
+                if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
+                    cnt++;
+                else if (strcmp("endif", ident) == 0 && --cnt == 0) {
+                    expect_token(tNEWLINE);
+                    break;
+                }
+            }
+            else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0)
+                break;
+        }
+    }
 }
 
 void preprocess_tokens_detail_define()
@@ -44,55 +70,40 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
 {
     char *name = expect_token(tIDENT)->sval;
     expect_token(tNEWLINE);
-    if (strcmp("ifdef", keyword) == 0 && lookup_define(name)) return;
-    if (strcmp("ifndef", keyword) == 0 && !lookup_define(name)) return;
-
-    // search corresponding #endif
-    // TODO: #if
-    int cnt = 1;
-    while (1) {
-        Token *token = pop_token();
-
-        if (token->kind == tEOF) {
-            if (strcmp("ifdef", keyword) == 0)
-                error_unexpected_token_str("#endif corresponding to #ifdef",
-                                           token);
-            else
-                error_unexpected_token_str("#endif corresponding to #ifndef",
-                                           token);
-        }
-
-        if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
-            char *ident = token->sval;
-            if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
-                cnt++;
-            else if (strcmp("endif", ident) == 0 && --cnt == 0)
-                break;
-        }
+    if (strcmp("ifdef", keyword) == 0 && lookup_define(name) ||
+        strcmp("ifndef", keyword) == 0 && !lookup_define(name)) {
+        return;
     }
-    expect_token(tNEWLINE);
+
+    preprocess_skip_until_else_or_endif();
 }
 
 void preprocess_tokens_detail_number()
 {
-    char *keyword = expect_token(tIDENT)->sval;
-    // TODO: other preprocess token
-    if (strcmp(keyword, "define") == 0)
-        preprocess_tokens_detail_define();
-    else if (strcmp(keyword, "include") == 0)
-        preprocess_tokens_detail_include();
-    else if ((strcmp(keyword, "ifdef") == 0) || strcmp(keyword, "ifndef") == 0)
-        preprocess_tokens_detail_ifdef_ifndef(keyword);
-    else if (strcmp(keyword, "endif") == 0)
-        return;
-    else
-        error("invalid preprocess token");
+    if (match_token(tIDENT) || match_token(kELSE)) {
+        Token *token = pop_token();
+        char *keyword = token->sval;
+        // TODO: other preprocess token
+        if (!keyword && token->kind == kELSE)
+            preprocess_skip_until_else_or_endif();
+        else if (strcmp(keyword, "define") == 0)
+            preprocess_tokens_detail_define();
+        else if (strcmp(keyword, "include") == 0)
+            preprocess_tokens_detail_include();
+        else if ((strcmp(keyword, "ifdef") == 0) ||
+                 strcmp(keyword, "ifndef") == 0)
+            preprocess_tokens_detail_ifdef_ifndef(keyword);
+        else if (strcmp(keyword, "endif") == 0)
+            return;  // skip endif
+        else
+            error("invalid preprocess token");
+    }
 }
 
 Vector *preprocess_tokens(Vector *tokens)
 {
     init_tokenseq(tokens);
-    init_define(tokens);
+    init_preprocess(tokens);
 
     Vector *ntokens = new_vector();
     while (!match_token(tEOF)) {
