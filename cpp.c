@@ -7,15 +7,8 @@ void skip_newline()
 }
 
 Map *define_table;
-Vector *if_stack;
 
-void preprocess_tokens_detail_else();
-
-void init_preprocess()
-{
-    define_table = new_map();
-    if_stack = new_vector();
-}
+void init_preprocess() { define_table = new_map(); }
 
 Vector *add_define(char *name, Vector *tokens)
 {
@@ -30,10 +23,9 @@ Vector *lookup_define(char *name)
     return (Vector *)kv_value(map_lookup(define_table, name));
 }
 
-void preprocess_skip_until_endif(const char *keyword)
+void preprocess_skip_until_else(const char *keyword)
 {
-    // search corresponding #endif
-    // TODO: #if
+    // search corresponding #endif or #else
     int cnt = 1;
     while (1) {
         Token *token = pop_token();
@@ -53,7 +45,6 @@ void preprocess_skip_until_endif(const char *keyword)
                 if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
                     cnt++;
                 else if (strcmp("endif", ident) == 0 && --cnt == 0) {
-                    vector_pop(if_stack);
                     expect_token(tNEWLINE);
                     break;
                 }
@@ -61,12 +52,31 @@ void preprocess_skip_until_endif(const char *keyword)
             else if ((token = pop_token_if(kELSE)) && cnt - 1 == 0) {
                 if (strcmp("else", keyword) == 0) {
                     error_unexpected_token_str("#else after #else", token);
-                    break;
                 }
-                else {
-                    preprocess_tokens_detail_else();
-                    break;
-                }
+                break;
+            }
+        }
+    }
+}
+void preprocess_skip_until_endif(const char *keyword)
+{
+    // search corresponding #endif
+    // TODO: #if
+    int cnt = 1;
+    while (1) {
+        Token *token = pop_token();
+
+        if (token->kind == tEOF) {
+            error_unexpected_token_str("#endif corresponding to #else", token);
+        }
+
+        if (token->kind == tNUMBER && (token = pop_token_if(tIDENT))) {
+            char *ident = token->sval;
+            if (strcmp("ifdef", ident) == 0 || strcmp("ifndef", ident) == 0)
+                cnt++;
+            else if (strcmp("endif", ident) == 0 && --cnt == 0) {
+                expect_token(tNEWLINE);
+                break;
             }
         }
     }
@@ -79,22 +89,6 @@ void preprocess_tokens_detail_define()
     while (!match_token(tNEWLINE)) vector_push_back(tokens, pop_token());
     expect_token(tNEWLINE);
     add_define(name, tokens);
-}
-
-void preprocess_tokens_detail_else()
-{
-    char *tf = vector_peek(if_stack);
-    if (tf == NULL) {
-        error("invalid #else");
-    }
-    if (strcmp(tf, "false") == 0) {
-        // False when #ifdef or #ifndef
-        return;
-    }
-    else {
-        // True when #ifdef or #ifndef. Now it's time to skip.
-        preprocess_skip_until_endif("else");
-    }
 }
 
 void preprocess_tokens_detail_include()
@@ -111,13 +105,10 @@ void preprocess_tokens_detail_ifdef_ifndef(const char *keyword)
     expect_token(tNEWLINE);
     if (strcmp("ifdef", keyword) == 0 && lookup_define(name) ||
         strcmp("ifndef", keyword) == 0 && !lookup_define(name)) {
-        vector_push_back(if_stack, "true");
         return;
     }
 
-    vector_push_back(if_stack, "false");
-
-    preprocess_skip_until_endif(keyword);
+    preprocess_skip_until_else(keyword);
 }
 
 void preprocess_tokens_detail_number()
@@ -127,7 +118,7 @@ void preprocess_tokens_detail_number()
         char *keyword = token->sval;
         // TODO: other preprocess token
         if (!keyword && token->kind == kELSE)
-            preprocess_tokens_detail_else();
+            preprocess_skip_until_endif("else");
         else if (strcmp(keyword, "define") == 0)
             preprocess_tokens_detail_define();
         else if (strcmp(keyword, "include") == 0)
@@ -136,7 +127,7 @@ void preprocess_tokens_detail_number()
                  strcmp(keyword, "ifndef") == 0)
             preprocess_tokens_detail_ifdef_ifndef(keyword);
         else if (strcmp(keyword, "endif") == 0)
-            vector_pop(if_stack);
+            return;  // skip endif
         else
             error("invalid preprocess token");
     }
@@ -195,9 +186,6 @@ Vector *preprocess_tokens(Vector *tokens)
         vector_push_back(ntokens, token);
     }
     vector_push_back(ntokens, expect_token(tEOF));
-
-    if (vector_size(if_stack) != 0)
-        error("#ifdef or #ifndef directive is not finished");
 
     return ntokens;
 }
