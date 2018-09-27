@@ -78,3 +78,17 @@ $ ./program
 
 また、標準ライブラリのうち提供されている機能はごく僅かです。
 `stdlib.c` を参照して下さい。
+
+## 謝辞
+
+aqccは[セキュリティキャンプ全国大会2018](https://www.ipa.go.jp/jinzai/camp/2018/zenkoku2018_index.html)の成果物です。
+講師の@rui314さんと@hikaliumさんに深く感謝申し上げます。
+
+## 資料
+
+- [セルフホストCコンパイラaqcc 開発記](https://anqou.net/poc/2018/08/21/post-1853/)
+    - セキュリティキャンプの前日にセルフホストを達成するまでのaqcc開発日記。
+- [ seccamp2018でセルフホストCコンパイラをつくった](https://speakerdeck.com/anqou/seccamp2018deseruhuhosutockonpairawotukututa)
+    - Kernel/VM関西9回目での発表資料。
+    - [ベストオブ頭おかしい発表に選ばれました](https://twitter.com/kernelvm/status/1044153390060625920)。ありがとうございます。
+
