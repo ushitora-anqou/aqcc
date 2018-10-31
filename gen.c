@@ -189,7 +189,74 @@ int nbyte_of_reg(int reg)
     return ret;
 }
 
-Type *x86_64_analyze_type(Type *type) { return type; }
+Type *x86_64_analyze_type(Type *type)
+{
+    if (type == NULL) return NULL;
+
+    switch (type->kind) {
+        case TY_INT:
+            type->nbytes = 4;
+            break;
+
+        case TY_CHAR:
+            type->nbytes = 1;
+            break;
+
+        case TY_PTR:
+            type->ptr_of = x86_64_analyze_type(type->ptr_of);
+            type->nbytes = 8;
+            break;
+
+        case TY_ARY:
+            type->ary_of = x86_64_analyze_type(type->ary_of);
+            type->nbytes = type->len * type->ary_of->nbytes;
+            break;
+
+        case TY_STRUCT: {
+            if (type->members == NULL) break;
+
+            int offset = 0;
+            for (int i = 0; i < vector_size(type->members); i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(type->members, i);
+                member->type = x86_64_analyze_type(member->type);
+
+                // calc offset
+                offset = roundup(offset, alignment_of(member->type));
+                member->offset = offset;
+                offset += member->type->nbytes;
+            }
+            type->nbytes = roundup(offset, alignment_of(type));
+        } break;
+
+        case TY_UNION: {
+            if (type->members == NULL) break;
+
+            int max_nbytes = 0;
+            for (int i = 0; i < vector_size(type->members); i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(type->members, i);
+                member->type = x86_64_analyze_type(member->type);
+
+                // offset is always zero.
+                member->offset = 0;
+                max_nbytes = max(max_nbytes, member->type->nbytes);
+            }
+            type->nbytes = roundup(max_nbytes, alignment_of(type));
+        } break;
+
+        case TY_ENUM:
+            break;
+
+        case TY_VOID:
+            break;
+
+        default:
+            assert(0);
+    }
+
+    return type;
+}
 
 // all Type* should pass x86_64_analyze_type().
 // all AST* should pass x86_64_analyze_ast_detail()

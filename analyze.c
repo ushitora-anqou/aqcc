@@ -805,6 +805,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_CAST:
+            ast->type = analyze_type(env, ast->type);
             if (!is_scalar_type(ast->type))
                 error("only scalar type can be cast");
             // TODO: always convert_expr; is that safe?
