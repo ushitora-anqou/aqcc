@@ -189,6 +189,179 @@ int nbyte_of_reg(int reg)
     return ret;
 }
 
+Type *x86_64_analyze_type(Type *type) { return type; }
+
+// all Type* should pass x86_64_analyze_type().
+// all AST* should pass x86_64_analyze_ast_detail()
+AST *x86_64_analyze_ast_detail(AST *ast)
+{
+    if (ast == NULL) return NULL;
+
+    switch (ast->kind) {
+        case AST_INT:
+        case AST_LVAR:
+        case AST_GVAR:
+            ast->type = x86_64_analyze_type(ast->type);
+            break;
+
+        case AST_ADD:
+        case AST_SUB:
+        case AST_MUL:
+        case AST_DIV:
+        case AST_REM:
+        case AST_LSHIFT:
+        case AST_RSHIFT:
+        case AST_LT:
+        case AST_LTE:
+        case AST_EQ:
+        case AST_AND:
+        case AST_XOR:
+        case AST_OR:
+        case AST_LAND:
+        case AST_LOR:
+        case AST_ASSIGN:
+        case AST_VA_START:
+            ast->type = x86_64_analyze_type(ast->type);
+            ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
+            ast->rhs = x86_64_analyze_ast_detail(ast->rhs);
+            break;
+
+        case AST_COMPL:
+        case AST_UNARY_MINUS:
+        case AST_PREINC:
+        case AST_POSTINC:
+        case AST_PREDEC:
+        case AST_POSTDEC:
+        case AST_ADDR:
+        case AST_INDIR:
+        case AST_CAST:
+        case AST_CHAR2INT:
+        case AST_LVALUE2RVALUE:
+        case AST_VA_ARG_INT:
+        case AST_VA_ARG_CHARP:
+            ast->type = x86_64_analyze_type(ast->type);
+            ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
+            break;
+
+        case AST_ARY2PTR:
+            ast->type = x86_64_analyze_type(ast->type);
+            ast->ary = x86_64_analyze_ast_detail(ast->ary);
+            break;
+
+        case AST_EXPR_LIST:
+            ast->type = x86_64_analyze_type(ast->type);
+
+            for (int i = 0; i < vector_size(ast->exprs); i++) {
+                AST *expr = (AST *)vector_get(ast->exprs, i);
+                vector_set(ast->exprs, i, x86_64_analyze_ast_detail(expr));
+            }
+            break;
+
+        case AST_COND:
+            ast->type = x86_64_analyze_type(ast->type);
+            ast->cond = x86_64_analyze_ast_detail(ast->cond);
+            ast->then = x86_64_analyze_ast_detail(ast->then);
+            ast->els = x86_64_analyze_ast_detail(ast->els);
+            break;
+
+        case AST_FUNCCALL:
+            ast->type = x86_64_analyze_type(ast->type);
+            for (int i = 0; i < vector_size(ast->args); i++) {
+                AST *arg = (AST *)vector_get(ast->args, i);
+                vector_set(ast->args, i, x86_64_analyze_ast_detail(arg));
+            }
+            break;
+
+        case AST_IF:
+            ast->cond = x86_64_analyze_ast_detail(ast->cond);
+            ast->then = x86_64_analyze_ast_detail(ast->then);
+            ast->els = x86_64_analyze_ast_detail(ast->els);
+            break;
+
+        case AST_SWITCH:
+            ast->target = x86_64_analyze_ast_detail(ast->target);
+            ast->switch_body = x86_64_analyze_ast_detail(ast->switch_body);
+            break;
+
+        case AST_FOR:
+            ast->initer = x86_64_analyze_ast_detail(ast->initer);
+            ast->midcond = x86_64_analyze_ast_detail(ast->midcond);
+            ast->iterer = x86_64_analyze_ast_detail(ast->iterer);
+            ast->for_body = x86_64_analyze_ast_detail(ast->for_body);
+            break;
+
+        case AST_DOWHILE:
+            ast->cond = x86_64_analyze_ast_detail(ast->cond);
+            ast->then = x86_64_analyze_ast_detail(ast->then);
+            break;
+
+        case AST_RETURN:
+        case AST_EXPR_STMT:
+            ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
+            break;
+
+        case AST_MEMBER_REF:
+            ast->type = x86_64_analyze_type(ast->type);
+            ast->stsrc = x86_64_analyze_ast_detail(ast->stsrc);
+            break;
+
+        case AST_COMPOUND:
+            for (int i = 0; i < vector_size(ast->stmts); i++) {
+                AST *stmt = (AST *)vector_get(ast->stmts, i);
+                vector_set(ast->stmts, i, x86_64_analyze_ast_detail(stmt));
+            }
+            break;
+
+        case AST_LVAR_DECL_INIT:
+        case AST_GVAR_DECL_INIT:
+            ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
+            ast->rhs = x86_64_analyze_ast_detail(ast->rhs);
+            break;
+
+        case AST_DECL_LIST:
+            for (int i = 0; i < vector_size(ast->decls); i++) {
+                AST *decl = (AST *)vector_get(ast->decls, i);
+                vector_set(ast->decls, i, x86_64_analyze_ast_detail(decl));
+            }
+            break;
+
+        case AST_FUNCDEF:
+            ast->type = x86_64_analyze_type(ast->type);
+            if (ast->params) {
+                for (int i = 0; i < vector_size(ast->params); i++) {
+                    AST *param = (AST *)vector_get(ast->params, i);
+                    param->type = x86_64_analyze_type(param->type);
+                }
+            }
+            ast->body = x86_64_analyze_ast_detail(ast->body);
+            break;
+
+        case AST_NOP:
+        case AST_GVAR_DECL:
+        case AST_LVAR_DECL:
+        case AST_FUNC_DECL:
+        case AST_GOTO:
+        case AST_BREAK:
+        case AST_CONTINUE:
+        case AST_LABEL:
+            break;
+
+        default:
+            assert(0);
+    }
+
+    return ast;
+}
+
+void x86_64_analyze_ast(Vector *asts)
+{
+    int nasts = vector_size(asts);
+    for (int i = 0; i < nasts; i++) {
+        AST *ast = (AST *)vector_get(asts, i);
+        vector_set(asts, i, x86_64_analyze_ast_detail(ast));
+    }
+}
+
 void generate_basic_block_start_maker()
 {
     appcomment("BLOCK START");
@@ -1061,6 +1234,8 @@ int generate_register_code_detail(AST *ast)
 
 Vector *generate_register_code(Vector *asts)
 {
+    x86_64_analyze_ast(asts);
+
     init_code_env();
 
     appcode(new_code(CD_TEXT));

@@ -505,6 +505,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             char *varname = ast->varname;
 
             ast = lookup_var(env, varname);
+            assert(ast == NULL || ast->kind == AST_LVAR ||
+                   ast->kind == AST_GVAR);
             if (!ast) {
                 // maybe enum
                 int *ival = lookup_enum_value(env, varname);
@@ -783,7 +785,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (!is_lvalue(ast->stsrc) &&
                 !is_last_expr_in_list_lvalue(ast->stsrc))
                 error("lhs of dot should be lvalue");
-            ast->stsrc->type = analyze_type(env, ast->stsrc->type);
+            // ast->stsrc->type = analyze_type(env, ast->stsrc->type);
             if (ast->stsrc->type->kind != TY_STRUCT &&
                 ast->stsrc->type->kind != TY_UNION)
                 error("only struct/union can have members");
