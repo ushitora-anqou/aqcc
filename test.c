@@ -1866,6 +1866,15 @@ void test339()
     EXPECT_INT(*pa, B);
     enum ENUM3 *pb = 0;
     EXPECT_INT(sizeof(pb), 8);
+
+    enum ENUM4 { A4, B4, C4 } e4;
+    e4 = A4;
+    EXPECT_INT(e4, A4);
+    enum ENUM4 e4a = B4;
+    EXPECT_INT(e4a, B4);
+
+    enum { A4b, B4b } e4b = B4b;
+    EXPECT_INT(e4b, B4b);
 }
 
 int test340detail(int a, ...) { return a; }

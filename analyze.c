@@ -363,6 +363,7 @@ Type *analyze_type(Env *env, Type *type)
             }
 
             if (type->enname) add_struct_or_union_or_enum_type(env, type);
+            type = type_int();  // TODO: assume int
         } break;
     }
 
