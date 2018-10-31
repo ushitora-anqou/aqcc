@@ -15,6 +15,7 @@ function print_usage_to_fail() {
 outft='e'
 outfile='a.out'
 infiles=()
+verbose=0
 while (( $# > 0 ))
 do
     case "$1" in
@@ -33,6 +34,10 @@ do
             outft='s'
             shift
             ;;
+        '-v')
+            verbose=1
+            shift
+            ;;
         *)
             infiles+=("$1")
             shift
@@ -40,10 +45,15 @@ do
     esac
 done
 
+function exec_aqcc_detail() {
+    [ $verbose = 1 ] && echo $AQCC_DETAIL "$@"
+    $AQCC_DETAIL "$@"
+}
+
 case $outft in
     s)
         [ ${#infiles[@]} -eq 1 ] || print_usage_to_fail
-        $AQCC_DETAIL cs "${infiles[0]}" "$outfile"
+        exec_aqcc_detail cs "${infiles[0]}" "$outfile"
         ;;
 
     o)
@@ -51,12 +61,12 @@ case $outft in
         case "${infiles[0]}" in
             *c)
                 sfile=$(mktemp)
-                $AQCC_DETAIL cs "${infiles[0]}" $sfile
-                $AQCC_DETAIL so $sfile "$outfile"
+                exec_aqcc_detail cs "${infiles[0]}" $sfile
+                exec_aqcc_detail so $sfile "$outfile"
                 rm $sfile
                 ;;
             *s)
-                $AQCC_DETAIL so "${infiles[0]}" "$outfile"
+                exec_aqcc_detail so "${infiles[0]}" "$outfile"
                 ;;
             *)
                 print_usage_to_fail
@@ -75,8 +85,8 @@ case $outft in
                 *c)
                     sfile=$(mktemp)
                     ofile=$(mktemp)
-                    $AQCC_DETAIL cs "$fname" $sfile
-                    $AQCC_DETAIL so $sfile $ofile
+                    exec_aqcc_detail cs "$fname" $sfile
+                    exec_aqcc_detail so $sfile $ofile
                     insrc+=($ofile)
                     rm $sfile
                     tempfiles+=($ofile)
@@ -84,7 +94,7 @@ case $outft in
 
                 *s)
                     ofile=$(mktemp)
-                    $AQCC_DETAIL so "$fname" $ofile
+                    exec_aqcc_detail so "$fname" $ofile
                     insrc+=($ofile)
                     tempfiles+=($ofile)
                     ;;
@@ -95,7 +105,7 @@ case $outft in
             esac
         done
 
-        $AQCC_DETAIL oe "${insrc[@]}" "$outfile"
+        exec_aqcc_detail oe "${insrc[@]}" "$outfile"
         chmod +x "$outfile"
 
         for ((i = 0; i < ${#tempfiles[@]}; i++))

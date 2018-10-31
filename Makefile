@@ -5,6 +5,7 @@ SRC=main.c vector.c utility.c map.c lex.c parse.c gen.c type.c env.c ast.c analy
 SRC_ASM=system.s
 SELF_OBJS=$(SRC:.c=.self.o) $(SRC_ASM:.s=.self.o)
 SELFSELF_OBJS=$(SRC:.c=.selfself.o) $(SRC_ASM:.s=.selfself.o)
+DEBUG=-v
 
 $(TARGET): $(SRC) $(SRC_ASM) test.inc aqcc.h
 	gcc -o $@ $(SRC) $(SRC_ASM) -O0 -g3 -Wall -std=c11 -fno-builtin  -fno-stack-protector -static -nostdlib
@@ -17,14 +18,14 @@ $(TARGET_SELF): $(TARGET) $(SRC) $(SRC_ASM) test.inc aqcc.h
 	##gcc $^ -o $@ -static -nostdlib
 	#./$(TARGET) oe $(SELF_OBJS) $@
 	#chmod +x $@
-	AQCC_DETAIL=./$(TARGET) ./aqcc -o $@ $(SRC) $(SRC_ASM)
+	AQCC_DETAIL=./$(TARGET) ./aqcc -o $@ $(SRC) $(SRC_ASM) $(DEBUG)
 
 #$(TARGET_SELFSELF): $(TARGET_SELF) $(SELFSELF_OBJS)
 $(TARGET_SELFSELF): $(TARGET_SELF) $(SRC) $(SRC_ASM) test.inc aqcc.h
 	##gcc $^ -o $@ -static -nostdlib
 	#./$(TARGET_SELF) oe $(SELFSELF_OBJS) $@
 	#chmod +x $@
-	AQCC_DETAIL=./$(TARGET_SELF) ./aqcc -o $@ $(SRC) $(SRC_ASM)
+	AQCC_DETAIL=./$(TARGET_SELF) ./aqcc -o $@ $(SRC) $(SRC_ASM) $(DEBUG)
 
 #%.self.s: %.c $(TARGET)
 #	./$(TARGET) cs $< $@
