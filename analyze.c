@@ -238,6 +238,7 @@ Type *lookup_member_type(Vector *members, char *member)
     return NULL;
 }
 
+AST *analyze_ast_detail(Env *env, AST *ast);
 Type *analyze_type(Env *env, Type *type)
 {
     assert(type != NULL);
@@ -348,6 +349,7 @@ Type *analyze_type(Env *env, Type *type)
                         break;
 
                     case AST_ENUM_VAR_DECL_INIT:
+                        ast = analyze_ast_detail(env, ast);
                         ast = optimize_ast_constant(ast, env);
                         if (ast->rhs->rhs->kind != AST_INT)
                             error(
@@ -556,6 +558,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_LVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->rhs = analyze_ast_detail(env, ast->rhs);
             if (ast->lhs->type->is_extern)
                 error("extern variable can't have any initializer: '%s'",
                       ast->lhs->varname);
@@ -572,13 +575,11 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                 gvar->ival = ast->rhs->rhs->ival;
                 ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
             }
-            else {
-                ast->rhs = analyze_ast_detail(env, ast->rhs);
-            }
         } break;
 
         case AST_GVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->rhs = analyze_ast_detail(env, ast->rhs);
             ast->rhs = optimize_ast_constant(ast->rhs, env);
             if (ast->rhs->rhs->kind != AST_INT)
                 error("global variable initializer must be constant.");
