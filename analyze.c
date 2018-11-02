@@ -383,6 +383,70 @@ AST *convert_expr(AST *expr)
     return char2int(lvalue2rvalue(ary2ptr(expr)));
 }
 
+AST *analyze_constant_detail(Env *env, AST *ast)
+{
+    assert(env != NULL && ast != NULL);
+    switch (ast->kind) {
+        case AST_INT:
+            return ast;
+
+        case AST_ADD:
+        case AST_SUB:
+        case AST_MUL:
+        case AST_DIV:
+        case AST_REM:
+        case AST_LSHIFT:
+        case AST_RSHIFT:
+        case AST_LT:
+        case AST_LTE:
+        case AST_EQ:
+        case AST_AND:
+        case AST_XOR:
+        case AST_OR:
+        case AST_LAND:
+        case AST_LOR:
+        case AST_NEQ: {
+            ast->lhs = analyze_constant_detail(env, ast->lhs),
+            ast->rhs = analyze_constant_detail(env, ast->rhs);
+            return ast;
+        }
+
+        case AST_COMPL:
+        case AST_UNARY_MINUS:
+        case AST_NOT:
+        case AST_CAST: {
+            ast->lhs = analyze_constant_detail(env, ast->lhs);
+            return ast;
+        }
+
+        case AST_COND: {
+            ast->cond = analyze_constant_detail(env, ast->cond);
+            ast->then = analyze_constant_detail(env, ast->then);
+            ast->els = analyze_constant_detail(env, ast->els);
+            return ast;
+        }
+
+        case AST_VAR: {
+            int *ival = lookup_enum_value(env, ast->varname);
+            if (!ival)
+                error("variable is not constant");  // TODO: introduce
+                                                    // AST_ENUM_VALUE
+            return new_int_ast(*ival);
+        }
+
+        default:
+            error("only constant expressions are acceptable.");
+    }
+}
+
+AST *analyze_constant(Env *env, AST *ast)
+{
+    AST *nast =
+        new_binop_ast(AST_CONSTANT, analyze_constant_detail(env, ast), NULL);
+    nast->type = nast->lhs->type;
+    return nast;
+}
+
 // Returns an analyzed AST pointer that may be the same one of `ast` or not.
 // Caller should replace `ast` with the returned AST pointer.
 AST *analyze_ast_detail(Env *env, AST *ast)

@@ -258,6 +258,124 @@ Type *x86_64_analyze_type(Type *type)
     return type;
 }
 
+int x86_64_eval_ast_int(AST *ast)
+{
+    assert(ast != NULL);
+
+    switch (ast->kind) {
+        case AST_INT:
+            return ast->ival;
+
+        case AST_ADD:
+        case AST_SUB:
+        case AST_MUL:
+        case AST_DIV:
+        case AST_REM:
+        case AST_LSHIFT:
+        case AST_RSHIFT:
+        case AST_LT:
+        case AST_LTE:
+        case AST_EQ:
+        case AST_AND:
+        case AST_XOR:
+        case AST_OR:
+        case AST_LAND:
+        case AST_LOR:
+        case AST_NEQ: {
+            int lhs = x86_64_eval_ast_int(ast->lhs),
+                rhs = x86_64_eval_ast_int(ast->rhs), ret = 0;
+
+            switch (ast->kind) {
+                case AST_ADD:
+                    ret = lhs + rhs;
+                    break;
+                case AST_SUB:
+                    ret = lhs - rhs;
+                    break;
+                case AST_MUL:
+                    ret = lhs * rhs;
+                    break;
+                case AST_DIV:
+                    ret = lhs / rhs;
+                    break;
+                case AST_REM:
+                    ret = lhs % rhs;
+                    break;
+                case AST_LSHIFT:
+                    ret = lhs << rhs;
+                    break;
+                case AST_RSHIFT:
+                    ret = lhs >> rhs;
+                    break;
+                case AST_LT:
+                    ret = lhs < rhs;
+                    break;
+                case AST_LTE:
+                    ret = lhs <= rhs;
+                    break;
+                case AST_EQ:
+                    ret = lhs == rhs;
+                    break;
+                case AST_AND:
+                    ret = lhs & rhs;
+                    break;
+                case AST_XOR:
+                    ret = lhs ^ rhs;
+                    break;
+                case AST_OR:
+                    ret = lhs | rhs;
+                    break;
+                case AST_LAND:
+                    ret = lhs && rhs;
+                    break;
+                case AST_LOR:
+                    ret = lhs || rhs;
+                    break;
+                case AST_NEQ:
+                    ret = lhs != rhs;
+                    break;
+                default:
+                    assert(0);
+            }
+            return ret;
+        }
+
+        case AST_COMPL:
+        case AST_UNARY_MINUS:
+        case AST_NOT:
+        case AST_CAST: {
+            int lhs = x86_64_eval_ast_int(ast->lhs), ret = 0;
+            switch (ast->kind) {
+                case AST_COMPL:
+                    ret = ~lhs;
+                    break;
+                case AST_UNARY_MINUS:
+                    ret = -lhs;
+                    break;
+                case AST_NOT:
+                    ret = !lhs;
+                    break;
+                case AST_CAST:
+                    ret = lhs;
+                    break;
+                default:
+                    assert(0);
+            }
+            return ret;
+        }
+
+        case AST_COND: {
+            int cond = x86_64_eval_ast_int(ast->cond),
+                then = x86_64_eval_ast_int(ast->then),
+                els = x86_64_eval_ast_int(ast->els);
+            return cond ? then : els;
+        }
+
+        default:
+            assert(0);
+    }
+}
+
 // all Type* should pass x86_64_analyze_type().
 // all AST* should pass x86_64_analyze_ast_detail()
 AST *x86_64_analyze_ast_detail(AST *ast)
@@ -410,7 +528,18 @@ AST *x86_64_analyze_ast_detail(AST *ast)
         case AST_GOTO:
         case AST_BREAK:
         case AST_CONTINUE:
+            break;
+
         case AST_LABEL:
+            ast->label_stmt = x86_64_analyze_ast_detail(ast->label_stmt);
+            break;
+
+        case AST_CONSTANT:
+            if (ast->rhs == NULL) {  // not cached
+                assert(ast->type->kind == TY_INT);
+                ast->rhs = new_int_ast(x86_64_eval_ast_int(ast->lhs));
+            }
+            ast = ast->rhs;
             break;
 
         default:
