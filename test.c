@@ -961,7 +961,10 @@ void test273()
     int ret = 2;
     switch (a) {
         case 1:
-            ret = 1;
+            switch (a) {
+                case 1:
+                    ret = 1;
+            }
             break;
         case 4:
             ret = 4;
@@ -1875,6 +1878,18 @@ void test339()
 
     enum { A4b, B4b } e4b = B4b;
     EXPECT_INT(e4b, B4b);
+
+    int result;
+    switch (e4b) {
+        case A4b:
+            result = 1;
+            break;
+        case B4b:
+            result = 0;
+            break;
+    }
+
+    EXPECT_INT(result, 0);
 }
 
 int test340detail(int a, ...) { return a; }

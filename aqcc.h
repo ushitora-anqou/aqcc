@@ -254,7 +254,7 @@ struct GVar {
 };
 
 typedef struct {
-    int cond;
+    AST *cond;
     char *label_name;
 } SwitchCase;
 

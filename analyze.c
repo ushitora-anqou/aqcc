@@ -84,7 +84,8 @@ AST *add_switch_case(AST *case_ast)
     AST *label = new_label_ast(make_label_string(), case_ast->rhs);
 
     SwitchCase *cas = (SwitchCase *)safe_malloc(sizeof(SwitchCase));
-    cas->cond = case_ast->lhs->ival;
+    cas->cond = case_ast->lhs;
+    assert(cas->cond->kind == AST_CONSTANT);
     cas->label_name = label->label_name;
     vector_push_back(switch_cases, cas);
 
@@ -756,10 +757,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
 
         case AST_CASE:
             ast->lhs = analyze_ast_detail(env, ast->lhs);
+            ast->lhs = analyze_constant(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
-            ast->lhs = optimize_ast_constant(ast->lhs, env);
-            if (ast->lhs->kind != AST_INT)
-                error("case should take a constant expression.");
             ast = add_switch_case(ast);
             break;
 

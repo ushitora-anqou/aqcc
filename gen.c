@@ -466,6 +466,11 @@ AST *x86_64_analyze_ast_detail(AST *ast)
         case AST_SWITCH:
             ast->target = x86_64_analyze_ast_detail(ast->target);
             ast->switch_body = x86_64_analyze_ast_detail(ast->switch_body);
+            for (int i = 0; i < vector_size(ast->cases); i++) {
+                SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
+                cas->cond = x86_64_analyze_ast_detail(cas->cond);
+                vector_set(ast->cases, i, cas);
+            }
             break;
 
         case AST_FOR:
@@ -1175,11 +1180,11 @@ int generate_register_code_detail(AST *ast)
         case AST_SWITCH: {
             int target_reg = generate_register_code_detail(ast->target);
             restore_temp_reg(target_reg);
-            char *name = reg_name(ast->target->type->nbytes, target_reg);
 
             for (int i = 0; i < vector_size(ast->cases); i++) {
                 SwitchCase *cas = (SwitchCase *)vector_get(ast->cases, i);
-                appcode(CMP(value(cas->cond),
+                assert(cas->cond->kind == AST_INT);
+                appcode(CMP(value(cas->cond->ival),
                             nbyte_reg(ast->target->type->nbytes, target_reg)));
                 // case has been already labeled when analyzing.
                 // JE(cas->label_name)
