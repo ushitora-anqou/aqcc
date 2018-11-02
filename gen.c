@@ -343,7 +343,8 @@ int x86_64_eval_ast_int(AST *ast)
         case AST_COMPL:
         case AST_UNARY_MINUS:
         case AST_NOT:
-        case AST_CAST: {
+        case AST_CAST:
+        case AST_CONSTANT: {
             int lhs = x86_64_eval_ast_int(ast->lhs), ret = 0;
             switch (ast->kind) {
                 case AST_COMPL:
@@ -356,6 +357,7 @@ int x86_64_eval_ast_int(AST *ast)
                     ret = !lhs;
                     break;
                 case AST_CAST:
+                case AST_CONSTANT:
                     ret = lhs;
                     break;
                 default:
@@ -540,11 +542,8 @@ AST *x86_64_analyze_ast_detail(AST *ast)
             break;
 
         case AST_CONSTANT:
-            if (ast->rhs == NULL) {  // not cached
-                assert(ast->type->kind == TY_INT);
-                ast->rhs = new_int_ast(x86_64_eval_ast_int(ast->lhs));
-            }
-            ast = ast->rhs;
+            assert(ast->type->kind == TY_INT);
+            ast = new_int_ast(x86_64_eval_ast_int(ast));
             break;
 
         default:
@@ -1477,7 +1476,7 @@ Vector *generate_register_code(Vector *asts)
 
                 // TODO: I wonder if this can be done in
                 // x86_64_analyze_ast().
-                int ival = x86_64_eval_ast_int(gvar->value->lhs);
+                int ival = x86_64_eval_ast_int(gvar->value);
 
                 int type2spec[16];  // TODO: enough length?
                 type2spec[TY_INT] = CD_LONG;
