@@ -266,6 +266,9 @@ int x86_64_eval_ast_int(AST *ast)
         case AST_INT:
             return ast->ival;
 
+        case AST_SIZEOF:
+            return ast->lhs->type->nbytes;
+
         case AST_ADD:
         case AST_SUB:
         case AST_MUL:
@@ -540,6 +543,11 @@ AST *x86_64_analyze_ast_detail(AST *ast)
         case AST_LABEL:
             ast->label_stmt = x86_64_analyze_ast_detail(ast->label_stmt);
             break;
+
+        case AST_SIZEOF:
+            // AST_SIZEOF is always wrapped by AST_CONSTANT, so
+            // AST_SIZEOF shouldn't be compiled. See also AST_CONSTANT behavior.
+            assert(0);
 
         case AST_CONSTANT:
             assert(ast->type->kind == TY_INT);

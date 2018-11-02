@@ -385,6 +385,8 @@ AST *analyze_constant_detail(Env *env, AST *ast)
     assert(env != NULL && ast != NULL);
     switch (ast->kind) {
         case AST_INT:
+        case AST_SIZEOF:  // expr inside won't be compiled. Only the type is
+                          // important.
             return ast;
 
         case AST_ADD:
@@ -426,9 +428,7 @@ AST *analyze_constant_detail(Env *env, AST *ast)
 
         case AST_VAR: {
             AST *enm = lookup_enum_value(env, ast->varname);
-            if (!enm)
-                error("variable is not constant");  // TODO: introduce
-                                                    // AST_ENUM_VALUE
+            if (!enm) error("variable is not constant");
             return enm;
         }
 
@@ -835,14 +835,14 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_GVAR:
             break;
 
-        case AST_SIZEOF: {
+        case AST_SIZEOF:
             if (ast->lhs->kind == AST_NOP)
                 ast->lhs->type = analyze_type(env, ast->lhs->type);
             else
                 ast->lhs = analyze_ast_detail(env, ast->lhs);
-
-            return new_int_ast(ast->lhs->type->nbytes);  // TODO: size_t
-        } break;
+            ast->type = type_int();            // TODO: size_t
+            ast = analyze_constant(env, ast);  // AST_SIZEOF is always constant.
+            break;
 
         case AST_GOTO:
             append_goto_ast(ast);
