@@ -1452,33 +1452,46 @@ Vector *generate_register_code(Vector *asts)
 
         if (gvar->is_global) appcode(GLOBAL(gvar->name));
         appcode(LABEL(gvar->name));
-        if (gvar->sval) {
-            assert(gvar->type->kind == TY_ARY &&
-                   gvar->type->ptr_of->kind == TY_CHAR);
-            Code *code = new_code(CD_ASCII);
-            code->sval = gvar->sval;
-            code->ival = gvar->type->nbytes;
-            appcode(code);
-            continue;
-        }
 
-        if (gvar->ival == 0) {
+        AST *value = gvar->value;
+
+        if (value == NULL) {  // no initial value
             Code *code = new_code(CD_ZERO);
             code->ival = gvar->type->nbytes;
             appcode(code);
             continue;
         }
 
-        assert(gvar->type->kind != TY_ARY);  // TODO: implement
+        switch (value->kind) {
+            case AST_STRING_LITERAL:
+                assert(gvar->type->kind == TY_ARY &&
+                       gvar->type->ptr_of->kind == TY_CHAR);
+                Code *code = new_code(CD_ASCII);
+                code->sval = value->sval;
+                code->ival = gvar->type->nbytes;
+                appcode(code);
+                break;
 
-        int type2spec[16];  // TODO: enough length?
-        type2spec[TY_INT] = CD_LONG;
-        type2spec[TY_CHAR] = CD_BYTE;
-        type2spec[TY_PTR] = CD_QUAD;
+            case AST_CONSTANT: {
+                assert(gvar->type->kind != TY_ARY);  // TODO: implement
 
-        Code *code = new_code(type2spec[gvar->type->kind]);
-        code->ival = gvar->ival;
-        appcode(code);
+                // TODO: I wonder if this can be done in
+                // x86_64_analyze_ast().
+                int ival = x86_64_eval_ast_int(gvar->value->lhs);
+
+                int type2spec[16];  // TODO: enough length?
+                type2spec[TY_INT] = CD_LONG;
+                type2spec[TY_CHAR] = CD_BYTE;
+                type2spec[TY_PTR] = CD_QUAD;
+
+                Code *code = new_code(type2spec[gvar->type->kind]);
+                code->ival = ival;
+                appcode(code);
+            } break;
+
+            default:
+                assert(0);
+        }
     }
 
     return clone_vector(codeenv->code);

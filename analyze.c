@@ -20,19 +20,20 @@ GVar *new_gvar_from_decl(AST *ast)
     GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
     gvar->name = ast->varname;
     gvar->type = ast->type;
-    gvar->ival = 0;
-    gvar->sval = NULL;
     gvar->is_global = 1;
+    gvar->value = NULL;
     return gvar;
 }
 
-GVar *new_gvar_from_string_literal(char *sval, int ssize)
+GVar *new_gvar_from_string_literal(AST *ast)
 {
+    assert(ast->kind == AST_STRING_LITERAL);
+
     GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
     gvar->name = format(".LC%d", gvar_string_literal_label++);
-    gvar->type = new_array_type(type_char(), ssize);
-    gvar->sval = sval;
+    gvar->type = new_array_type(type_char(), ast->ssize);
     gvar->is_global = 0;
+    gvar->value = ast;
     return gvar;
 }
 
@@ -46,9 +47,8 @@ GVar *new_gvar_from_static_lvar(AST *lvar)
     GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
     gvar->name = gen_varname;
     gvar->type = lvar->type;
-    gvar->ival = 0;
-    gvar->sval = NULL;
     gvar->is_global = 0;
+    gvar->value = NULL;
     return gvar;
 }
 
@@ -460,8 +460,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             break;
 
         case AST_STRING_LITERAL: {
-            GVar *gvar =
-                add_gvar(new_gvar_from_string_literal(ast->sval, ast->ssize));
+            GVar *gvar = add_gvar(new_gvar_from_string_literal(ast));
             ast = new_lgvar_ast(AST_GVAR, gvar->type, gvar->name, -1);
         } break;
 
@@ -624,38 +623,47 @@ AST *analyze_ast_detail(Env *env, AST *ast)
         case AST_LVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
+
             if (ast->lhs->type->is_extern)
                 error("extern variable can't have any initializer: '%s'",
                       ast->lhs->varname);
+
             if (ast->lhs->type->is_static) {
-                ast->rhs = optimize_ast_constant(ast->rhs, env);
-                if (ast->rhs->rhs->kind != AST_INT)
-                    error(
-                        "static local variable initializer must be constant.");
+                // ast->rhs->rhs should be a constant expr. Note that ast->rhs
+                // is AST_ASSIGN.
+                ast->rhs->rhs = analyze_constant(env, ast->rhs->rhs);
+                assert(ast->rhs->rhs->kind == AST_CONSTANT);
+
                 Vector *gvar_list = get_gvar_list();
+                // get gvar that was pushed by analyze_ast_detail() for ast->lhs
+                // above.
                 GVar *gvar =
                     (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);
-                assert(gvar->ival == 0);
-                assert(gvar->sval == NULL);
-                gvar->ival = ast->rhs->rhs->ival;
-                ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
+                gvar->value = ast->rhs->rhs;
+                ast->rhs = new_ast(AST_NOP);  // rhs should not be compiled.
             }
         } break;
 
         case AST_GVAR_DECL_INIT: {
             ast->lhs = analyze_ast_detail(env, ast->lhs);
             ast->rhs = analyze_ast_detail(env, ast->rhs);
-            ast->rhs = optimize_ast_constant(ast->rhs, env);
-            if (ast->rhs->rhs->kind != AST_INT)
-                error("global variable initializer must be constant.");
+
+            // ast->rhs->rhs should be a constant expr. Note that ast->rhs is
+            // AST_ASSIGN.
+            ast->rhs->rhs = analyze_constant(env, ast->rhs->rhs);
+            assert(ast->rhs->rhs->kind == AST_CONSTANT);
+
             if (ast->lhs->type->is_extern)
                 error("extern variable can't have any initializer: '%s'",
                       ast->lhs->varname);
+
             Vector *gvar_list = get_gvar_list();
+            // get gvar that was pushed by analyze_ast_detail() for ast->lhs
+            // above.
             GVar *gvar =
                 (GVar *)vector_get(gvar_list, vector_size(gvar_list) - 1);
-            gvar->ival = ast->rhs->rhs->ival;
-            ast->rhs = new_ast(AST_NOP);  // rhs should not be evaluated.
+            gvar->value = ast->rhs->rhs;
+            ast->rhs = new_ast(AST_NOP);  // rhs should not be compiled.
         } break;
 
         case AST_DECL_LIST:

@@ -249,8 +249,7 @@ struct GVar {
     Type *type;
 
     int is_global;
-    int ival;
-    char *sval;
+    AST *value;  // AST_CONSTANT or AST_STRING_LITERAL
 };
 
 typedef struct {
