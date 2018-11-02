@@ -810,7 +810,7 @@ Vector *read_all_asm(char *src, char *filepath)
 
         Map *unary_table = new_map();
         map_insert(unary_table, "push", (void *)INST_PUSH);
-        map_insert(unary_table, "pop", INST_POP);
+        map_insert(unary_table, "pop", (void *)INST_POP);
         map_insert(unary_table, "idiv", (void *)INST_IDIV);
         map_insert(unary_table, "neg", (void *)INST_NEG);
         map_insert(unary_table, "not", (void *)INST_NOT);

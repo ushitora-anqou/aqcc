@@ -862,4 +862,6 @@ Env *analyze_ast(Vector *asts)
     for (int i = 0; i < vector_size(asts); i++)
         vector_set(asts, i,
                    analyze_ast_detail(env, (AST *)vector_get(asts, i)));
+
+    return env;
 }

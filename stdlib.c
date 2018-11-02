@@ -107,7 +107,7 @@ end:
 
 void *syscall(int number, ...);
 
-void exit(int status)
+_Noreturn void exit(int status)
 {
     // __NR_exit
     syscall(60, status);

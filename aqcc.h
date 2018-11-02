@@ -39,7 +39,7 @@ int printf(const char *format, ...);
 int vsprintf(char *str, const char *format, va_list ap);
 #define EXIT_FAILURE 1 /* Failing exit status.  */
 #define EXIT_SUCCESS 0 /* Successful exit status.  */
-void exit(int status);
+_Noreturn void exit(int status);
 void *malloc(int size);
 int strlen(const char *s);
 int strcmp(const char *s1, const char *s2);
