@@ -682,8 +682,8 @@ Type *add_type(Env *env, Type *type, char *name);
 Type *lookup_type(Env *env, const char *name);
 Type *add_struct_or_union_or_enum_type(Env *env, Type *type);
 Type *lookup_struct_or_union_or_enum_type(Env *env, const char *name);
-int add_enum_value(Env *env, char *name, int ival);
-int *lookup_enum_value(Env *env, char *name);
+void add_enum_value(Env *env, char *name, AST *value);
+AST *lookup_enum_value(Env *env, char *name);
 
 // ast.c
 int match_type(AST *ast, int kind);

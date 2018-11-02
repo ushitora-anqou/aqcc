@@ -108,14 +108,13 @@ Type *lookup_struct_or_union_or_enum_type(Env *env, const char *name)
     return type;
 }
 
-int add_enum_value(Env *env, char *name, int ival)
+void add_enum_value(Env *env, char *name, AST *value)
 {
     if (lookup_enum_value(env, name)) error("duplicate enum name: '%s'", name);
-    map_insert(env->enum_values, name, new_int(ival));
-    return ival;
+    map_insert(env->enum_values, name, value);
 }
 
-int *lookup_enum_value(Env *env, char *name)
+AST *lookup_enum_value(Env *env, char *name)
 {
     KeyValue *kv = map_lookup(env->enum_values, name);
     if (kv == NULL) {

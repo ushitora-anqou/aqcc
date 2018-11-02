@@ -240,6 +240,7 @@ Type *lookup_member_type(Vector *members, char *member)
 }
 
 AST *analyze_ast_detail(Env *env, AST *ast);
+AST *analyze_constant(Env *env, AST *ast);
 Type *analyze_type(Env *env, Type *type)
 {
     assert(type != NULL);
@@ -340,29 +341,24 @@ Type *analyze_type(Env *env, Type *type)
                 break;
             }
 
-            for (int i = 0, cnt = 0; i < vector_size(type->enum_list);
-                 i++, cnt++) {
+            AST *value = new_int_ast(0);
+            for (int i = 0; i < vector_size(type->enum_list); i++) {
                 AST *ast = (AST *)vector_get(type->enum_list, i);
 
                 switch (ast->kind) {
                     case AST_ENUM_VAR_DECL:
-                        add_enum_value(env, ast->varname, cnt);
+                        add_enum_value(env, ast->varname, value);
                         break;
 
                     case AST_ENUM_VAR_DECL_INIT:
-                        ast = analyze_ast_detail(env, ast);
-                        ast = optimize_ast_constant(ast, env);
-                        if (ast->rhs->rhs->kind != AST_INT)
-                            error(
-                                "constant expression is needed for enum "
-                                "initializer");
-                        add_enum_value(env, ast->lhs->varname,
-                                       cnt = ast->rhs->rhs->ival);
+                        ast->rhs->rhs = analyze_ast_detail(env, ast->rhs->rhs);
+                        value = analyze_constant(env, ast->rhs->rhs);
+                        add_enum_value(env, ast->lhs->varname, value);
                         break;
-
-                    default:
-                        assert(0);
                 }
+                value = analyze_ast_detail(
+                    env, new_binop_ast(AST_ADD, value, new_int_ast(1)));
+                value = analyze_constant(env, value);
             }
 
             if (type->enname) add_struct_or_union_or_enum_type(env, type);
@@ -415,7 +411,8 @@ AST *analyze_constant_detail(Env *env, AST *ast)
         case AST_COMPL:
         case AST_UNARY_MINUS:
         case AST_NOT:
-        case AST_CAST: {
+        case AST_CAST:
+        case AST_CONSTANT: {
             ast->lhs = analyze_constant_detail(env, ast->lhs);
             return ast;
         }
@@ -428,11 +425,11 @@ AST *analyze_constant_detail(Env *env, AST *ast)
         }
 
         case AST_VAR: {
-            int *ival = lookup_enum_value(env, ast->varname);
-            if (!ival)
+            AST *enm = lookup_enum_value(env, ast->varname);
+            if (!enm)
                 error("variable is not constant");  // TODO: introduce
                                                     // AST_ENUM_VALUE
-            return new_int_ast(*ival);
+            return enm;
         }
 
         default:
@@ -576,10 +573,8 @@ AST *analyze_ast_detail(Env *env, AST *ast)
                    ast->kind == AST_GVAR);
             if (!ast) {
                 // maybe enum
-                int *ival = lookup_enum_value(env, varname);
-                if (!ival)
-                    error(format("not declared variable: '%s'", varname));
-                ast = analyze_ast_detail(env, new_int_ast(*ival));
+                ast = lookup_enum_value(env, varname);
+                if (!ast) error(format("not declared variable: '%s'", varname));
             }
         } break;
 
