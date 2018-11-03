@@ -545,12 +545,16 @@ AST *x86_64_analyze_ast_detail(AST *ast)
             break;
 
         case AST_SIZEOF:
-            // AST_SIZEOF is always wrapped by AST_CONSTANT, so
-            // AST_SIZEOF shouldn't be compiled. See also AST_CONSTANT behavior.
-            assert(0);
+            if (ast->lhs->kind == AST_NOP)
+                ast->lhs->type = x86_64_analyze_type(ast->lhs->type);
+            else
+                ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
+            ast->type = x86_64_analyze_type(ast->type);
+            break;
 
         case AST_CONSTANT:
             assert(ast->type->kind == TY_INT);
+            ast->lhs = x86_64_analyze_ast_detail(ast->lhs);
             ast = new_int_ast(x86_64_eval_ast_int(ast));
             break;
 

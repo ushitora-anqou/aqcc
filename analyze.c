@@ -303,31 +303,6 @@ Type *analyze_type(Env *env, Type *type)
                 vector_push_back(type->members, member);
             }
 
-            if (type->kind == TY_STRUCT) {
-                // calc offset
-                size = vector_size(type->members);
-                int offset = 0;
-                for (int i = 0; i < size; i++) {
-                    StructMember *member =
-                        (StructMember *)vector_get(type->members, i);
-                    offset = roundup(offset, alignment_of(member->type));
-                    member->offset = offset;
-                    offset += member->type->nbytes;
-                }
-                type->nbytes = roundup(offset, alignment_of(type));
-            }
-            else {  // if union
-                // offset is always zero.
-                int max_nbytes = 0;
-                for (int i = 0; i < vector_size(type->members); i++) {
-                    StructMember *member =
-                        (StructMember *)vector_get(type->members, i);
-                    member->offset = 0;
-                    max_nbytes = max(max_nbytes, member->type->nbytes);
-                }
-                type->nbytes = roundup(max_nbytes, alignment_of(type));
-            }
-
             if (type->stname) add_struct_or_union_or_enum_type(env, type);
         } break;
 
@@ -588,7 +563,6 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
             if (!is_complete_type(ast->type))
                 error("incomplete typed variable can't be declared.");
-            assert(ast->type->nbytes > 0);
             AST *var = add_var(env, ast);
 
             if (var->type->is_static) add_gvar(new_gvar_from_static_lvar(var));
@@ -604,7 +578,6 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             }
             if (!is_complete_type(ast->type))
                 error("incomplete typed variable can't be declared.");
-            assert(ast->type->nbytes > 0);
             add_var(env, ast);
             if (!ast->type->is_extern) add_gvar(new_gvar_from_decl(ast));
             break;
