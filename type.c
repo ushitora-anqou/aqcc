@@ -1,5 +1,14 @@
 #include "aqcc.h"
 
+enum {
+    // Relative size of types. Only the order is important.
+    SIZE_VOID = -100,
+    SIZE_CHAR = -10,
+    SIZE_INT,
+    SIZE_PTR,
+    SIZE_UNK = -1,
+};
+
 Type *new_type(int kind, int nbytes)
 {
     Type *type = safe_malloc(sizeof(Type));
@@ -19,9 +28,7 @@ void move_static_extern_specifier(Type *src, Type *dst)
 Type *type_int()
 {
     static Type *type = NULL;
-    if (type == NULL) {
-        type = new_type(TY_INT, 4);
-    }
+    if (type == NULL) type = new_type(TY_INT, SIZE_INT);
 
     return type;
 }
@@ -29,9 +36,7 @@ Type *type_int()
 Type *type_char()
 {
     static Type *type = NULL;
-    if (type == NULL) {
-        type = new_type(TY_CHAR, 1);
-    }
+    if (type == NULL) type = new_type(TY_CHAR, SIZE_CHAR);
 
     return type;
 }
@@ -39,15 +44,13 @@ Type *type_char()
 Type *type_void()
 {
     static Type *type = NULL;
-    if (type == NULL) {
-        type = new_type(TY_VOID, -1);
-    }
+    if (type == NULL) type = new_type(TY_VOID, SIZE_VOID);
     return type;
 }
 
 Type *new_pointer_type(Type *src)
 {
-    Type *type = new_type(TY_PTR, 8);
+    Type *type = new_type(TY_PTR, SIZE_PTR);
     type->ptr_of = src;
     return type;
 }
@@ -62,7 +65,7 @@ Type *new_array_type(Type *src, int len)
 
 Type *new_struct_or_union_type(int kind, char *stname, Vector *decls)
 {
-    Type *type = new_type(kind, -1);
+    Type *type = new_type(kind, SIZE_UNK);
     type->stname = stname;
     type->members = NULL;
     type->decls = decls;
@@ -71,14 +74,14 @@ Type *new_struct_or_union_type(int kind, char *stname, Vector *decls)
 
 Type *new_typedef_type(char *typedef_name)
 {
-    Type *type = new_type(TY_TYPEDEF, -1);
+    Type *type = new_type(TY_TYPEDEF, SIZE_UNK);
     type->typedef_name = typedef_name;
     return type;
 }
 
 Type *new_enum_type(char *name, Vector *list)
 {
-    Type *type = new_type(TY_ENUM, -1);
+    Type *type = new_type(TY_ENUM, SIZE_UNK);
     type->enname = name;
     type->enum_list = list;
     return type;
