@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export AQCC_DETAIL=./aqcc_detail
 
