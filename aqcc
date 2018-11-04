@@ -1,0 +1,124 @@
+#!/bin/sh
+
+[ -z $AQCC_CC ] && AQCC_CC=`dirname ${0}`/cc/cc
+[ -z $AQCC_AS ] && AQCC_AS=`dirname ${0}`/as/as
+[ -z $AQCC_LD ] && AQCC_LD=`dirname ${0}`/ld/ld
+
+function print_usage_to_fail() {
+    echo "Usage: aqcc [-c, -S] input-files... -o output-file"
+    echo
+    exit 1
+}
+
+outft='e'
+outfile='a.out'
+infiles=()
+verbose=0
+while (( $# > 0 ))
+do
+    case "$1" in
+        '-o')
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                print_usage_to_fail
+            fi
+            outfile=$2
+            shift 2
+            ;;
+        '-c')
+            outft='o'
+            shift
+            ;;
+        '-S')
+            outft='s'
+            shift
+            ;;
+        '-v')
+            verbose=1
+            shift
+            ;;
+        *)
+            infiles+=("$1")
+            shift
+            ;;
+    esac
+done
+
+function aqcc_cc() {
+    [ $verbose = 1 ] && echo "cc" "$@"
+    $AQCC_CC "$@"
+}
+
+function aqcc_as() {
+    [ $verbose = 1 ] && echo "as" "$@"
+    $AQCC_AS "$@"
+}
+
+function aqcc_ld() {
+    [ $verbose = 1 ] && echo "ld" "$@"
+    $AQCC_LD "$@"
+}
+
+case $outft in
+    s)
+        [ ${#infiles[@]} -eq 1 ] || print_usage_to_fail
+        aqcc_cc "${infiles[0]}" "$outfile"
+        ;;
+
+    o)
+        [ ${#infiles[@]} -eq 1 ] || print_usage_to_fail
+        case "${infiles[0]}" in
+            *c)
+                sfile=$(mktemp)
+                aqcc_cc "${infiles[0]}" $sfile
+                aqcc_as $sfile "$outfile"
+                rm $sfile
+                ;;
+            *s)
+                aqcc_as "${infiles[0]}" "$outfile"
+                ;;
+            *)
+                print_usage_to_fail
+                ;;
+        esac
+        ;;
+
+    e)
+        insrc=()
+        tempfiles=()
+
+        for ((i = 0; i < ${#infiles[@]}; i++))
+        do
+            fname="${infiles[$i]}"
+            case $fname in
+                *c)
+                    sfile=$(mktemp)
+                    ofile=$(mktemp)
+                    aqcc_cc "$fname" $sfile
+                    aqcc_as $sfile $ofile
+                    insrc+=($ofile)
+                    rm $sfile
+                    tempfiles+=($ofile)
+                    ;;
+
+                *s)
+                    ofile=$(mktemp)
+                    aqcc_as "$fname" $ofile
+                    insrc+=($ofile)
+                    tempfiles+=($ofile)
+                    ;;
+
+                *o)
+                    insrc+=("$fname")
+                    ;;
+            esac
+        done
+
+        aqcc_ld "${insrc[@]}" "$outfile"
+        chmod +x "$outfile"
+
+        for ((i = 0; i < ${#tempfiles[@]}; i++))
+        do
+            rm "${tempfiles[$i]}"
+        done
+        ;;
+esac
