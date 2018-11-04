@@ -64,11 +64,7 @@ _test_selfself_test.sh: test.sh
 	cp $^ $@
 	sed -i -E "s#AQCC_DETAIL=\./aqcc_detail#AQCC_DETAIL=\./aqcc_selfself_detail#g" $@
 
-examples: $(TARGET)
-	make -C examples
-
 clean:
-	make -C examples $@
 	rm -f $(SELF_OBJS) $(SELFSELF_OBJS)
 	rm -f _test_self_test.sh _test_selfself_test.sh
 	rm -f _test.c _test.s _test.o _test.in _test_exe.o
@@ -82,5 +78,5 @@ clean:
 	rm -f test_link.o test_link.exe
 	rm -f $(SELF_OBJS:.o=.s) $(SELFSELF_OBJS:.o=.s)
 
-.PHONY: test self self_test selfself_test test clean examples
+.PHONY: test self self_test selfself_test test clean
 .PRECIOUS: $(SELF_OBJS:.o=.s) $(SELFSELF_OBJS:.o=.s)
