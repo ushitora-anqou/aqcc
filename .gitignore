@@ -65,3 +65,6 @@ examples/nqueen/main.s
 examples/nqueen/nqueen
 __self_sort.in
 __selfself_sort.in
+cc/cc
+as/as
+ld/ld
