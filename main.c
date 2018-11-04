@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         Env *env = analyze_ast(asts);
         optimize_asts_constant(asts, env);
 
-        Vector *code = generate_register_code(asts);
+        Vector *code = x86_64_generate_code(asts);
         code = optimize_code(code);
 
         FILE *fh = fopen(outfile, "wb");

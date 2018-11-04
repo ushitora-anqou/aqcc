@@ -593,7 +593,7 @@ Vector *read_all_asm(char *src, char *filepath);
 Vector *parse_prog(Vector *tokens);
 
 // gen.c
-Vector *generate_register_code(Vector *asts);
+Vector *x86_64_generate_code(Vector *asts);
 
 // code.c
 Code *ADD(Code *lhs, Code *rhs);

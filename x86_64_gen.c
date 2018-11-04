@@ -146,8 +146,6 @@ CodeEnv *codeenv;
     codeenv->overflow_arg_area_stack_idx =          \
         save_variadic_cxt__overflow_arg_area_stack_idx;
 
-void generate_code_detail(AST *ast);
-
 void init_code_env()
 {
     codeenv = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
@@ -617,7 +615,7 @@ void generate_mov_mem_reg(int nbyte, int src_reg, int dst_reg)
     }
 }
 
-int generate_register_code_detail(AST *ast)
+int x86_64_generate_code_detail(AST *ast)
 {
     switch (ast->kind) {
         case AST_INT: {
@@ -629,7 +627,7 @@ int generate_register_code_detail(AST *ast)
         case AST_RETURN: {
             assert(temp_reg_table == 0);
             if (ast->lhs) {
-                int reg = generate_register_code_detail(ast->lhs);
+                int reg = x86_64_generate_code_detail(ast->lhs);
                 restore_temp_reg(reg);
                 appcode(MOV(nbyte_reg(8, reg), RAX()));
             }
@@ -645,8 +643,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_ADD: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
 
             // int + ptr
             // TODO: shift
@@ -665,8 +663,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_SUB: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
 
             // ptr - int
             // TODO: shift
@@ -705,8 +703,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_MUL: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             int nbytes = 4;  // TODO: long
             appcode(IMUL(nbyte_reg(nbytes, lreg), nbyte_reg(nbytes, rreg)));
             restore_temp_reg(lreg);
@@ -714,8 +712,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_DIV: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, 0)));
             appcode(CLTD());  // TODO: assume EAX
@@ -727,8 +725,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_REM: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, 0)));
             appcode(CLTD());  // TODO: assume EAX
@@ -740,20 +738,20 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_UNARY_MINUS: {
-            int reg = generate_register_code_detail(ast->lhs);
+            int reg = x86_64_generate_code_detail(ast->lhs);
             appcode(NEG(nbyte_reg(ast->type->nbytes, reg)));
             return reg;
         }
 
         case AST_COMPL: {
-            int reg = generate_register_code_detail(ast->lhs);
+            int reg = x86_64_generate_code_detail(ast->lhs);
             appcode(NOT(nbyte_reg(ast->type->nbytes, reg)));
             return reg;
         }
 
         case AST_LSHIFT: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(1, rreg), CL()));
             appcode(SAL(CL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
@@ -761,8 +759,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_RSHIFT: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(MOV(nbyte_reg(1, rreg), CL()));
             appcode(SAR(CL(), nbyte_reg(ast->type->nbytes, lreg)));
             restore_temp_reg(rreg);
@@ -770,8 +768,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_LT: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
                         nbyte_reg(ast->type->nbytes, lreg)));
             appcode(SETL(AL()));
@@ -781,8 +779,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_LTE: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
                         nbyte_reg(ast->type->nbytes, lreg)));
             appcode(SETLE(AL()));
@@ -792,8 +790,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_EQ: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(CMP(nbyte_reg(ast->type->nbytes, rreg),
                         nbyte_reg(ast->type->nbytes, lreg)));
             appcode(SETE(AL()));
@@ -803,8 +801,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_AND: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(AND(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
@@ -812,8 +810,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_XOR: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(XOR(nbyte_reg(ast->type->nbytes, lreg),
                         nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
@@ -821,8 +819,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_OR: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
             appcode(OR(nbyte_reg(ast->type->nbytes, lreg),
                        nbyte_reg(ast->type->nbytes, rreg)));
             restore_temp_reg(lreg);
@@ -834,7 +832,7 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string(),
                  *beyond_label0 = make_label_string(),
                  *beyond_label1 = make_label_string();
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
 
@@ -844,7 +842,7 @@ int generate_register_code_detail(AST *ast)
             appcode(LABEL(beyond_label0));
 
             // don't execute rhs expression if lhs is false.
-            int rreg = generate_register_code_detail(ast->rhs);
+            int rreg = x86_64_generate_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
 
@@ -866,7 +864,7 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string(),
                  *beyond_label0 = make_label_string(),
                  *beyond_label1 = make_label_string();
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             restore_temp_reg(lreg);
             appcode(CMP(value(0), nbyte_reg(ast->type->nbytes, lreg)));
 
@@ -876,7 +874,7 @@ int generate_register_code_detail(AST *ast)
             appcode(LABEL(beyond_label0));
 
             // don't execute rhs expression if lhs is true.
-            int rreg = generate_register_code_detail(ast->rhs);
+            int rreg = x86_64_generate_code_detail(ast->rhs);
             Code *rreg_code = nbyte_reg(ast->type->nbytes, rreg);
             appcode(CMP(value(0), rreg_code));
 
@@ -943,7 +941,7 @@ int generate_register_code_detail(AST *ast)
                 ast->params ? max(0, vector_size(ast->params) - 6) * 8 + 16
                             : -1;
             assert(temp_reg_table == 0);
-            generate_register_code_detail(ast->body);
+            x86_64_generate_code_detail(ast->body);
             assert(temp_reg_table == 0);
             RESTORE_VARIADIC_CXT;
 
@@ -956,8 +954,8 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_ASSIGN: {
-            int lreg = generate_register_code_detail(ast->lhs),
-                rreg = generate_register_code_detail(ast->rhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs),
+                rreg = x86_64_generate_code_detail(ast->rhs);
 
             appcode(MOV(nbyte_reg(ast->type->nbytes, rreg),
                         addrof(nbyte_reg(8, lreg), 0)));
@@ -968,7 +966,7 @@ int generate_register_code_detail(AST *ast)
         case AST_EXPR_LIST: {
             int reg;
             for (int i = 0; i < vector_size(ast->exprs); i++) {
-                reg = generate_register_code_detail(
+                reg = x86_64_generate_code_detail(
                     (AST *)vector_get(ast->exprs, i));
                 if (i != vector_size(ast->exprs) - 1) restore_temp_reg(reg);
             }
@@ -996,7 +994,7 @@ int generate_register_code_detail(AST *ast)
             appcode(PUSH(R10()));
             appcode(PUSH(R11()));
             for (int i = vector_size(ast->args) - 1; i >= 0; i--) {
-                int reg = generate_register_code_detail(
+                int reg = x86_64_generate_code_detail(
                     (AST *)(vector_get(ast->args, i)));
                 appcode(PUSH(nbyte_reg(8, reg)));
                 restore_temp_reg(reg);
@@ -1020,7 +1018,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_POSTINC: {
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
@@ -1047,7 +1045,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_PREINC: {
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
@@ -1075,7 +1073,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_POSTDEC: {
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, reg);
@@ -1102,7 +1100,7 @@ int generate_register_code_detail(AST *ast)
         }
 
         case AST_PREDEC: {
-            int lreg = generate_register_code_detail(ast->lhs);
+            int lreg = x86_64_generate_code_detail(ast->lhs);
             Code *lreg_code = nbyte_reg(8, lreg);
             int reg = get_temp_reg();
 
@@ -1132,14 +1130,14 @@ int generate_register_code_detail(AST *ast)
         case AST_ADDR:
         case AST_INDIR:
         case AST_CAST:
-            return generate_register_code_detail(ast->lhs);
+            return x86_64_generate_code_detail(ast->lhs);
 
         case AST_COND: {
             char *false_label = make_label_string(),
                  *exit_label = make_label_string(),
                  *beyond_label = make_label_string();
 
-            int cond_reg = generate_register_code_detail(ast->cond);
+            int cond_reg = x86_64_generate_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
@@ -1149,13 +1147,13 @@ int generate_register_code_detail(AST *ast)
             appcode(JMP(false_label));
             appcode(LABEL(beyond_label));
 
-            int then_reg = generate_register_code_detail(ast->then);
+            int then_reg = x86_64_generate_code_detail(ast->then);
             restore_temp_reg(then_reg);
             appcode(PUSH(nbyte_reg(8, then_reg)));
             appcode(JMP(exit_label));
             appcode(LABEL(false_label));
             if (ast->els != NULL) {
-                int els_reg = generate_register_code_detail(ast->els);
+                int els_reg = x86_64_generate_code_detail(ast->els);
                 restore_temp_reg(els_reg);
                 appcode(PUSH(nbyte_reg(8, els_reg)));
             }
@@ -1170,7 +1168,7 @@ int generate_register_code_detail(AST *ast)
                  *exit_label = make_label_string(),
                  *beyond_label = make_label_string();
 
-            int cond_reg = generate_register_code_detail(ast->cond);
+            int cond_reg = x86_64_generate_code_detail(ast->cond);
             restore_temp_reg(cond_reg);
             appcode(MOV(nbyte_reg(8, cond_reg), RAX()));
             appcode(CMP(value(0), EAX()));
@@ -1180,16 +1178,16 @@ int generate_register_code_detail(AST *ast)
             appcode(JMP(false_label));
             appcode(LABEL(beyond_label));
 
-            generate_register_code_detail(ast->then);
+            x86_64_generate_code_detail(ast->then);
             appcode(JMP(exit_label));
             appcode(LABEL(false_label));
-            if (ast->els != NULL) generate_register_code_detail(ast->els);
+            if (ast->els != NULL) x86_64_generate_code_detail(ast->els);
             appcode(LABEL(exit_label));
             return -1;
         }
 
         case AST_SWITCH: {
-            int target_reg = generate_register_code_detail(ast->target);
+            int target_reg = x86_64_generate_code_detail(ast->target);
             restore_temp_reg(target_reg);
 
             for (int i = 0; i < vector_size(ast->cases); i++) {
@@ -1212,7 +1210,7 @@ int generate_register_code_detail(AST *ast)
 
             SAVE_BREAK_CXT;
             codeenv->break_label = exit_label;
-            generate_register_code_detail(ast->switch_body);
+            x86_64_generate_code_detail(ast->switch_body);
             appcode(LABEL(exit_label));
             RESTORE_BREAK_CXT;
 
@@ -1227,9 +1225,9 @@ int generate_register_code_detail(AST *ast)
             char *start_label = make_label_string();
 
             appcode(LABEL(start_label));
-            generate_register_code_detail(ast->then);
+            x86_64_generate_code_detail(ast->then);
             appcode(LABEL(codeenv->continue_label));
-            int cond_reg = generate_register_code_detail(ast->cond);
+            int cond_reg = x86_64_generate_code_detail(ast->cond);
             appcode(
                 CMP(value(0), nbyte_reg(ast->cond->type->nbytes, cond_reg)));
             // JNE(start_label)
@@ -1255,12 +1253,12 @@ int generate_register_code_detail(AST *ast)
             char *start_label = make_label_string();
 
             if (ast->initer != NULL) {
-                int reg = generate_register_code_detail(ast->initer);
+                int reg = x86_64_generate_code_detail(ast->initer);
                 if (reg != -1) restore_temp_reg(reg);  // if expr
             }
             appcode(LABEL(start_label));
             if (ast->midcond != NULL) {
-                int reg = generate_register_code_detail(ast->midcond);
+                int reg = x86_64_generate_code_detail(ast->midcond);
                 appcode(
                     CMP(value(0), nbyte_reg(ast->midcond->type->nbytes, reg)));
                 // JE(codeenv->break_label)
@@ -1270,10 +1268,10 @@ int generate_register_code_detail(AST *ast)
                 appcode(LABEL(beyond_label));
                 restore_temp_reg(reg);
             }
-            generate_register_code_detail(ast->for_body);
+            x86_64_generate_code_detail(ast->for_body);
             appcode(LABEL(codeenv->continue_label));
             if (ast->iterer != NULL) {
-                int reg = generate_register_code_detail(ast->iterer);
+                int reg = x86_64_generate_code_detail(ast->iterer);
                 if (reg != -1) restore_temp_reg(reg);  // if nop
             }
             appcode(JMP(start_label));
@@ -1287,7 +1285,7 @@ int generate_register_code_detail(AST *ast)
 
         case AST_LABEL:
             appcode(LABEL(ast->label_name));
-            generate_register_code_detail(ast->label_stmt);
+            x86_64_generate_code_detail(ast->label_stmt);
             return -1;
 
         case AST_BREAK:
@@ -1308,21 +1306,21 @@ int generate_register_code_detail(AST *ast)
             // the member existence is confirmed when analysis.
             assert(offset >= 0);
 
-            int reg = generate_register_code_detail(ast->stsrc);
+            int reg = x86_64_generate_code_detail(ast->stsrc);
             appcode(ADD(value(offset), nbyte_reg(8, reg)));
             return reg;
         }
 
         case AST_COMPOUND:
             for (int i = 0; i < vector_size(ast->stmts); i++)
-                generate_register_code_detail((AST *)vector_get(ast->stmts, i));
+                x86_64_generate_code_detail((AST *)vector_get(ast->stmts, i));
             return -1;
 
         case AST_EXPR_STMT:
             assert(temp_reg_table == 0);
             generate_basic_block_start_maker();
             if (ast->lhs != NULL) {
-                int reg = generate_register_code_detail(ast->lhs);
+                int reg = x86_64_generate_code_detail(ast->lhs);
                 if (reg != -1) restore_temp_reg(reg);
             }
             assert(temp_reg_table == 0);
@@ -1330,13 +1328,13 @@ int generate_register_code_detail(AST *ast)
             return -1;
 
         case AST_ARY2PTR:
-            return generate_register_code_detail(ast->ary);
+            return x86_64_generate_code_detail(ast->ary);
 
         case AST_CHAR2INT:
-            return generate_register_code_detail(ast->lhs);
+            return x86_64_generate_code_detail(ast->lhs);
 
         case AST_LVALUE2RVALUE: {
-            int lreg = generate_register_code_detail(ast->lhs),
+            int lreg = x86_64_generate_code_detail(ast->lhs),
                 rreg = get_temp_reg();
             generate_mov_mem_reg(ast->type->nbytes, lreg, rreg);
             restore_temp_reg(lreg);
@@ -1345,19 +1343,19 @@ int generate_register_code_detail(AST *ast)
 
         case AST_LVAR_DECL_INIT:
         case AST_GVAR_DECL_INIT: {
-            generate_register_code_detail(ast->lhs);
-            int rreg = generate_register_code_detail(ast->rhs);
+            x86_64_generate_code_detail(ast->lhs);
+            int rreg = x86_64_generate_code_detail(ast->rhs);
             if (rreg != -1) restore_temp_reg(rreg);
             return -1;
         }
 
         case AST_DECL_LIST:
             for (int i = 0; i < vector_size(ast->decls); i++)
-                generate_register_code_detail((AST *)vector_get(ast->decls, i));
+                x86_64_generate_code_detail((AST *)vector_get(ast->decls, i));
             return -1;
 
         case AST_VA_START: {
-            int reg = generate_register_code_detail(ast->lhs);
+            int reg = x86_64_generate_code_detail(ast->lhs);
             Code *reg_code = nbyte_reg(8, reg);
             // typedef struct {
             //    unsigned int gp_offset;
@@ -1386,7 +1384,7 @@ int generate_register_code_detail(AST *ast)
         case AST_VA_ARG_INT: {
             char *stack_label = make_label_string(),
                  *fetch_label = make_label_string();
-            int reg = generate_register_code_detail(ast->lhs);
+            int reg = x86_64_generate_code_detail(ast->lhs);
             Code *reg_code = nbyte_reg(8, reg),
                  *gp_offset = addrof(reg_code, 0),
                  *overflow_arg_area = addrof(reg_code, 8),
@@ -1411,7 +1409,7 @@ int generate_register_code_detail(AST *ast)
         case AST_VA_ARG_CHARP: {
             char *stack_label = make_label_string(),
                  *fetch_label = make_label_string();
-            int reg = generate_register_code_detail(ast->lhs);
+            int reg = x86_64_generate_code_detail(ast->lhs);
             Code *reg_code = nbyte_reg(8, reg),
                  *gp_offset = addrof(reg_code, 0),
                  *overflow_arg_area = addrof(reg_code, 8),
@@ -1444,7 +1442,7 @@ int generate_register_code_detail(AST *ast)
     assert(0);
 }
 
-Vector *generate_register_code(Vector *asts)
+Vector *x86_64_generate_code(Vector *asts)
 {
     x86_64_analyze_ast(asts);
 
@@ -1453,7 +1451,7 @@ Vector *generate_register_code(Vector *asts)
     appcode(new_code(CD_TEXT));
 
     for (int i = 0; i < vector_size(asts); i++)
-        generate_register_code_detail((AST *)vector_get(asts, i));
+        x86_64_generate_code_detail((AST *)vector_get(asts, i));
 
     appcode(new_code(CD_DATA));
 
