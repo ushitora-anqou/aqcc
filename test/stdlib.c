@@ -1,4 +1,46 @@
-#include "aqcc.h"
+#ifdef __GNUC__
+typedef __builtin_va_list va_list;
+#else
+#endif
+#ifndef __GNUC__
+typedef struct {
+    int gp_offset;
+    int fp_offset;
+    void *overflow_arg_area;
+    void *reg_save_area;
+} va_list[1];
+#endif
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
+
+typedef struct _IO_FILE FILE;
+// extern FILE *stdin;  /* Standard input stream.  */
+// extern FILE *stdout; /* Standard output stream.  */
+// extern FILE *stderr; /* Standard error output stream.  */
+#define NULL 0
+#define EOF (-1)
+FILE *fopen(const char *pathname, const char *mode);
+int fclose(FILE *stream);
+int fputc(int c, FILE *stream);
+int fgetc(FILE *stream);
+int fprintf(FILE *stream, const char *format, ...);
+int printf(const char *format, ...);
+int vsprintf(char *str, const char *format, va_list ap);
+#define EXIT_FAILURE 1 /* Failing exit status.  */
+#define EXIT_SUCCESS 0 /* Successful exit status.  */
+_Noreturn void exit(int status);
+void *malloc(int size);
+int strlen(const char *s);
+int strcmp(const char *s1, const char *s2);
+char *strcpy(char *dest, const char *src);
+int isalpha(int c);
+int isalnum(int c);
+int isdigit(int c);
+int isspace(int c);
+void *memcpy(void *dest, const void *src, int n);
+void *memset(void *s, int c, int n);
+void assert(int cond);
 
 int isdigit(int c) { return '0' <= c && c <= '9'; }
 
