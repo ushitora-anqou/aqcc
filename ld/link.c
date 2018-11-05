@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "ld.h"
 
 struct ExeImage {
     int vaddr_offset, header_size;
