@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "as.h"
 
 int isdigit(int c) { return '0' <= c && c <= '9'; }
 

@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "as.h"
 
 struct ObjectImage {
     Vector *text;    // vector<int>

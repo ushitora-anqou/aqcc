@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "as.h"
 
 _Noreturn void error(const char *msg, ...)
 {
@@ -11,20 +11,6 @@ _Noreturn void error(const char *msg, ...)
     printf("[ERROR] %s\n", str);
     // fprintf(stderr, "[DEBUG] %s, %d\n", __FILE__, __LINE__);
     exit(EXIT_FAILURE);
-}
-
-_Noreturn void error_unexpected_token_kind(int expect_kind, Token *got)
-{
-    error("%s:%d:%d: unexpected token: expect %s, got %s",
-          got->source->filepath, got->source->line, got->source->column,
-          token_kind2str(expect_kind), token_kind2str(got->kind));
-}
-
-_Noreturn void error_unexpected_token_str(char *expect_str, Token *got)
-{
-    error("%s:%d:%d: unexpected token: expect %s, got %s",
-          got->source->filepath, got->source->line, got->source->column,
-          expect_str, token_kind2str(got->kind));
 }
 
 void warn(const char *msg, ...)
@@ -162,37 +148,6 @@ char *escape_string(char *str, int size)
     return string_builder_get(sb);
 }
 
-char *make_label_string()
-{
-    static int count;
-    return format(".L%d", count++);
-}
-
-int alignment_of(Type *type)
-{
-    switch (type->kind) {
-        case TY_INT:
-            return 4;
-        case TY_CHAR:
-            return 1;
-        case TY_PTR:
-            return 8;
-        case TY_ARY:
-            return alignment_of(type->ary_of);
-        case TY_UNION:
-        case TY_STRUCT: {
-            int alignment = 0;
-            for (int i = 0; i < vector_size(type->members); i++) {
-                StructMember *member =
-                    (StructMember *)vector_get(type->members, i);
-                alignment = max(alignment, alignment_of(member->type));
-            }
-            return alignment;
-        }
-    }
-    assert(0);
-}
-
 int min(int a, int b) { return a < b ? a : b; }
 
 int max(int a, int b) { return a < b ? b : a; }
@@ -211,30 +166,6 @@ char *read_entire_file(char *filepath)
     return string_builder_get(sb);
 
     fclose(fh);
-}
-
-void erase_backslash_newline(char *src)
-{
-    char *r = src, *w = src;
-    while (*r != '\0') {
-        if (*r == '\\' && *(r + 1) == '\n')
-            r += 2;
-        else
-            *w++ = *r++;
-    }
-    *w = '\0';
-}
-
-Vector *read_tokens_from_filepath(char *filepath)
-{
-    char *src = read_entire_file(filepath);
-    return read_all_tokens(src, filepath);
-}
-
-Vector *read_asm_from_filepath(char *filepath)
-{
-    char *src = read_entire_file(filepath);
-    return read_all_asm(src, filepath);
 }
 
 int is_register_code(Code *code)
