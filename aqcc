@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 [ -z $AQCC_CC ] && AQCC_CC=`dirname ${0}`/cc/cc
 [ -z $AQCC_AS ] && AQCC_AS=`dirname ${0}`/as/as
