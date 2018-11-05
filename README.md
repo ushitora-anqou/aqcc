@@ -3,6 +3,10 @@
 aqcc is yet another tiny self-hosted C compiler with an also tiny assembler,
 linker and standard C library.
 
+## To Build
+
+Just `make`.
+
 ## Usage
 
 `./aqcc [options] file...`
@@ -28,26 +32,19 @@ Feel free to implement missing features and to send pull requests :)
 
 AnQou C Compiler の使い方
 
-## aqcc をコンパイル
+## aqcc をビルド
 
-* `make aqcc` gcc を用い `aqcc` をコンパイル
-* `make aqcc_self` `aqcc` を用い `aqcc_self` をコンパイル (2度目のコンパイル)
-* `make aqcc_selfself` `aqcc_self` を用い `aqcc` をコンパイル (3度目のコンパイル)
-
-なお、何かしらの理由で生成物を皆削除したいときは、 `make clean` などとしてください。
+`make` としてください。生成物を削除したいときは、 `make clean` などとしてください。
 
 ## aqcc の挙動をテスト
 
-* `make test` `aqcc` をテスト
-* `make self_test` `aqcc_self` をテスト
-* `make selfself_test` `aqcc_selfself` をテスト
-- `aqcc_self` と `aqcc_selfself` がそれぞれ出力するオブジェクトファイルに違いがないことも確認されます.
-
-## サンプルプログラム
-
-1段から8段までのN-Queen問題を解くサンプルが `examples/nqueen` 以下にあります。
-トップディレクトリで `make examples` を実行すると、 `examples/nqueen/nqueen` が `aqcc` を用い生成されます。
-`examples/nqueen/nqueen` とすると、1段から8段までの結果が表示されます。
+- `make test` 
+    - 第一世代（gccなどによりコンパイルされたaqcc）をテスト
+- `make self_test`
+    - 第二世代（第一世代によりコンパイルされたaqcc）をテスト
+- `make selfself_test`
+    - 第三世代（第二世代によりコンパイルされたaqcc）をテスト
+    - 第二世代と第三世代に違いがないことも確認されます。
 
 ## 一般のCファイルをコンパイル
 
@@ -77,7 +74,7 @@ $ ./program
 `aqcc.h` に記されているプロトタイプ宣言を流用できます。
 
 また、標準ライブラリのうち提供されている機能はごく僅かです。
-`stdlib.c` を参照して下さい。
+`stdlib.c` などを参照して下さい。aqccが自動でこれらをリンクすることはありません。明示的に指定してください。
 
 ## 謝辞
 
