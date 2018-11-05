@@ -1,5 +1,8 @@
 #include "cc.h"
 
+char *read_entire_file(char *filepath);
+void erase_backslash_newline(char *src);
+
 Source source;
 
 void init_source(char *src, char *filepath)
@@ -656,3 +659,28 @@ Vector *read_tokens_from_filepath(char *filepath)
     return read_all_tokens(src, filepath);
 }
 
+void erase_backslash_newline(char *src)
+{
+    char *r = src, *w = src;
+    while (*r != '\0') {
+        if (*r == '\\' && *(r + 1) == '\n')
+            r += 2;
+        else
+            *w++ = *r++;
+    }
+    *w = '\0';
+}
+
+char *read_entire_file(char *filepath)
+{
+    FILE *fh = fopen(filepath, "r");
+    if (fh == NULL) error("no such file: '%s'", filepath);
+
+    // read the file all
+    StringBuilder *sb = new_string_builder();
+    int ch;
+    while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
+    return string_builder_get(sb);
+
+    fclose(fh);
+}

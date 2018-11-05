@@ -568,15 +568,9 @@ char *vformat(const char *src, va_list ap);
 int unescape_char(int src);
 char *escape_string(char *str, int size);
 char *make_label_string();
-int alignment_of(Type *type);
 int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
-char *read_entire_file(char *filepath);
-int is_register_code(Code *code);
-int reg_of_nbyte(int nbyte, int reg);
-Code *nbyte_reg(int nbyte, int reg);
-void erase_backslash_newline(char *src);
 
 // lex.c
 Vector *read_all_tokens(char *src, char *filepath);
@@ -587,8 +581,12 @@ Vector *read_tokens_from_filepath(char *filepath);
 // parse.c
 Vector *parse_prog(Vector *tokens);
 
-// gen.c
+// x86_64_gen.c
 Vector *x86_64_generate_code(Vector *asts);
+int is_register_code(Code *code);
+int reg_of_nbyte(int nbyte, int reg);
+Code *nbyte_reg(int nbyte, int reg);
+int alignment_of(Type *type);
 
 // code.c
 Code *ADD(Code *lhs, Code *rhs);
@@ -728,8 +726,7 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 #define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
 // optimize.c
-AST *optimize_ast_constant(AST *ast, Env *env);
-void optimize_asts_constant(Vector *asts, Env *env);
-Vector *optimize_code(Vector *code);
+void x86_64_optimize_asts_constant(Vector *asts, Env *env);
+Vector *x86_64_optimize_code(Vector *code);
 
 #endif

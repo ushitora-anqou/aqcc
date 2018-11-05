@@ -1505,3 +1505,55 @@ Vector *x86_64_generate_code(Vector *asts)
 
     return clone_vector(codeenv->code);
 }
+
+int is_register_code(Code *code)
+{
+    if (code == NULL) return 0;
+    return !(code->kind & INST_) &&
+           code->kind & (REG_8 | REG_16 | REG_32 | REG_64);
+}
+
+int reg_of_nbyte(int nbyte, int reg)
+{
+    switch (nbyte) {
+        case 1:
+            return (reg & 31) | REG_8;
+        case 2:
+            return (reg & 31) | REG_16;
+        case 4:
+            return (reg & 31) | REG_32;
+        case 8:
+            return (reg & 31) | REG_64;
+    }
+    assert(0);
+}
+
+Code *nbyte_reg(int nbyte, int reg)
+{
+    return new_code(reg_of_nbyte(nbyte, reg));
+}
+
+int alignment_of(Type *type)
+{
+    switch (type->kind) {
+        case TY_INT:
+            return 4;
+        case TY_CHAR:
+            return 1;
+        case TY_PTR:
+            return 8;
+        case TY_ARY:
+            return alignment_of(type->ary_of);
+        case TY_UNION:
+        case TY_STRUCT: {
+            int alignment = 0;
+            for (int i = 0; i < vector_size(type->members); i++) {
+                StructMember *member =
+                    (StructMember *)vector_get(type->members, i);
+                alignment = max(alignment, alignment_of(member->type));
+            }
+            return alignment;
+        }
+    }
+    assert(0);
+}

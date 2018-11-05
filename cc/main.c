@@ -20,10 +20,10 @@ int main(int argc, char **argv)
     Vector *asts = parse_prog(tokens);
 
     Env *env = analyze_ast(asts);
-    optimize_asts_constant(asts, env);
+    x86_64_optimize_asts_constant(asts, env);
 
     Vector *code = x86_64_generate_code(asts);
-    code = optimize_code(code);
+    code = x86_64_optimize_code(code);
 
     FILE *fh = fopen(outfile, "wb");
     for (int i = 0; i < vector_size(code); i++)
