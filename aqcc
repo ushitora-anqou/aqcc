@@ -1,13 +1,20 @@
 #!/bin/bash
 
+function fail(){
+    echo -ne "\e[1;31m[ERROR]\e[0m "
+    echo "$1"
+    exit 1
+}
+
 [ -z $AQCC_CC ] && AQCC_CC=`dirname ${0}`/cc/cc
 [ -z $AQCC_AS ] && AQCC_AS=`dirname ${0}`/as/as
 [ -z $AQCC_LD ] && AQCC_LD=`dirname ${0}`/ld/ld
 
+[ ! -f $AQCC_CC ] && [ ! -f $AQCC_AS ] && [ ! -f $AQCC_LD ]\
+    && fail "Please 'make' first."
+
 function print_usage_to_fail() {
-    echo "Usage: aqcc [-c, -S] input-files... -o output-file"
-    echo
-    exit 1
+    fail "Usage: aqcc [-c, -S] input-files... -o output-file"
 }
 
 outft='e'
@@ -44,17 +51,17 @@ do
 done
 
 function aqcc_cc() {
-    [ $verbose = 1 ] && echo "cc" "$@"
+    [ $verbose = 1 ] && echo $AQCC_CC "$@"
     $AQCC_CC "$@"
 }
 
 function aqcc_as() {
-    [ $verbose = 1 ] && echo "as" "$@"
+    [ $verbose = 1 ] && echo $AQCC_AS "$@"
     $AQCC_AS "$@"
 }
 
 function aqcc_ld() {
-    [ $verbose = 1 ] && echo "ld" "$@"
+    [ $verbose = 1 ] && echo $AQCC_LD "$@"
     $AQCC_LD "$@"
 }
 
