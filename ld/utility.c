@@ -153,29 +153,3 @@ int min(int a, int b) { return a < b ? a : b; }
 int max(int a, int b) { return a < b ? b : a; }
 
 int roundup(int n, int b) { return (n + b - 1) & ~(b - 1); }
-
-char *read_entire_file(char *filepath)
-{
-    FILE *fh = fopen(filepath, "r");
-    if (fh == NULL) error("no such file: '%s'", filepath);
-
-    // read the file all
-    StringBuilder *sb = new_string_builder();
-    int ch;
-    while ((ch = fgetc(fh)) != EOF) string_builder_append(sb, ch);
-    return string_builder_get(sb);
-
-    fclose(fh);
-}
-
-void erase_backslash_newline(char *src)
-{
-    char *r = src, *w = src;
-    while (*r != '\0') {
-        if (*r == '\\' && *(r + 1) == '\n')
-            r += 2;
-        else
-            *w++ = *r++;
-    }
-    *w = '\0';
-}
