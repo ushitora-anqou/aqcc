@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 Env *new_env(Env *parent)
 {

@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 Code *new_code(int kind)
 {

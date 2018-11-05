@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 struct StringBuilder {
     Vector *data;

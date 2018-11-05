@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 enum {
     // Relative size of types. Only the order is important.

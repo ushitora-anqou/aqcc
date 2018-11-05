@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 #include "test.inc"
 

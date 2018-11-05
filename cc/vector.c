@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 struct Vector {
     int size, rsved_size;

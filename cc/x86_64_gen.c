@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 Code *value(int value) { return new_value_code(value); }
 

@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 int match_type(AST *ast, int kind)
 {

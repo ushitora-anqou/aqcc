@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 AST *parse_expr();
 AST *parse_assignment_expr();

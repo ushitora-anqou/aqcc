@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 Token *new_token(int kind, Source *source)
 {

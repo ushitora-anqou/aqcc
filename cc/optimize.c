@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 AST *optimize_ast_constant_detail(AST *ast, Env *env)
 {

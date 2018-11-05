@@ -1,4 +1,4 @@
-#include "aqcc.h"
+#include "cc.h"
 
 Vector *gvar_list = NULL;
 int gvar_string_literal_label = 0;

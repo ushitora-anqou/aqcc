@@ -555,9 +555,6 @@ struct Code {
     int can_be_eliminated;
 };
 
-typedef struct ObjectImage ObjectImage;
-typedef struct ExeImage ExeImage;
-
 // utility.c
 _Noreturn void error(const char *msg, ...);
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
@@ -575,19 +572,17 @@ int alignment_of(Type *type);
 int min(int a, int b);
 int max(int a, int b);
 int roundup(int n, int b);
-Vector *read_tokens_from_filepath(char *filepath);
-Vector *read_asm_from_filepath(char *filepath);
+char *read_entire_file(char *filepath);
 int is_register_code(Code *code);
 int reg_of_nbyte(int nbyte, int reg);
 Code *nbyte_reg(int nbyte, int reg);
-Code *str2reg(char *src);
 void erase_backslash_newline(char *src);
 
 // lex.c
 Vector *read_all_tokens(char *src, char *filepath);
 const char *token_kind2str(int kind);
 Vector *concatenate_string_literal_tokens(Vector *tokens);
-Vector *read_all_asm(char *src, char *filepath);
+Vector *read_tokens_from_filepath(char *filepath);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);
@@ -736,40 +731,5 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 AST *optimize_ast_constant(AST *ast, Env *env);
 void optimize_asts_constant(Vector *asts, Env *env);
 Vector *optimize_code(Vector *code);
-
-// assemble.c
-ObjectImage *assemble_code(Vector *code);
-void dump_object_image(ObjectImage *objimg, FILE *fh);
-
-// link.c
-ExeImage *link_objs(Vector *obj_paths);
-void dump_exe_image(ExeImage *exeimg, FILE *fh);
-
-// object.c
-void add_byte(Vector *vec, int val);
-void set_byte(Vector *vec, int index, int val);
-void add_word(Vector *vec, int val0, int val1);
-void add_word_int(Vector *vec, int ival);
-void add_dword(Vector *vec, int val0, int val1, int val2, int val3);
-void add_dword_int(Vector *vec, int ival);
-void add_qword_int(Vector *vec, int low, int high);
-void add_string(Vector *vec, char *src, int len);
-void add_qword(Vector *vec, int val0, int val1, int val2, int val3, int val4,
-               int val5, int val6, int val7);
-void write_byte(FILE *fh, int val0);
-Vector *get_buffer_to_emit();
-int emitted_size();
-void set_buffer_to_emit(Vector *buffer);
-void reemit_byte(int index, int val0);
-void emit_byte(int val0);
-void emit_word(int val0, int val1);
-void emit_word_int(int ival);
-void emit_dword(int val0, int val1, int val2, int val3);
-void emit_dword_int(int ival);
-void emit_qword(int val0, int val1, int val2, int val3, int val4, int val5,
-                int val6, int val7);
-void emit_qword_int(int low, int high);
-void emit_string(char *src, int len);
-void emit_nbytes(int nbytes, int val);
 
 #endif
