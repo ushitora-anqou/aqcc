@@ -729,4 +729,12 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
 void x86_64_optimize_asts_constant(Vector *asts, Env *env);
 Vector *x86_64_optimize_code(Vector *code);
 
+// SIMPLE_gen.c
+typedef struct SIMPLECode SIMPLECode;
+struct SIMPLECode {
+    int dum;
+};
+Vector *SIMPLE_generate_code(Vector *asts);
+void SIMPLE_dump_code(SIMPLECode *code, FILE *fh);
+
 #endif
