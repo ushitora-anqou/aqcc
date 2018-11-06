@@ -32,3 +32,18 @@ $AQCC test_link.c test_link.s -o _test_exe.o -v
 [ $? -eq 0 ] || fail "$AQCC"
 ./_test_exe.o
 [ $? -eq 5 ] || fail "./_test_exe.o (link)"
+
+# tests for SIMPLE arch (only run on first generation)
+function test_simple() {
+    cfile=$(mktemp)
+    sfile=$(mktemp)
+    echo "$1" > $cfile
+    $AQCC_CC $cfile $sfile --arch=SIMPLE
+    cat $sfile | SIMPLE-arch-tools/macro | SIMPLE-arch-tools/assembler | SIMPLE-arch-tools/emulator
+    res=$?
+    rm $cfile
+    rm $sfile
+    [ $res -eq $2 ] || fail "[ERROR] \"$1\": expect $2 but got $res"
+}
+
+test_simple "int main() { return 10; }" 10

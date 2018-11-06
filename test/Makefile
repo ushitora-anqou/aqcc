@@ -21,6 +21,7 @@ AQCC_SELFSELF_ENV=\
 				  AQCC_LD=$(realpath $(AQCC_LD_SELFSELF))
 
 test: $(AQCC_CC) $(AQCC_AS) $(AQCC_LD)
+	cd SIMPLE-arch-tools && make
 	$(AQCC_ENV) ./test.sh
 
 self_test: $(AQCC_CC_SELF) $(AQCC_AS_SELF) $(AQCC_LD_SELF)
