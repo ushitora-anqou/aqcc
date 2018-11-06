@@ -94,7 +94,7 @@ ObjectData *read_entire_binary(char *filepath)
     return new_object_data(string_builder_get(sb), string_builder_size(sb) - 1);
 }
 
-int search_symbol(Vector *objs, const char *name, int header_offset)
+int *search_symbol_maybe(Vector *objs, const char *name, int header_offset)
 {
     int prev_offset = header_offset;
 
@@ -105,13 +105,21 @@ int search_symbol(Vector *objs, const char *name, int header_offset)
             if (strcmp(obj->strtab + read_dword(entry), name) != 0) continue;
             int st_info = read_byte(entry + 4), st_shndx = read_word(entry + 6),
                 st_value = read_dword(entry + 8);
-            if (st_shndx == 0) continue;
-            return prev_offset + read_dword(obj->shdr + 0x40 * st_shndx + 24) +
-                   st_value;
+            if (st_shndx == 0 || !(st_info & 0x10)) continue;
+            return new_int(prev_offset +
+                           read_dword(obj->shdr + 0x40 * st_shndx + 24) +
+                           st_value);
         }
         prev_offset += obj->entire_size;
     }
 
+    return NULL;
+}
+
+int search_symbol(Vector *objs, const char *name, int header_offset)
+{
+    int *offset = search_symbol_maybe(objs, name, header_offset);
+    if (offset != NULL) return *offset;
     error("undefined symbol: %s", name);
 }
 
@@ -130,13 +138,16 @@ void link_objs_detail(Vector *objs, int header_offset)
             char *symtab_entry = obj->symtab + 24 * r_info_symtabidx;
             int st_shndx = read_word(symtab_entry + 6);
 
+            // search new address
             int reled_addr = -1;
-            if (st_shndx == 0) {  // SHN_UNDEF
-                char *name = obj->strtab + read_dword(symtab_entry);
-                reled_addr =
-                    search_symbol(objs, name, header_offset) + r_addend;
+            char *name = obj->strtab + read_dword(symtab_entry);
+            int *reled_addr_maybe =
+                search_symbol_maybe(objs, name, header_offset);
+            if (reled_addr_maybe != NULL) {
+                reled_addr = *reled_addr_maybe + r_addend;
             }
             else {
+                if (st_shndx == 0) error("undefined symbol: %s", name);
                 reled_addr = prev_offset +
                              read_dword(obj->shdr + 0x40 * st_shndx + 24) +
                              read_dword(symtab_entry + 8) + r_addend;

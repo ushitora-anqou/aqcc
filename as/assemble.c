@@ -41,7 +41,7 @@ SymbolInfo *get_symbol_info(char *label)
 }
 
 typedef struct {
-    int offset, symtabidx, type;
+    int offset, symtabidx, type, addend;
     SymbolInfo *symbol;
 } RelaEntry;
 
@@ -52,6 +52,7 @@ void add_rela_entry(int offset, int type, int symtabidx, SymbolInfo *symbol)
     entry->symtabidx = symtabidx;
     entry->type = type;
     entry->symbol = symbol;
+    entry->addend = -4;
 
     vector_push_back(target_objimg->rela, entry);
 }
@@ -199,7 +200,8 @@ void emit_addrof(int reg, Code *mem)
         case CD_ADDR_OF_LABEL: {
             SymbolInfo *sym = get_symbol_info(mem->label);
             emit_modrm(0, reg, reg_field(mem->lhs));
-            add_rela_entry(get_current_section_buffer_size(), 2, 2, sym);
+            add_rela_entry(get_current_section_buffer_size(), 2, sym->index,
+                           sym);
             emit_dword_int(0);
         } break;
     }
@@ -809,13 +811,14 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_CALL: {
-                // TODO: assume that all called functions are global.
-                SymbolInfo *sym = get_symbol_info(code->label);
-                sym->st_info |= 0x10;
                 emit_byte(0xe8);
-                add_rela_entry(get_current_section_buffer_size(), 2, sym->index,
-                               sym);
-                emit_dword_int(0);
+                emit_dword_int(0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = get_current_section_buffer_size();
+                lph->size = 4;
+                vector_push_back(label_placeholders, lph);
             } break;
 
             case INST_NOP:
@@ -880,12 +883,24 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             sym->st_info |= 0x10;
     }
 
-    // if rela variable entry has no instance (offset), then its symtabidx is
-    // sym->index. e.g. extern var
     for (int i = 0; i < vector_size(objimg->rela); i++) {
         RelaEntry *ent = (RelaEntry *)vector_get(objimg->rela, i);
+
+        // if rela variable entry has no instance (offset), then its symtabidx
+        // is sym->index. e.g. extern var
         if (map_lookup(target_objimg->label2offset, ent->symbol->label) == NULL)
             ent->symtabidx = ent->symbol->index;
+
+        // if rela variable entry isn't global, then its offset is calculated
+        // from section head.
+        // TODO: assume that is in .data section.
+        if (!(ent->symbol->st_info & 0x10)) {
+            SectionOffset *so = lookup_label_offset(ent->symbol->label);
+            if (so != NULL && so->section == DATA_SECTION) {
+                ent->addend += so->offset;
+                ent->symtabidx = 2;
+            }
+        }
     }
 
     // write offset to label placeholders
@@ -893,8 +908,19 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     for (int i = 0; i < vector_size(label_placeholders); i++) {
         LabelPlaceholder *lph =
             (LabelPlaceholder *)vector_get(label_placeholders, i);
-        int v = lookup_label_offset(lph->label)->offset - lph->offset;
+        SectionOffset *secoff = lookup_label_offset(lph->label);
+        SymbolInfo *sym = get_symbol_info(lph->label);
 
+        if (sym->st_info & 0x10 || secoff == NULL) {
+            // the label (symbol) we're looking for is global or not in this
+            // file, so should be reallocated by linker.
+            assert(lph->size == 4);
+            sym->st_info |= 0x10;  // make this global. TODO: is this right?
+            add_rela_entry(lph->offset - 4, 2, sym->index, sym);
+            continue;
+        }
+
+        int v = secoff->offset - lph->offset;
         switch (lph->size) {
             case 4:
                 reemit_byte(lph->offset - 4, v & 0xff);
@@ -1088,18 +1114,7 @@ void dump_object_image(ObjectImage *objimg, FILE *fh)
         RelaEntry *ent = (RelaEntry *)vector_get(objimg->rela, i);
         emit_qword_int(ent->offset, 0);
         emit_qword_int(ent->type, ent->symtabidx);
-
-        // TODO: is it right?
-        if (ent->type == 2) {
-            int addend = -4;
-            SectionOffset *so = lookup_label_offset(ent->symbol->label);
-            // TODO: ad hoc
-            if (so != NULL && so->section == DATA_SECTION)
-                addend += so->offset;  // if not extern var
-            emit_qword_int(addend, addend >= 0 ? 0 : -1);
-        }
-        else
-            assert(0);
+        emit_qword_int(ent->addend, ent->addend >= 0 ? 0 : -1);
     }
 
     int rela_text_size = emitted_size() - rela_text_offset;
