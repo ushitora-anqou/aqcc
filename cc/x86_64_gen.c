@@ -905,7 +905,7 @@ int x86_64_generate_code_detail(AST *ast)
             stack_idx -= (!!ast->is_variadic) * 48;
 
             // generate code
-            appcode(GLOBAL(ast->fname));
+            if (!ast->type->is_static) appcode(GLOBAL(ast->fname));
             appcode(LABEL(ast->fname));
             appcode(PUSH(RBP()));
             appcode(MOV(RSP(), RBP()));

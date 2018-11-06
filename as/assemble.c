@@ -909,12 +909,12 @@ ObjectImage *assemble_code_detail(Vector *code_list)
         LabelPlaceholder *lph =
             (LabelPlaceholder *)vector_get(label_placeholders, i);
         SectionOffset *secoff = lookup_label_offset(lph->label);
+        SymbolInfo *sym = get_symbol_info(lph->label);
 
-        if (secoff == NULL) {
-            // the label (symbol) we're looking for is not in this file,
-            // so should be reallocated by linker.
+        if (sym->st_info & 0x10 || secoff == NULL) {
+            // the label (symbol) we're looking for is global or not in this
+            // file, so should be reallocated by linker.
             assert(lph->size == 4);
-            SymbolInfo *sym = get_symbol_info(lph->label);
             sym->st_info |= 0x10;  // make this global. TODO: is this right?
             add_rela_entry(lph->offset - 4, 2, sym->index, sym);
             continue;
