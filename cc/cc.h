@@ -518,9 +518,6 @@ void dump_code(Code *code, FILE *fh);
 
 // SIMPLE_gen.c
 typedef struct SIMPLECode SIMPLECode;
-struct SIMPLECode {
-    int dum;
-};
 Vector *SIMPLE_generate_code(Vector *asts);
 void SIMPLE_dump_code(SIMPLECode *code, FILE *fh);
 
