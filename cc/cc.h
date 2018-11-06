@@ -409,152 +409,6 @@ struct AST {
     };
 };
 
-enum {
-    REG_8 = 1 << 5,
-    REG_AL = 0 | REG_8,
-    REG_DIL,
-    REG_SIL,
-    REG_DL,
-    REG_CL,
-    REG_R8B,
-    REG_R9B,
-    REG_R10B,
-    REG_R11B,
-    REG_R12B,
-    REG_R13B,
-    REG_R14B,
-    REG_R15B,
-    REG_BPL,
-    REG_SPL,
-
-    REG_16 = 1 << 6,
-    REG_AX = 0 | REG_16,
-    REG_DI,
-    REG_SI,
-    REG_DX,
-    REG_CX,
-    REG_R8W,
-    REG_R9W,
-    REG_R10W,
-    REG_R11W,
-    REG_R12W,
-    REG_R13W,
-    REG_R14W,
-    REG_R15W,
-    REG_BP,
-    REG_SP,
-
-    REG_32 = 1 << 7,
-    REG_EAX = 0 | REG_32,
-    REG_EDI,
-    REG_ESI,
-    REG_EDX,
-    REG_ECX,
-    REG_R8D,
-    REG_R9D,
-    REG_R10D,
-    REG_R11D,
-    REG_R12D,
-    REG_R13D,
-    REG_R14D,
-    REG_R15D,
-    REG_EBP,
-    REG_ESP,
-
-    REG_64 = 1 << 8,
-    REG_RAX = 0 | REG_64,
-    REG_RDI,
-    REG_RSI,
-    REG_RDX,
-    REG_RCX,
-    REG_R8,
-    REG_R9,
-    REG_R10,
-    REG_R11,
-    REG_R12,
-    REG_R13,
-    REG_R14,
-    REG_R15,
-    REG_RBP,
-    REG_RSP,
-
-    REG_RIP,
-
-    INST_ = 1 << 9,
-    INST_MOV = 0 | INST_,
-    INST_MOVL,
-    INST_MOVSBL,
-    INST_MOVSLQ,
-    INST_MOVZB,
-    INST_LEA,
-    INST_PUSH,
-    INST_POP,
-    INST_ADD,
-    INST_ADDQ,
-    INST_SUB,
-    INST_IMUL,
-    INST_IDIV,
-    INST_SAR,
-    INST_SAL,
-    INST_NEG,
-    INST_NOT,
-    INST_CMP,
-    INST_SETL,
-    INST_SETLE,
-    INST_SETE,
-    INST_AND,
-    INST_XOR,
-    INST_OR,
-    INST_RET,
-    INST_CLTD,
-    INST_CLTQ,
-    INST_JMP,
-    INST_JE,
-    INST_JNE,
-    INST_JAE,
-    INST_LABEL,
-    INST_INCL,
-    INST_INCQ,
-    INST_DECL,
-    INST_DECQ,
-    INST_CALL,
-    INST_NOP,
-    INST_SYSCALL,
-
-    CD_VALUE,
-    CD_ADDR_OF,
-    CD_ADDR_OF_LABEL,
-
-    CD_GLOBAL,
-    CD_TEXT,
-    CD_DATA,
-    CD_ZERO,
-    CD_LONG,
-    CD_BYTE,
-    CD_QUAD,
-    CD_ASCII,
-
-    CD_COMMENT,
-
-    MRK_BASIC_BLOCK_START,
-    MRK_BASIC_BLOCK_END,
-    MRK_FUNCDEF_START,
-    MRK_FUNCDEF_END,
-    MRK_FUNCDEF_RETURN,
-};
-
-typedef struct Code Code;
-struct Code {
-    int kind;
-
-    Code *lhs, *rhs;
-    int ival;
-    char *sval;  // size is ival
-    char *label;
-    Vector *read_dep;
-    int can_be_eliminated;
-};
-
 // utility.c
 _Noreturn void error(const char *msg, ...);
 _Noreturn void error_unexpected_token_kind(int expect_kind, Token *got);
@@ -580,76 +434,6 @@ Vector *read_tokens_from_filepath(char *filepath);
 
 // parse.c
 Vector *parse_prog(Vector *tokens);
-
-// x86_64_gen.c
-Vector *x86_64_generate_code(Vector *asts);
-int is_register_code(Code *code);
-int reg_of_nbyte(int nbyte, int reg);
-Code *nbyte_reg(int nbyte, int reg);
-int alignment_of(Type *type);
-
-// code.c
-Code *ADD(Code *lhs, Code *rhs);
-Code *ADDQ(Code *lhs, Code *rhs);
-Code *AL();
-Code *AND(Code *lhs, Code *rhs);
-Code *CL();
-Code *CLTD();
-Code *CLTQ();
-Code *CMP(Code *lhs, Code *rhs);
-Code *DECL(Code *lhs);
-Code *DECQ(Code *lhs);
-Code *IDIV(Code *lhs);
-Code *IMUL(Code *lhs, Code *rhs);
-Code *INCL(Code *lhs);
-Code *INCQ(Code *lhs);
-Code *JMP(char *label);
-Code *JE(char *label);
-Code *JNE(char *label);
-Code *JAE(char *label);
-Code *LABEL(char *label);
-Code *LEA(Code *lhs, Code *rhs);
-Code *MOV(Code *lhs, Code *rhs);
-Code *MOVL(Code *lhs, Code *rhs);
-Code *MOVSBL(Code *lhs, Code *rhs);
-Code *MOVSLQ(Code *lhs, Code *rhs);
-Code *MOVZB(Code *lhs, Code *rhs);
-Code *NEG(Code *lhs);
-Code *NOT(Code *lhs);
-Code *OR(Code *lhs, Code *rhs);
-Code *POP(Code *lhs);
-Code *PUSH(Code *lhs);
-Code *R10();
-Code *R11();
-Code *R12();
-Code *R13();
-Code *R14();
-Code *R15();
-Code *EAX();
-Code *EDX();
-Code *RAX();
-Code *RBP();
-Code *RDI();
-Code *RDX();
-Code *RET();
-Code *RIP();
-Code *RSP();
-Code *SAL(Code *lhs, Code *rhs);
-Code *SAR(Code *lhs, Code *rhs);
-Code *SETE(Code *lhs);
-Code *SETL(Code *lhs);
-Code *SETLE(Code *lhs);
-Code *SUB(Code *lhs, Code *rhs);
-Code *XOR(Code *lhs, Code *rhs);
-Code *GLOBAL(char *label);
-Code *new_addrof_code(Code *reg, int offset);
-Code *new_addrof_label_code(Code *reg, char *label);
-Code *new_value_code(int value);
-Code *new_code(int kind);
-char *code2str(Code *code);
-void dump_code(Code *code, FILE *fh);
-Code *new_binop_code(int kind, Code *lhs, Code *rhs);
-Code *new_unary_code(int kind, Code *lhs);
 
 // type.c
 Type *type_int();
@@ -725,8 +509,11 @@ void restore_token_seq_saved(TokenSeqSaved *saved);
     TokenSeqSaved *token_seq_saved__dummy = new_token_seq_saved();
 #define RESTORE_TOKENSEQ restore_token_seq_saved(token_seq_saved__dummy);
 
-// optimize.c
+// x86_64_gen.c
+typedef struct Code Code;
+Vector *x86_64_generate_code(Vector *asts);
 void x86_64_optimize_asts_constant(Vector *asts, Env *env);
 Vector *x86_64_optimize_code(Vector *code);
+void dump_code(Code *code, FILE *fh);
 
 #endif
