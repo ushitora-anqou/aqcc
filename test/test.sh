@@ -28,7 +28,7 @@ $AQCC _test.c testutil.c stdlib.c system.s -o _test_exe.o -v
 ./_test_exe.o
 [ $? -eq 0 ] || fail "./_test_exe.o"
 
-$AQCC test_link.c test_link.s -o _test_exe.o -v
+$AQCC test_link.c test_link.s test_link2.s -o _test_exe.o -v
 [ $? -eq 0 ] || fail "$AQCC"
 ./_test_exe.o
-[ $? -eq 5 ] || fail "./_test_exe.o (link)"
+[ $? -eq 1 ] || fail "./_test_exe.o (link)"

@@ -69,4 +69,4 @@ clean:
 	rm -rf bin/
 	rm -rf _test.c _test_define_exe.o  _test_exe.o
 
-.PHONY: test self_test selfself_test
+.PHONY: test self_test selfself_test $(AQCC_CC) $(AQCC_AS) $(AQCC_LD)

@@ -809,13 +809,14 @@ ObjectImage *assemble_code_detail(Vector *code_list)
             } break;
 
             case INST_CALL: {
-                // TODO: assume that all called functions are global.
-                SymbolInfo *sym = get_symbol_info(code->label);
-                sym->st_info |= 0x10;
                 emit_byte(0xe8);
-                add_rela_entry(get_current_section_buffer_size(), 2, sym->index,
-                               sym);
-                emit_dword_int(0);
+                emit_dword_int(0);  // placeholder
+
+                LabelPlaceholder *lph = safe_malloc(sizeof(LabelPlaceholder));
+                lph->label = code->label;
+                lph->offset = get_current_section_buffer_size();
+                lph->size = 4;
+                vector_push_back(label_placeholders, lph);
             } break;
 
             case INST_NOP:
@@ -893,8 +894,19 @@ ObjectImage *assemble_code_detail(Vector *code_list)
     for (int i = 0; i < vector_size(label_placeholders); i++) {
         LabelPlaceholder *lph =
             (LabelPlaceholder *)vector_get(label_placeholders, i);
-        int v = lookup_label_offset(lph->label)->offset - lph->offset;
+        SectionOffset *secoff = lookup_label_offset(lph->label);
 
+        if (secoff == NULL) {
+            // the label (symbol) we're looking for is not in this file,
+            // so should be reallocated by linker.
+            assert(lph->size == 4);
+            SymbolInfo *sym = get_symbol_info(lph->label);
+            sym->st_info |= 0x10;  // make this global. TODO: is this right?
+            add_rela_entry(lph->offset - 4, 2, sym->index, sym);
+            continue;
+        }
+
+        int v = secoff->offset - lph->offset;
         switch (lph->size) {
             case 4:
                 reemit_byte(lph->offset - 4, v & 0xff);
