@@ -20,7 +20,7 @@ GVar *new_gvar_from_decl(AST *ast)
     GVar *gvar = (GVar *)safe_malloc(sizeof(GVar));
     gvar->name = ast->varname;
     gvar->type = ast->type;
-    gvar->is_global = 1;
+    gvar->is_global = !ast->type->is_static;
     gvar->value = NULL;
     return gvar;
 }
