@@ -69,5 +69,6 @@ $(AQCC_LD_SELFSELF): $(AQCC_CC_SELF) $(AQCC_AS_SELF) $(AQCC_LD_SELF)
 clean:
 	rm -rf bin/
 	rm -rf _test.c _test_define_exe.o  _test_exe.o
+	rm -rf _test_simple.c _test_simple.s
 
 .PHONY: test self_test selfself_test $(AQCC_CC) $(AQCC_AS) $(AQCC_LD)

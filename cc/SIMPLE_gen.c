@@ -3,6 +3,8 @@
 struct SIMPLECode {
     enum {
         INST_MOV,
+        INST_ADD,
+        INST_SUB,
         INST_HLT,
         INST_RET,
         INST_LABEL,
@@ -37,12 +39,27 @@ static SIMPLECode *new_code(int kind)
     return code;
 }
 
-static SIMPLECode *MOV(SIMPLECode *lhs, SIMPLECode *rhs)
+static SIMPLECode *new_binop_code(int kind, SIMPLECode *lhs, SIMPLECode *rhs)
 {
-    SIMPLECode *code = new_code(INST_MOV);
+    SIMPLECode *code = new_code(kind);
     code->lhs = lhs;
     code->rhs = rhs;
     return code;
+}
+
+static SIMPLECode *MOV(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_MOV, lhs, rhs);
+}
+
+static SIMPLECode *ADD(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_ADD, lhs, rhs);
+}
+
+static SIMPLECode *SUB(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_SUB, lhs, rhs);
 }
 
 static SIMPLECode *RET() { return new_code(INST_RET); }
@@ -119,6 +136,12 @@ static char *code2str(SIMPLECode *code)
         case INST_MOV:
             return format("MOV %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
+        case INST_ADD:
+            return format("ADD %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+        case INST_SUB:
+            return format("SUB %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
         case INST_HLT:
             return "HLT";
         case INST_CALL:
@@ -178,6 +201,24 @@ int SIMPLE_generate_code_detail(AST *ast)
             int regidx = get_temp_reg();
             appcode(MOV(reg(regidx), value(ast->ival)));
             return regidx;
+        }
+
+        case AST_ADD: {
+            int lreg = SIMPLE_generate_code_detail(ast->lhs),
+                rreg = SIMPLE_generate_code_detail(ast->rhs);
+
+            appcode(ADD(reg(lreg), reg(rreg)));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_SUB: {
+            int lreg = SIMPLE_generate_code_detail(ast->lhs),
+                rreg = SIMPLE_generate_code_detail(ast->rhs);
+
+            appcode(SUB(reg(lreg), reg(rreg)));
+            restore_temp_reg(rreg);
+            return lreg;
         }
 
         case AST_RETURN:
