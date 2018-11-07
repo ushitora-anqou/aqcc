@@ -247,7 +247,7 @@ int SIMPLE_generate_code_detail(AST *ast)
             return -1;
     }
 
-    assert(0);
+    error("Unimplemented operation: %d", ast->kind);
 }
 
 Vector *SIMPLE_generate_code(Vector *asts)
