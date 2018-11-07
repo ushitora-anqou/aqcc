@@ -7,6 +7,10 @@ struct SIMPLECode {
         INST_SUB,
         INST_XOR,
         INST_SLL,
+        INST_CMP,
+        INST_JL,
+        INST_JLE,
+        INST_JMP,
         INST_HLT,
         INST_RET,
         INST_LABEL,
@@ -74,6 +78,11 @@ static SIMPLECode *SLL(SIMPLECode *lhs, SIMPLECode *rhs)
     return new_binop_code(INST_SLL, lhs, rhs);
 }
 
+static SIMPLECode *CMP(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_CMP, lhs, rhs);
+}
+
 static SIMPLECode *RET() { return new_code(INST_RET); }
 
 static SIMPLECode *HLT() { return new_code(INST_HLT); }
@@ -81,6 +90,27 @@ static SIMPLECode *HLT() { return new_code(INST_HLT); }
 static SIMPLECode *CALL(char *label)
 {
     SIMPLECode *code = new_code(INST_CALL);
+    code->label = label;
+    return code;
+}
+
+static SIMPLECode *JL(char *label)
+{
+    SIMPLECode *code = new_code(INST_JL);
+    code->label = label;
+    return code;
+}
+
+static SIMPLECode *JLE(char *label)
+{
+    SIMPLECode *code = new_code(INST_JLE);
+    code->label = label;
+    return code;
+}
+
+static SIMPLECode *JMP(char *label)
+{
+    SIMPLECode *code = new_code(INST_JMP);
     code->label = label;
     return code;
 }
@@ -160,10 +190,19 @@ static char *code2str(SIMPLECode *code)
         case INST_SLL:
             return format("SLL %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
+        case INST_CMP:
+            return format("CMP %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
         case INST_HLT:
             return "HLT";
         case INST_CALL:
             return format("CALL %s", code->label);
+        case INST_JMP:
+            return format("JMP %s", code->label);
+        case INST_JL:
+            return format("JL %s", code->label);
+        case INST_JLE:
+            return format("JLE %s", code->label);
         case INST_RET:
             return "RET";
         case INST_LABEL:
@@ -270,6 +309,37 @@ int SIMPLE_generate_code_detail(AST *ast)
             return srcreg;
         }
 
+        case AST_LT: {
+            int lreg = SIMPLE_generate_code_detail(ast->lhs),
+                rreg = SIMPLE_generate_code_detail(ast->rhs);
+            char *true_label = make_label_string(),
+                 *exit_label = make_label_string();
+            appcode(CMP(reg(lreg), reg(rreg)));
+            appcode(JL(true_label));
+            appcode(MOV(reg(lreg), value(0)));
+            appcode(JMP(exit_label));
+            appcode(LABEL(true_label));
+            appcode(MOV(reg(lreg), value(1)));
+            appcode(LABEL(exit_label));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
+        case AST_LTE: {
+            int lreg = SIMPLE_generate_code_detail(ast->lhs),
+                rreg = SIMPLE_generate_code_detail(ast->rhs);
+            char *true_label = make_label_string(),
+                 *exit_label = make_label_string();
+            appcode(CMP(reg(lreg), reg(rreg)));
+            appcode(JLE(true_label));
+            appcode(MOV(reg(lreg), value(0)));
+            appcode(JMP(exit_label));
+            appcode(LABEL(true_label));
+            appcode(MOV(reg(lreg), value(1)));
+            appcode(LABEL(exit_label));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
         case AST_RETURN:
             assert(temp_reg_table == 0);
 
