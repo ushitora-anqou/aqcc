@@ -4,6 +4,9 @@ struct SIMPLECode {
     enum {
         INST_MOV,
         INST_HLT,
+        INST_RET,
+        INST_LABEL,
+        INST_CALL,
 
         REG_R0,
         REG_R1,
@@ -23,6 +26,7 @@ struct SIMPLECode {
             SIMPLECode *lhs, *rhs;
         };
         int ival;
+        char *label;
     };
 };
 
@@ -41,7 +45,23 @@ static SIMPLECode *MOV(SIMPLECode *lhs, SIMPLECode *rhs)
     return code;
 }
 
+static SIMPLECode *RET() { return new_code(INST_RET); }
+
 static SIMPLECode *HLT() { return new_code(INST_HLT); }
+
+static SIMPLECode *CALL(char *label)
+{
+    SIMPLECode *code = new_code(INST_CALL);
+    code->label = label;
+    return code;
+}
+
+static SIMPLECode *LABEL(char *label)
+{
+    SIMPLECode *code = new_code(INST_LABEL);
+    code->label = label;
+    return code;
+}
 
 static SIMPLECode *R0() { return new_code(REG_R0); }
 
@@ -74,6 +94,23 @@ static SIMPLECode *value(int value)
     return code;
 }
 
+static int temp_reg_table;
+
+static void init_temp_reg() { temp_reg_table = 0; }
+
+static int get_temp_reg()
+{
+    for (int i = 0; i < 6; i++) {
+        if (temp_reg_table & (1 << i)) continue;
+        temp_reg_table |= (1 << i);
+        return i;
+    }
+
+    error("no more register");
+}
+
+static void restore_temp_reg(int i) { temp_reg_table &= ~(1 << i); }
+
 static char *code2str(SIMPLECode *code)
 {
     if (code == NULL) return NULL;
@@ -84,6 +121,12 @@ static char *code2str(SIMPLECode *code)
                           code2str(code->rhs));
         case INST_HLT:
             return "HLT";
+        case INST_CALL:
+            return format("CALL %s", code->label);
+        case INST_RET:
+            return "RET";
+        case INST_LABEL:
+            return format("%s:", code->label);
         case REG_R0:
             return "R0";
         case REG_R1:
@@ -109,12 +152,77 @@ static char *code2str(SIMPLECode *code)
     assert(0);
 }
 
+typedef struct {
+    char *continue_label, *break_label;
+    int reg_save_area_stack_idx, overflow_arg_area_stack_idx;
+    Vector *code;
+} CodeEnv;
+CodeEnv *codeenv;
+
+static void init_code_env()
+{
+    codeenv = (CodeEnv *)safe_malloc(sizeof(CodeEnv));
+    codeenv->continue_label = codeenv->break_label = NULL;
+    codeenv->reg_save_area_stack_idx = 0;
+    codeenv->code = new_vector();
+}
+
+static void appcode(SIMPLECode *code) { vector_push_back(codeenv->code, code); }
+
+int SIMPLE_generate_code_detail(AST *ast)
+{
+    assert(ast != NULL);
+
+    switch (ast->kind) {
+        case AST_INT: {
+            int regidx = get_temp_reg();
+            appcode(MOV(reg(regidx), value(ast->ival)));
+            return regidx;
+        }
+
+        case AST_RETURN:
+            assert(temp_reg_table == 0);
+
+            if (ast->lhs) {
+                int regidx = SIMPLE_generate_code_detail(ast->lhs);
+                appcode(MOV(R0(), reg(regidx)));
+                restore_temp_reg(regidx);
+            }
+            else {
+                appcode(MOV(R0(), value(0)));
+            }
+            appcode(RET());
+            return -1;
+
+        case AST_COMPOUND:
+            for (int i = 0; i < vector_size(ast->stmts); i++)
+                SIMPLE_generate_code_detail((AST *)vector_get(ast->stmts, i));
+            return -1;
+
+        case AST_FUNCDEF:
+            appcode(LABEL(ast->fname));
+            SIMPLE_generate_code_detail(ast->body);
+            appcode(RET());
+            return -1;
+    }
+
+    assert(0);
+}
+
 Vector *SIMPLE_generate_code(Vector *asts)
 {
-    Vector *ret = new_vector();
-    vector_push_back(ret, MOV(R0(), value(10)));
-    vector_push_back(ret, HLT());
-    return ret;
+    init_code_env();
+    init_temp_reg();
+
+    appcode(CALL("main"));
+    appcode(HLT());
+
+    for (int i = 0; i < vector_size(asts); i++) {
+        AST *ast = (AST *)vector_get(asts, i);
+        SIMPLE_generate_code_detail(ast);
+    }
+
+    return clone_vector(codeenv->code);
 }
 
 void SIMPLE_dump_code(SIMPLECode *code, FILE *fh)
