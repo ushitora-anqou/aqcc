@@ -48,3 +48,4 @@ test_simple "int main() { return 10; }" 10
 test_simple "int main() { return 10+20; }" 30
 test_simple "int main() { return 20-10; }" 10
 test_simple "int main() { return -10+20; }" 10
+test_simple "int main() { return ~-1; }" 0

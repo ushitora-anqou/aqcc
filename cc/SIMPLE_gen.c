@@ -264,6 +264,12 @@ int SIMPLE_generate_code_detail(AST *ast)
             return srcreg;
         }
 
+        case AST_COMPL: {
+            int srcreg = SIMPLE_generate_code_detail(ast->lhs);
+            generate_NOT(srcreg);
+            return srcreg;
+        }
+
         case AST_RETURN:
             assert(temp_reg_table == 0);
 
