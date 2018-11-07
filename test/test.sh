@@ -67,3 +67,7 @@ test_simple "int main() { return 2>=1; }" 1
 test_simple "int main() { return -1>=2; }" 0
 test_simple "int main() { return -2>=1; }" 0
 test_simple "int main() { return 1>=1; }" 1
+test_simple "int main() { return 1==1; }" 1
+test_simple "int main() { return 1==2; }" 0
+test_simple "int main() { return 1!=1; }" 0
+test_simple "int main() { return 1!=2; }" 1

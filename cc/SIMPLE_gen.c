@@ -10,6 +10,7 @@ struct SIMPLECode {
         INST_CMP,
         INST_JL,
         INST_JLE,
+        INST_JE,
         INST_JMP,
         INST_HLT,
         INST_RET,
@@ -104,6 +105,13 @@ static SIMPLECode *JL(char *label)
 static SIMPLECode *JLE(char *label)
 {
     SIMPLECode *code = new_code(INST_JLE);
+    code->label = label;
+    return code;
+}
+
+static SIMPLECode *JE(char *label)
+{
+    SIMPLECode *code = new_code(INST_JE);
     code->label = label;
     return code;
 }
@@ -203,6 +211,8 @@ static char *code2str(SIMPLECode *code)
             return format("JL %s", code->label);
         case INST_JLE:
             return format("JLE %s", code->label);
+        case INST_JE:
+            return format("JE %s", code->label);
         case INST_RET:
             return "RET";
         case INST_LABEL:
@@ -340,6 +350,23 @@ int SIMPLE_generate_code_detail(AST *ast)
             restore_temp_reg(rreg);
             return lreg;
         }
+
+        case AST_EQ: {
+            int lreg = SIMPLE_generate_code_detail(ast->lhs),
+                rreg = SIMPLE_generate_code_detail(ast->rhs);
+            char *true_label = make_label_string(),
+                 *exit_label = make_label_string();
+            appcode(CMP(reg(lreg), reg(rreg)));
+            appcode(JE(true_label));
+            appcode(MOV(reg(lreg), value(0)));
+            appcode(JMP(exit_label));
+            appcode(LABEL(true_label));
+            appcode(MOV(reg(lreg), value(1)));
+            appcode(LABEL(exit_label));
+            restore_temp_reg(rreg);
+            return lreg;
+        }
+
         case AST_RETURN:
             assert(temp_reg_table == 0);
 
