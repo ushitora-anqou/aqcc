@@ -5,6 +5,8 @@ struct SIMPLECode {
         INST_MOV,
         INST_ADD,
         INST_SUB,
+        INST_XOR,
+        INST_SLL,
         INST_HLT,
         INST_RET,
         INST_LABEL,
@@ -60,6 +62,16 @@ static SIMPLECode *ADD(SIMPLECode *lhs, SIMPLECode *rhs)
 static SIMPLECode *SUB(SIMPLECode *lhs, SIMPLECode *rhs)
 {
     return new_binop_code(INST_SUB, lhs, rhs);
+}
+
+static SIMPLECode *XOR(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_XOR, lhs, rhs);
+}
+
+static SIMPLECode *SLL(SIMPLECode *lhs, SIMPLECode *rhs)
+{
+    return new_binop_code(INST_SLL, lhs, rhs);
 }
 
 static SIMPLECode *RET() { return new_code(INST_RET); }
@@ -142,6 +154,12 @@ static char *code2str(SIMPLECode *code)
         case INST_SUB:
             return format("SUB %s, %s", code2str(code->lhs),
                           code2str(code->rhs));
+        case INST_XOR:
+            return format("XOR %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
+        case INST_SLL:
+            return format("SLL %s, %s", code2str(code->lhs),
+                          code2str(code->rhs));
         case INST_HLT:
             return "HLT";
         case INST_CALL:
@@ -192,6 +210,21 @@ static void init_code_env()
 
 static void appcode(SIMPLECode *code) { vector_push_back(codeenv->code, code); }
 
+static void generate_0xffff(int regi)
+{
+    appcode(MOV(reg(regi), value(0xff)));
+    appcode(SLL(reg(regi), value(8)));
+    appcode(MOV(reg(regi), value(0xff)));
+}
+
+static void generate_NOT(int srcreg)
+{
+    int tmpreg = get_temp_reg();
+    generate_0xffff(tmpreg);
+    appcode(XOR(reg(srcreg), reg(tmpreg)));
+    restore_temp_reg(tmpreg);
+}
+
 int SIMPLE_generate_code_detail(AST *ast)
 {
     assert(ast != NULL);
@@ -219,6 +252,16 @@ int SIMPLE_generate_code_detail(AST *ast)
             appcode(SUB(reg(lreg), reg(rreg)));
             restore_temp_reg(rreg);
             return lreg;
+        }
+
+        case AST_UNARY_MINUS: {
+            int srcreg = SIMPLE_generate_code_detail(ast->lhs);
+            generate_NOT(srcreg);
+            int tmpreg = get_temp_reg();
+            appcode(MOV(reg(tmpreg), value(1)));
+            appcode(ADD(reg(srcreg), reg(tmpreg)));
+            restore_temp_reg(tmpreg);
+            return srcreg;
         }
 
         case AST_RETURN:
