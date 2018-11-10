@@ -862,7 +862,7 @@ AST *analyze_ast_detail(Env *env, AST *ast)
             if (rhs->kind != AST_LVAR) error("invalid argument of va_start()");
             int index = get_index_in_va_start_params(rhs->varname);
             if (index < 0)
-                error("invalid argument of va_start(): not such param");
+                error("invalid argument of va_start(): no such param");
             ast = new_binop_ast(AST_VA_START, lhs, new_int_ast(index + 1));
             ast->type = type_void();
         } break;
