@@ -128,9 +128,7 @@ void *malloc(int size)
     if (malloc_pointer_head == 0) {
         char *p = brk(0);
         int size = 0x32000000;
-        char *q = brk(p + size);
         // printf("init %d\n", p);
-        // printf("init %d\n", q);
         malloc_pointer_head = p;
         malloc_remaining_size = size;
     }
