@@ -128,9 +128,7 @@ void *malloc(int size)
     if (malloc_pointer_head == 0) {
         char *p = brk(0);
         int size = 0x32000000;
-        char *q = brk(p + size);
-        // printf("init %d\n", p);
-        // printf("init %d\n", q);
+        brk(p + size);
         malloc_pointer_head = p;
         malloc_remaining_size = size;
     }
@@ -144,11 +142,6 @@ void *malloc(int size)
     char *ret = malloc_pointer_head + 4;
     malloc_pointer_head += size + 4;
     malloc_remaining_size -= size + 4;
-
-    // printf("%d\n", malloc_remaining_size);
-    // printf("%d\n", size);
-    // printf("%d\n", ret);
-    // printf("%d\n", ret + size);
     return ret;
 }
 
